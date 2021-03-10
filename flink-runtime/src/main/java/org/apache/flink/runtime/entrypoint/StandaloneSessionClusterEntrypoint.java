@@ -25,6 +25,9 @@ import org.apache.flink.runtime.util.EnvironmentInformation;
 import org.apache.flink.runtime.util.JvmShutdownSafeguard;
 import org.apache.flink.runtime.util.SignalHandler;
 
+// 入参 :
+// --configDir /opt/tools/flink-1.12.2/conf --executionMode cluster -D jobmanager.memory.off-heap.size=134217728b -D jobmanager.memory.jvm-overhead.min=201326592b -D jobmanager.memory.jvm-metaspace.size=268435456b -D jobmanager.memory.heap.size=1073741824b -D jobmanager.memory.jvm-overhead.max=201326592b
+
 /** Entry point for the standalone session cluster. */
 public class StandaloneSessionClusterEntrypoint extends SessionClusterEntrypoint {
 
@@ -39,11 +42,17 @@ public class StandaloneSessionClusterEntrypoint extends SessionClusterEntrypoint
                 StandaloneResourceManagerFactory.getInstance());
     }
 
+
+    // 入参 :
+    // --configDir /opt/tools/flink-1.12.2/conf --executionMode cluster -D jobmanager.memory.off-heap.size=134217728b -D jobmanager.memory.jvm-overhead.min=201326592b -D jobmanager.memory.jvm-metaspace.size=268435456b -D jobmanager.memory.heap.size=1073741824b -D jobmanager.memory.jvm-overhead.max=201326592b
+
+
     public static void main(String[] args) {
         // startup checks and logging
         EnvironmentInformation.logEnvironmentInfo(
                 LOG, StandaloneSessionClusterEntrypoint.class.getSimpleName(), args);
         SignalHandler.register(LOG);
+
         JvmShutdownSafeguard.installAsShutdownHook(LOG);
 
         final EntrypointClusterConfiguration entrypointClusterConfiguration =
@@ -56,6 +65,7 @@ public class StandaloneSessionClusterEntrypoint extends SessionClusterEntrypoint
         StandaloneSessionClusterEntrypoint entrypoint =
                 new StandaloneSessionClusterEntrypoint(configuration);
 
+        // 启动程序
         ClusterEntrypoint.runClusterEntrypoint(entrypoint);
     }
 }

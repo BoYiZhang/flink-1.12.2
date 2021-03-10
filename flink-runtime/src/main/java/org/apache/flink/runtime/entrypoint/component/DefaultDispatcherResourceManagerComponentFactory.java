@@ -118,6 +118,7 @@ public class DefaultDispatcherResourceManagerComponentFactory
         DispatcherRunner dispatcherRunner = null;
 
         try {
+
             dispatcherLeaderRetrievalService =
                     highAvailabilityServices.getDispatcherLeaderRetriever();
 
@@ -157,6 +158,7 @@ public class DefaultDispatcherResourceManagerComponentFactory
                                     dispatcherGatewayRetriever,
                                     executor);
 
+            // web ?
             webMonitorEndpoint =
                     restEndpointFactory.createRestEndpoint(
                             configuration,

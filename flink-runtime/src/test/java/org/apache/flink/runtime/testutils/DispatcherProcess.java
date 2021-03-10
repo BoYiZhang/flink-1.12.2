@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -122,6 +123,9 @@ public class DispatcherProcess extends TestJvmProcess {
                         new StandaloneSessionClusterEntrypoint(config);
 
                 ClusterEntrypoint.runClusterEntrypoint(clusterEntrypoint);
+
+
+                TimeUnit.HOURS.sleep(1111);
             } catch (Throwable t) {
                 LOG.error("Failed to start Dispatcher process", t);
                 System.exit(1);
