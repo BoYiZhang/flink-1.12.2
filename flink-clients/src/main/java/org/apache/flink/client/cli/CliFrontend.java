@@ -169,7 +169,10 @@ public class CliFrontend {
     protected void runApplication(String[] args) throws Exception {
         LOG.info("Running 'run-application' command.");
 
+        // 获取run动作, 获取默认的配置
         final Options commandOptions = CliFrontendParser.getRunCommandOptions();
+
+        // 根据用户指定的配置项,进行解析
         final CommandLine commandLine = getCommandLine(commandOptions, args, true);
 
         if (commandLine.hasOption(HELP_OPTION.getOpt())) {
@@ -230,19 +233,54 @@ public class CliFrontend {
             return;
         }
 
+        // 获取提交方式的client  :  GenericCLI@2282
         final CustomCommandLine activeCommandLine =
                 validateAndGetActiveCommandLine(checkNotNull(commandLine));
 
         final ProgramOptions programOptions = ProgramOptions.create(commandLine);
 
+
+        // jobJars : 0 = file:/opt/tools/flink-1.12.2/examples/streaming/SocketWindowWordCount.jar
         final List<URL> jobJars = getJobJarAndDependencies(programOptions);
 
+        //    effectiveConfiguration = {Configuration@3429} "{taskmanager.memory.process.size=1728m, jobmanager.execution.failover-strategy=region, jobmanager.rpc.address=localhost, execution.target=yarn-per-job, jobmanager.memory.process.size=1600m, jobmanager.rpc.port=6123, execution.savepoint.ignore-unclaimed-state=false, execution.attached=true, execution.shutdown-on-attached-exit=false, pipeline.jars=[file:/opt/tools/flink-1.12.2/examples/streaming/SocketWindowWordCount.jar], parallelism.default=1, taskmanager.numberOfTaskSlots=1, pipeline.classpaths=[], $internal.deployment.config-dir=/opt/tools/flink-1.12.2/conf}"
+        //        confData = {HashMap@3448}  size = 14
+        //        "taskmanager.memory.process.size" -> "1728m"
+        //        "jobmanager.execution.failover-strategy" -> "region"
+        //        "jobmanager.rpc.address" -> "localhost"
+        //        "execution.target" -> "yarn-per-job"
+        //        "jobmanager.memory.process.size" -> "1600m"
+        //        "jobmanager.rpc.port" -> "6123"
+        //        "execution.savepoint.ignore-unclaimed-state" -> {Boolean@3477} false
+        //        "execution.attached" -> {Boolean@3479} true
+        //        "execution.shutdown-on-attached-exit" -> {Boolean@3477} false
+        //        "pipeline.jars" -> {ArrayList@3482}  size = 1
+        //        "parallelism.default" -> "1"
+        //        "taskmanager.numberOfTaskSlots" -> "1"
+        //        "pipeline.classpaths" -> {ArrayList@3488}  size = 0
+        //        "$internal.deployment.config-dir" -> "/opt/tools/flink-1.12.2/conf"
         final Configuration effectiveConfiguration =
                 getEffectiveConfiguration(activeCommandLine, commandLine, programOptions, jobJars);
 
         LOG.debug("Effective executor configuration: {}", effectiveConfiguration);
 
         try (PackagedProgram program = getPackagedProgram(programOptions, effectiveConfiguration)) {
+            // 开始执行程序...
+
+            // ------------------------------------------------------
+            //    program = {PackagedProgram@3430}
+            //    jarFile = {URL@3435} "file:/opt/tools/flink-1.12.2/examples/streaming/SocketWindowWordCount.jar"
+            //    args = {String[2]@3436}
+            //    0 = "--port"
+            //    1 = "9999"
+            //    mainClass = {Class@3423} "class org.apache.flink.streaming.examples.socket.SocketWindowWordCount"
+            //    extractedTempLibraries = {Collections$EmptyList@3437}  size = 0
+            //    classpaths = {ArrayList@3438}  size = 0
+            //    userCodeClassLoader = {FlinkUserCodeClassLoaders$SafetyNetWrapperClassLoader@3439}
+            //    savepointSettings = {SavepointRestoreSettings@3440} "SavepointRestoreSettings.none()"
+            //    isPython = false
+
+            // 开始执行程序
             executeProgram(effectiveConfiguration, program);
         }
     }
@@ -807,6 +845,7 @@ public class CliFrontend {
     //  Interaction with programs and JobManager
     // --------------------------------------------------------------------------------------------
 
+
     protected void executeProgram(final Configuration configuration, final PackagedProgram program)
             throws ProgramInvocationException {
         ClientUtils.executeProgram(
@@ -1024,6 +1063,7 @@ public class CliFrontend {
 
     // --------------------------------------------------------------------------------------------
     //  Entry point for executable
+    //  可执行的入口
     // --------------------------------------------------------------------------------------------
 
     /**
@@ -1034,6 +1074,7 @@ public class CliFrontend {
      */
     public int parseAndRun(String[] args) {
 
+        // 检测参数
         // check for action
         if (args.length < 1) {
             CliFrontendParser.printHelp(customCommandLines);
@@ -1042,6 +1083,7 @@ public class CliFrontend {
         }
 
         // get action
+        // 获取动作
         String action = args[0];
 
         // remove action from parameters
@@ -1051,24 +1093,31 @@ public class CliFrontend {
             // do action
             switch (action) {
                 case ACTION_RUN:
+                    // 执行 run 操作...
                     run(params);
                     return 0;
                 case ACTION_RUN_APPLICATION:
+                    // 执行run-application 操作
                     runApplication(params);
                     return 0;
                 case ACTION_LIST:
+                    // 执行 list 操作
                     list(params);
                     return 0;
                 case ACTION_INFO:
+                    // 执行 info 操作
                     info(params);
                     return 0;
                 case ACTION_CANCEL:
+                    // 执行 cancel 操作
                     cancel(params);
                     return 0;
                 case ACTION_STOP:
+                    // 执行 stop 操作
                     stop(params);
                     return 0;
                 case ACTION_SAVEPOINT:
+                    // 执行 savepoint 操作
                     savepoint(params);
                     return 0;
                 case "-h":
@@ -1109,28 +1158,59 @@ public class CliFrontend {
         }
     }
 
-    /** Submits the job based on the arguments. */
+
+
+    /**
+     * env :
+     *
+     * FLINK_CONF_DIR=/opt/tools/flink-1.12.2/conf;log.file=/opt/tools/flink-1.12.2/log/flink-sysadmin-client-BoYi-Pro.local.log ;log4j.configuration=file:/opt/tools/flink-1.12.2/conf/log4j-cli.properties ;log4j.configurationFile=file:/opt/tools/flink-1.12.2/conf/log4j-cli.properties ;logback.configurationFile=file:/opt/tools/flink-1.12.2/conf/logback.xml
+     *
+     *
+     * org.apache.flink.client.cli.CliFrontend
+     * run -t yarn-per-job -c org.apache.flink.streaming.examples.socket.SocketWindowWordCount /opt/tools/flink-1.12.2/examples/streaming/SocketWindowWordCount.jar --port 9999
+     *
+     * 提交函数
+     * Submits the job based on the arguments.
+     *
+     *
+     *
+     *
+     * */
     public static void main(final String[] args) {
         EnvironmentInformation.logEnvironmentInfo(LOG, "Command Line Client", args);
 
         // 1. find the configuration directory
+        // 1. 获取配置conf目录: /opt/tools/flink-1.12.2/conf
         final String configurationDirectory = getConfigurationDirectoryFromEnv();
 
         // 2. load the global configuration
+        // 2. 加载全局conf配置:
+        //    "taskmanager.memory.process.size" -> "1728m"
+        //    "parallelism.default" -> "1"
+        //    "jobmanager.execution.failover-strategy" -> "region"
+        //    "jobmanager.rpc.address" -> "localhost"
+        //    "taskmanager.numberOfTaskSlots" -> "1"
+        //    "jobmanager.memory.process.size" -> "1600m"
+        //    "jobmanager.rpc.port" -> "6123"
         final Configuration configuration =
                 GlobalConfiguration.loadConfiguration(configurationDirectory);
 
         // 3. load the custom command lines
+        // 3. 加载自定义参数
         final List<CustomCommandLine> customCommandLines =
                 loadCustomCommandLines(configuration, configurationDirectory);
 
         try {
+            // 构建CliFrontend   :    GenericCLI > flinkYarnSessionCLI > DefaultCLI
             final CliFrontend cli = new CliFrontend(configuration, customCommandLines);
 
             SecurityUtils.install(new SecurityConfiguration(cli.configuration));
-            int retCode =
-                    SecurityUtils.getInstalledContext().runSecured(() -> cli.parseAndRun(args));
+
+            // 使用parseAndRun 提交指令
+            int retCode = SecurityUtils.getInstalledContext().runSecured(() -> cli.parseAndRun(args));
             System.exit(retCode);
+
+
         } catch (Throwable t) {
             final Throwable strippedThrowable =
                     ExceptionUtils.stripException(t, UndeclaredThrowableException.class);
@@ -1184,16 +1264,21 @@ public class CliFrontend {
         config.setString(RestOptions.ADDRESS, address.getHostString());
         config.setInteger(RestOptions.PORT, address.getPort());
     }
-
+    // GenericCLI > flinkYarnSessionCLI > DefaultCLI
     public static List<CustomCommandLine> loadCustomCommandLines(
             Configuration configuration, String configurationDirectory) {
         List<CustomCommandLine> customCommandLines = new ArrayList<>();
+
+        // 111111
+        // GenericCLI
         customCommandLines.add(new GenericCLI(configuration, configurationDirectory));
 
         //	Command line interface of the YARN session, with a special initialization here
         //	to prefix all options with y/yarn.
         final String flinkYarnSessionCLI = "org.apache.flink.yarn.cli.FlinkYarnSessionCli";
         try {
+            // 222222
+            // flinkYarnSessionCLI
             customCommandLines.add(
                     loadCustomCommandLine(
                             flinkYarnSessionCLI,
@@ -1214,6 +1299,8 @@ public class CliFrontend {
         //	Tips: DefaultCLI must be added at last, because getActiveCustomCommandLine(..) will get
         // the
         //	      active CustomCommandLine in order and DefaultCLI isActive always return true.
+
+        // DefaultCLI
         customCommandLines.add(new DefaultCLI());
 
         return customCommandLines;
@@ -1231,6 +1318,8 @@ public class CliFrontend {
      */
     public CustomCommandLine validateAndGetActiveCommandLine(CommandLine commandLine) {
         LOG.debug("Custom commandlines: {}", customCommandLines);
+
+        // 0 = {GenericCLI@3382}  1 = {FlinkYarnSessionCli@3383}   2 = {DefaultCLI@3384}
         for (CustomCommandLine cli : customCommandLines) {
             LOG.debug(
                     "Checking custom commandline {}, isActive: {}", cli, cli.isActive(commandLine));

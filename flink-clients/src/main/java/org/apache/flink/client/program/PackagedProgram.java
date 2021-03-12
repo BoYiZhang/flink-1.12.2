@@ -216,6 +216,16 @@ public class PackagedProgram implements AutoCloseable {
      * local execution by default.
      */
     public void invokeInteractiveModeForExecution() throws ProgramInvocationException {
+
+        // mainClass: class org.apache.flink.streaming.examples.socket.SocketWindowWordCount
+        // args
+        //    0 = "--port"
+        //    1 = "9999"
+
+
+
+
+
         callMainMethod(mainClass, args);
     }
 
@@ -313,7 +323,7 @@ public class PackagedProgram implements AutoCloseable {
         return Modifier.isStatic(mainMethod.getModifiers())
                 && Modifier.isPublic(mainMethod.getModifiers());
     }
-
+    // class org.apache.flink.streaming.examples.socket.SocketWindowWordCount  args : --port  9999
     private static void callMainMethod(Class<?> entryClass, String[] args)
             throws ProgramInvocationException {
         Method mainMethod;
@@ -321,7 +331,7 @@ public class PackagedProgram implements AutoCloseable {
             throw new ProgramInvocationException(
                     "The class " + entryClass.getName() + " must be public.");
         }
-
+        // public static void org.apache.flink.streaming.examples.socket.SocketWindowWordCount.main(java.lang.String[]) throws java.lang.Exception
         try {
             mainMethod = entryClass.getMethod("main", String[].class);
         } catch (NoSuchMethodException e) {
@@ -344,7 +354,7 @@ public class PackagedProgram implements AutoCloseable {
             throw new ProgramInvocationException(
                     "The class " + entryClass.getName() + " declares a non-public main method.");
         }
-
+        // 开始执行 !!!!!!!!!
         try {
             mainMethod.invoke(null, (Object) args);
         } catch (IllegalArgumentException e) {

@@ -86,6 +86,9 @@ public class GenericCLI implements CustomCommandLine {
 
     @Override
     public boolean isActive(CommandLine commandLine) {
+
+
+
         return configuration.getOptional(DeploymentOptions.TARGET).isPresent()
                 || commandLine.hasOption(executorOption.getOpt())
                 || commandLine.hasOption(targetOption.getOpt());

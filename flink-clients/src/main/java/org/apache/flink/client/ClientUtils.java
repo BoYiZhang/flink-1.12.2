@@ -78,7 +78,7 @@ public enum ClientUtils {
                 NOOP_EXCEPTION_HANDLER,
                 checkClassloaderLeak);
     }
-
+    // 执行程序代码
     public static void executeProgram(
             PipelineExecutorServiceLoader executorServiceLoader,
             Configuration configuration,
@@ -87,15 +87,23 @@ public enum ClientUtils {
             boolean suppressSysout)
             throws ProgramInvocationException {
         checkNotNull(executorServiceLoader);
-        final ClassLoader userCodeClassLoader = program.getUserCodeClassLoader();
-        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        try {
-            Thread.currentThread().setContextClassLoader(userCodeClassLoader);
 
+        // 获取用户了加载器. : FlinkUserCodeClassLoaders$SafetyNetWrapperClassLoader@3439
+        final ClassLoader userCodeClassLoader = program.getUserCodeClassLoader();
+
+        // 缓存当前类加载器...
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+
+        try {
+            // 设置类加载器为用户指定的类加载器..
+            Thread.currentThread().setContextClassLoader(userCodeClassLoader);
+            //log info  :  Starting program (detached: false)
             LOG.info(
                     "Starting program (detached: {})",
                     !configuration.getBoolean(DeploymentOptions.ATTACHED));
 
+            // 获取用户代码中的环境....
+            // getExecutionEnvironment
             ContextEnvironment.setAsContext(
                     executorServiceLoader,
                     configuration,
@@ -111,6 +119,7 @@ public enum ClientUtils {
                     suppressSysout);
 
             try {
+                // 通过反射的方式, 调用用户程序的mian方法...
                 program.invokeInteractiveModeForExecution();
             } finally {
                 ContextEnvironment.unsetAsContext();
