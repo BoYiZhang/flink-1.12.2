@@ -67,16 +67,42 @@ public class AbstractJobClusterExecutor<
             @Nonnull final Configuration configuration,
             @Nonnull final ClassLoader userCodeClassloader)
             throws Exception {
+        // 流图 抓换为 作业图
+        // JobGraph(jobId: 536af83b56ddfc2ef4ffda8b43a21e15)
         final JobGraph jobGraph = PipelineExecutorUtils.getJobGraph(pipeline, configuration);
 
+
+        // 获取yarn集群的描述符
         try (final ClusterDescriptor<ClusterID> clusterDescriptor =
                 clusterClientFactory.createClusterDescriptor(configuration)) {
+
+            //    {
+            //            taskmanager.memory.process.size=1728m,
+            //            jobmanager.execution.failover-strategy=region,
+            //            jobmanager.rpc.address=localhost,
+            //            execution.target=yarn-per-job,
+            //            jobmanager.memory.process.size=1600m,
+            //            jobmanager.rpc.port=6123,
+            //            execution.savepoint.ignore-unclaimed-state=false,
+            //            execution.attached=true,
+            //            execution.shutdown-on-attached-exit=false,
+            //            pipeline.jars=[file:/opt/tools/flink-1.12.2/examples/streaming/SocketWindowWordCount.jar],
+            //            parallelism.default=1,
+            //            taskmanager.numberOfTaskSlots=1,
+            //            pipeline.classpaths=[],
+            //            $internal.deployment.config-dir=/opt/tools/flink-1.12.2/conf,
+            //            $internal.yarn.log-config-file=/opt/tools/flink-1.12.2/conf/log4j.properties
+            //    }
             final ExecutionConfigAccessor configAccessor =
                     ExecutionConfigAccessor.fromConfiguration(configuration);
-
+            // 获取指定资源的描述
+            //    masterMemoryMB = 1600
+            //    taskManagerMemoryMB = 1728
+            //    slotsPerTaskManager = 1
             final ClusterSpecification clusterSpecification =
                     clusterClientFactory.getClusterSpecification(configuration);
 
+            // 部署集群....
             final ClusterClientProvider<ClusterID> clusterClientProvider =
                     clusterDescriptor.deployJobCluster(
                             clusterSpecification, jobGraph, configAccessor.getDetachedMode());

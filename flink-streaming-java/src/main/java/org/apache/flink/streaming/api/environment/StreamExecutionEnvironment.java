@@ -1779,6 +1779,7 @@ public class StreamExecutionEnvironment {
     public JobExecutionResult execute(String jobName) throws Exception {
         Preconditions.checkNotNull(jobName, "Streaming Job name should not be null.");
 
+        // 获取 getStreamGraph 继续执行...
         return execute(getStreamGraph(jobName));
     }
 
@@ -1793,6 +1794,9 @@ public class StreamExecutionEnvironment {
      */
     @Internal
     public JobExecutionResult execute(StreamGraph streamGraph) throws Exception {
+        // ----------------------
+        // 提交代码的streamGraph
+        // ----------------------
         final JobClient jobClient = executeAsync(streamGraph);
 
         try {
@@ -1890,7 +1894,7 @@ public class StreamExecutionEnvironment {
         checkNotNull(
                 configuration.get(DeploymentOptions.TARGET),
                 "No execution.target specified in your configuration file.");
-
+        // 获取ExecutorFactory : YarnJobClusterExecutorFactory
         final PipelineExecutorFactory executorFactory =
                 executorServiceLoader.getExecutorFactory(configuration);
 
@@ -1899,6 +1903,9 @@ public class StreamExecutionEnvironment {
                 "Cannot find compatible factory for specified execution.target (=%s)",
                 configuration.get(DeploymentOptions.TARGET));
 
+        // -----------------------------------
+        // 获取一个Executor 然后开始执行   YarnJobClusterExecutorFactory # YarnJobClusterExecutor
+        // -----------------------------------
         CompletableFuture<JobClient> jobClientFuture =
                 executorFactory
                         .getExecutor(configuration)
@@ -1906,7 +1913,11 @@ public class StreamExecutionEnvironment {
 
         try {
             JobClient jobClient = jobClientFuture.get();
-            jobListeners.forEach(jobListener -> jobListener.onJobSubmitted(jobClient, null));
+
+            jobListeners.forEach(jobListener -> {
+                jobListener.onJobSubmitted(jobClient, null);
+            });
+
             return jobClient;
         } catch (ExecutionException executionException) {
             final Throwable strippedException =

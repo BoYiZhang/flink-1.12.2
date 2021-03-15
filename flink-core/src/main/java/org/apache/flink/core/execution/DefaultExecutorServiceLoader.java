@@ -53,10 +53,10 @@ public class DefaultExecutorServiceLoader implements PipelineExecutorServiceLoad
     @Override
     public PipelineExecutorFactory getExecutorFactory(final Configuration configuration) {
         checkNotNull(configuration);
-
+        // java.util.ServiceLoader[org.apache.flink.core.execution.PipelineExecutorFactory]
         final ServiceLoader<PipelineExecutorFactory> loader =
                 ServiceLoader.load(PipelineExecutorFactory.class);
-
+        // RemoteExecutorFactory > LocalExecutorFactory > KubernetesSessionClusterExecutorFacoty
         final List<PipelineExecutorFactory> compatibleFactories = new ArrayList<>();
         final Iterator<PipelineExecutorFactory> factories = loader.iterator();
         while (factories.hasNext()) {
