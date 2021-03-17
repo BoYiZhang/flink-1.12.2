@@ -527,7 +527,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
             boolean detached)
             throws Exception {
 
-        // 安心配置信息相关.....
+        // 安全配置信息相关.....
         // currentUser: sysadmin (auth:SIMPLE)
         final UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
         if (HadoopUtils.isKerberosSecurityEnabled(currentUser)) {
@@ -1123,6 +1123,9 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
         try {
             tmpConfigurationFile = File.createTempFile(appId + "-flink-conf.yaml", null);
             BootstrapTools.writeConfiguration(configuration, tmpConfigurationFile);
+
+            // 上传的配置文件规则 application-flink-conf.yaml随机数(Long类型).tmp
+            // 实例 : application_1615446205104_0011-flink-conf.yaml3338435768180930238.tmp
 
             String flinkConfigKey = "flink-conf.yaml";
             fileUploader.registerSingleLocalResource(
