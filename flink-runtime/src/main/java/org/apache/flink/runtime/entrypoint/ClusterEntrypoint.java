@@ -165,9 +165,11 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
         LOG.info("Starting {}.", getClass().getSimpleName());
 
         try {
+            // 更新配置...
             replaceGracefulExitWithHaltIfConfigured(configuration);
-            PluginManager pluginManager =
-                    PluginUtils.createPluginManagerFromRootFolder(configuration);
+
+            // 插件信息
+            PluginManager pluginManager = PluginUtils.createPluginManagerFromRootFolder(configuration);
             configureFileSystems(configuration, pluginManager);
 
             SecurityContext securityContext = installSecurityContext(configuration);
@@ -224,6 +226,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
         synchronized (lock) {
 
             // 初始化插件...
+            // 构建各种服务, 比如心跳,RPC ....
             initializeServices(configuration, pluginManager);
 
             // 在配置中写入host和port 信息
@@ -231,6 +234,8 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
             configuration.setString(JobManagerOptions.ADDRESS, commonRpcService.getAddress());
             configuration.setInteger(JobManagerOptions.PORT, commonRpcService.getPort());
 
+
+            // 创建JobManager内的组件 : Dispatcher / ResourceManager / JobMaster
             // 构建 DispatcherResourceManagerComponentFactory
             final DispatcherResourceManagerComponentFactory
                     dispatcherResourceManagerComponentFactory =
@@ -277,6 +282,8 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
         LOG.info("Initializing cluster services.");
 
         synchronized (lock) {
+
+
             commonRpcService =
                     AkkaRpcServiceUtils.createRemoteRpcService(
                             configuration,
@@ -572,8 +579,10 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
     public static void runClusterEntrypoint(ClusterEntrypoint clusterEntrypoint) {
 
+        // 获取名字
         final String clusterEntrypointName = clusterEntrypoint.getClass().getSimpleName();
         try {
+            // 启动集群
             clusterEntrypoint.startCluster();
         } catch (ClusterEntrypointException e) {
             LOG.error(

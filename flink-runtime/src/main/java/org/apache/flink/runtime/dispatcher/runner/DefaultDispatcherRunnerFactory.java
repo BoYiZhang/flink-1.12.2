@@ -50,6 +50,7 @@ public class DefaultDispatcherRunnerFactory implements DispatcherRunnerFactory {
             PartialDispatcherServices partialDispatcherServices)
             throws Exception {
 
+        // 构造DispatcherLeaderProcessFactory
         final DispatcherLeaderProcessFactory dispatcherLeaderProcessFactory =
                 dispatcherLeaderProcessFactoryFactory.createFactory(
                         jobGraphStoreFactory,
@@ -57,7 +58,7 @@ public class DefaultDispatcherRunnerFactory implements DispatcherRunnerFactory {
                         rpcService,
                         partialDispatcherServices,
                         fatalErrorHandler);
-
+        // 构建
         return DefaultDispatcherRunner.create(
                 leaderElectionService, fatalErrorHandler, dispatcherLeaderProcessFactory);
     }

@@ -119,6 +119,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
     @Override
     protected void initialize() throws ResourceManagerException {
         try {
+            // 执行初始化操作
             resourceManagerDriver.initialize(this, new GatewayMainThreadExecutor(), ioExecutor);
         } catch (Exception e) {
             throw new ResourceManagerException("Cannot initialize resource provider.", e);
@@ -157,6 +158,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
 
     @Override
     public boolean startNewWorker(WorkerResourceSpec workerResourceSpec) {
+        // requestNewWorker 操作
         requestNewWorker(workerResourceSpec);
         return true;
     }

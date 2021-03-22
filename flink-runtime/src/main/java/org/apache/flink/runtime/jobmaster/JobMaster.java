@@ -843,7 +843,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
     // ----------------------------------------------------------------------------------------------
     // Internal methods
     // ----------------------------------------------------------------------------------------------
-
+    // -- job 启动&停止
     // -- job starting and stopping
     // -----------------------------------------------------------------
 
@@ -861,6 +861,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
         setNewFencingToken(newJobMasterId);
 
+        // 真正启动 JobMaster
         startJobMasterServices();
 
         log.info(
@@ -869,14 +870,17 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                 jobGraph.getJobID(),
                 newJobMasterId);
 
+        // 重置 & 启动 Scheduler  ...
         resetAndStartScheduler();
 
         return Acknowledge.get();
     }
 
     private void startJobMasterServices() throws Exception {
+        // 启动心跳服务  taskManager/resourceManager
         startHeartbeatServices();
 
+        // 启动 slot pool
         // start the slot pool make sure the slot pool now accepts messages for this leader
         slotPool.start(getFencingToken(), getAddress(), getMainThreadExecutor());
 
@@ -888,6 +892,8 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         //   - activate leader retrieval for the resource manager
         //   - on notification of the leader, the connection will be established and
         //     the slot pool will start requesting slots
+        // 与RM建立连接, slotpol. 请求资源...
+        // StandaloneLeaderRetrievalService#start
         resourceManagerLeaderRetriever.start(new ResourceManagerLeaderListener());
     }
 
@@ -967,6 +973,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
     }
 
     private void startHeartbeatServices() {
+        // 构建 taskManagerHeartbeatManager 心跳
         taskManagerHeartbeatManager =
                 heartbeatServices.createHeartbeatManagerSender(
                         resourceId,
@@ -974,6 +981,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                         getMainThreadExecutor(),
                         log);
 
+        // 构建 resourceManagerHeartbeatManager 心跳
         resourceManagerHeartbeatManager =
                 heartbeatServices.createHeartbeatManager(
                         resourceId,
@@ -1095,6 +1103,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         resourceManagerAddress =
                 createResourceManagerAddress(newResourceManagerAddress, resourceManagerId);
 
+        // 重新连接
         reconnectToResourceManager(
                 new FlinkException(
                         String.format(
@@ -1117,11 +1126,14 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
     private void reconnectToResourceManager(Exception cause) {
         closeResourceManagerConnection(cause);
+        // 连接
         tryConnectToResourceManager();
     }
 
     private void tryConnectToResourceManager() {
+
         if (resourceManagerAddress != null) {
+            // 连接RM
             connectToResourceManager();
         }
     }
@@ -1133,6 +1145,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
         log.info("Connecting to ResourceManager {}", resourceManagerAddress);
 
+        // 构建ResourceManager Connection
         resourceManagerConnection =
                 new ResourceManagerConnection(
                         log,
@@ -1144,6 +1157,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                         resourceManagerAddress.getResourceManagerId(),
                         scheduledExecutorService);
 
+        // 启动....
         resourceManagerConnection.start();
     }
 
@@ -1159,15 +1173,18 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                     "JobManager successfully registered at ResourceManager, leader id: {}.",
                     resourceManagerId);
 
+            // 获取 ResourceManagerGateway
             final ResourceManagerGateway resourceManagerGateway =
                     resourceManagerConnection.getTargetGateway();
 
             final ResourceID resourceManagerResourceId = success.getResourceManagerResourceId();
 
+            // 建立连接对象
             establishedResourceManagerConnection =
                     new EstablishedResourceManagerConnection(
                             resourceManagerGateway, resourceManagerResourceId);
 
+            // slotPool 连接到ResourceManager 请求资源
             slotPool.connectToResourceManager(resourceManagerGateway);
 
             resourceManagerHeartbeatManager.monitorTarget(
@@ -1246,6 +1263,8 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
         @Override
         public void notifyLeaderAddress(final String leaderAddress, final UUID leaderSessionID) {
+            // ???
+
             runAsync(
                     () ->
                             notifyOfNewResourceManagerLeader(
@@ -1293,6 +1312,9 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         protected RetryingRegistration<
                         ResourceManagerId, ResourceManagerGateway, JobMasterRegistrationSuccess>
                 generateRegistration() {
+
+
+            // 直接返回 RetryingRegistration
             return new RetryingRegistration<
                     ResourceManagerId, ResourceManagerGateway, JobMasterRegistrationSuccess>(
                     log,
@@ -1310,6 +1332,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                         long timeoutMillis) {
                     Time timeout = Time.milliseconds(timeoutMillis);
 
+                    // 注册 JobMaster
                     return gateway.registerJobManager(
                             jobMasterId,
                             jobManagerResourceID,
@@ -1327,6 +1350,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                         // filter out outdated connections
                         //noinspection ObjectEquality
                         if (this == resourceManagerConnection) {
+                            // 建立RM Connection
                             establishResourceManagerConnection(success);
                         }
                     });

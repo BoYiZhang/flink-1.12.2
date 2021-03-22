@@ -40,6 +40,7 @@ import org.apache.flink.runtime.shuffle.ShuffleServiceLoader;
 public enum DefaultJobManagerRunnerFactory implements JobManagerRunnerFactory {
     INSTANCE;
 
+    // 构建JobManagerRunner
     @Override
     public JobManagerRunner createJobManagerRunner(
             JobGraph jobGraph,
@@ -53,6 +54,11 @@ public enum DefaultJobManagerRunnerFactory implements JobManagerRunnerFactory {
             long initializationTimestamp)
             throws Exception {
 
+
+
+        // 构建各种参数
+
+
         final JobMasterConfiguration jobMasterConfiguration =
                 JobMasterConfiguration.fromConfiguration(configuration);
 
@@ -62,6 +68,9 @@ public enum DefaultJobManagerRunnerFactory implements JobManagerRunnerFactory {
         final ShuffleMaster<?> shuffleMaster =
                 ShuffleServiceLoader.loadShuffleServiceFactory(configuration)
                         .createShuffleMaster(configuration);
+
+
+
 
         final JobMasterServiceFactory jobMasterFactory =
                 new DefaultJobMasterServiceFactory(
@@ -76,6 +85,8 @@ public enum DefaultJobManagerRunnerFactory implements JobManagerRunnerFactory {
                         schedulerNGFactory,
                         shuffleMaster);
 
+
+        // 构建JobManagerRunner 实现 : JobManagerRunnerImpl
         return new JobManagerRunnerImpl(
                 jobGraph,
                 jobMasterFactory,

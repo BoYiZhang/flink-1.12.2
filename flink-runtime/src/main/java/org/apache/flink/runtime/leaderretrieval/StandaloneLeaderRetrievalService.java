@@ -72,6 +72,7 @@ public class StandaloneLeaderRetrievalService implements LeaderRetrievalService 
 
     // ------------------------------------------------------------------------
 
+    // 这里
     @Override
     public void start(LeaderRetrievalListener listener) {
         checkNotNull(listener, "Listener must not be null.");
@@ -80,8 +81,9 @@ public class StandaloneLeaderRetrievalService implements LeaderRetrievalService 
             checkState(!started, "StandaloneLeaderRetrievalService can only be started once.");
             started = true;
 
-            // directly notify the listener, because we already know the leading JobManager's
-            // address
+            // 通知 Leader
+            // ResourceManagerLeaderListener#notifyLeaderAddress
+            // directly notify the listener, because we already know the leading JobManager's address
             listener.notifyLeaderAddress(leaderAddress, leaderId);
         }
     }

@@ -46,6 +46,7 @@ import java.util.concurrent.Executor;
 public abstract class ActiveResourceManagerFactory<WorkerType extends ResourceIDRetrievable>
         extends ResourceManagerFactory<WorkerType> {
 
+    // 部署模式
     @Override
     public ResourceManager<WorkerType> createResourceManager(
             Configuration configuration,
@@ -83,6 +84,7 @@ public abstract class ActiveResourceManagerFactory<WorkerType extends ResourceID
                 copiedConfig, TaskManagerOptions.TOTAL_PROCESS_MEMORY);
     }
 
+    // 构建
     @Override
     public ResourceManager<WorkerType> createResourceManager(
             Configuration configuration,
@@ -98,6 +100,8 @@ public abstract class ActiveResourceManagerFactory<WorkerType extends ResourceID
             Executor ioExecutor)
             throws Exception {
 
+        // 构建 ActiveResourceManager
+        // yarn 模式下的
         return new ActiveResourceManager<>(
                 createResourceManagerDriver(
                         configuration, webInterfaceUrl, rpcService.getAddress()),

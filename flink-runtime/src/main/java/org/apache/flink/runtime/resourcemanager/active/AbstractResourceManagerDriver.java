@@ -74,10 +74,14 @@ public abstract class AbstractResourceManagerDriver<WorkerType extends ResourceI
             ScheduledExecutor mainThreadExecutor,
             Executor ioExecutor)
             throws Exception {
+
         this.resourceEventHandler = Preconditions.checkNotNull(resourceEventHandler);
+
         this.mainThreadExecutor = Preconditions.checkNotNull(mainThreadExecutor);
+
         this.ioExecutor = Preconditions.checkNotNull(ioExecutor);
 
+        // 继续初始化
         initializeInternal();
     }
 

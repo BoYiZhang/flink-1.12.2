@@ -155,21 +155,30 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
     }
 
     // ------------------------------------------------------------------------
-    //  ResourceManagerDriver
+    //  Yarn ResourceManagerDriver
     // ------------------------------------------------------------------------
 
     @Override
     protected void initializeInternal() throws Exception {
         final YarnContainerEventHandler yarnContainerEventHandler = new YarnContainerEventHandler();
         try {
+
+            // 构建 Yarn 的ResourceManager的client
             resourceManagerClient =
                     yarnResourceManagerClientFactory.createResourceManagerClient(
                             yarnHeartbeatIntervalMillis, yarnContainerEventHandler);
+
+            // Yarn 的ResourceManager的client : 初始化
             resourceManagerClient.init(yarnConfig);
+            // Yarn 的ResourceManager的client : 启动
             resourceManagerClient.start();
 
+
+            // 注册 操作
             final RegisterApplicationMasterResponse registerApplicationMasterResponse =
                     registerApplicationMaster();
+
+
             getContainersFromPreviousAttempts(registerApplicationMasterResponse);
             taskExecutorProcessSpecContainerResourcePriorityAdapter =
                     new TaskExecutorProcessSpecContainerResourcePriorityAdapter(
@@ -181,6 +190,9 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
             throw new ResourceManagerException("Could not start resource manager client.", e);
         }
 
+
+
+        // 构建 Yarn 的 NodeManger client , 进行初始化&启动
         nodeManagerClient =
                 yarnNodeManagerClientFactory.createNodeManagerClient(yarnContainerEventHandler);
         nodeManagerClient.init(yarnConfig);

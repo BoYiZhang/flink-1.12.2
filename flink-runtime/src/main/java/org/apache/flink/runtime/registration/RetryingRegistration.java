@@ -141,6 +141,8 @@ public abstract class RetryingRegistration<
             if (FencedRpcGateway.class.isAssignableFrom(targetType)) {
                 rpcGatewayFuture =
                         (CompletableFuture<G>)
+
+                                // 建立连接....
                                 rpcService.connect(
                                         targetAddress,
                                         fencingToken,

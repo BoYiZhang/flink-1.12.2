@@ -290,8 +290,10 @@ public class SlotPoolImpl implements SlotPool {
     public void connectToResourceManager(@Nonnull ResourceManagerGateway resourceManagerGateway) {
         this.resourceManagerGateway = checkNotNull(resourceManagerGateway);
 
+        // 在等待此连接的 所有 slot 上工作
         // work on all slots waiting for this connection
         for (PendingRequest pendingRequest : waitingForResourceManager.values()) {
+            // 请求 RM
             requestSlotFromResourceManager(resourceManagerGateway, pendingRequest);
         }
 
@@ -366,6 +368,7 @@ public class SlotPoolImpl implements SlotPool {
                 pendingRequest.getResourceProfile(),
                 allocationId);
 
+        // 获取 请求slot 的响应
         CompletableFuture<Acknowledge> rmResponse =
                 resourceManagerGateway.requestSlot(
                         jobMasterId,

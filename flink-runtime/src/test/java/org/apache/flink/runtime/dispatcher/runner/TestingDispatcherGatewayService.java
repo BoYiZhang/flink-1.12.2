@@ -67,6 +67,7 @@ class TestingDispatcherGatewayService
         return shutDownFuture;
     }
 
+    @Override
     public CompletableFuture<Void> getTerminationFuture() {
         return terminationFuture;
     }

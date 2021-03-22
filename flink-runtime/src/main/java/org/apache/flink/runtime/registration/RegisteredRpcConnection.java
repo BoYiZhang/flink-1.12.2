@@ -99,9 +99,13 @@ public abstract class RegisteredRpcConnection<
                 !isConnected() && pendingRegistration == null,
                 "The RPC connection is already started");
 
+        // 构建注册...
         final RetryingRegistration<F, G, S> newRegistration = createNewRegistration();
 
+
         if (REGISTRATION_UPDATER.compareAndSet(this, null, newRegistration)) {
+            // 开始注册...
+            // 注册成功之后,调用startRegistration
             newRegistration.startRegistration();
         } else {
             // concurrent start operation
@@ -230,6 +234,8 @@ public abstract class RegisteredRpcConnection<
     // ------------------------------------------------------------------------
 
     private RetryingRegistration<F, G, S> createNewRegistration() {
+
+        // 生成注册 : JobMaster: generateRegistration
         RetryingRegistration<F, G, S> newRegistration = checkNotNull(generateRegistration());
 
         CompletableFuture<Tuple2<G, S>> future = newRegistration.getFuture();
@@ -250,6 +256,7 @@ public abstract class RegisteredRpcConnection<
                             onRegistrationFailure(failure);
                         }
                     } else {
+                        // 注册成功...
                         targetGateway = result.f0;
                         onRegistrationSuccess(result.f1);
                     }

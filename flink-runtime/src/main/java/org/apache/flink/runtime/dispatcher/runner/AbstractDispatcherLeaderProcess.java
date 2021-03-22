@@ -90,6 +90,7 @@ public abstract class AbstractDispatcherLeaderProcess implements DispatcherLeade
 
     @Override
     public final void start() {
+        // 如果是CREATED状态 , 启动startInternal方法 ...
         runIfStateIs(State.CREATED, this::startInternal);
     }
 
@@ -269,6 +270,7 @@ public abstract class AbstractDispatcherLeaderProcess implements DispatcherLeade
         CompletableFuture<Void> onRemovedJobGraph(JobID jobId);
 
         CompletableFuture<ApplicationStatus> getShutDownFuture();
+
 
         CompletableFuture<Void> getTerminationFuture();
     }

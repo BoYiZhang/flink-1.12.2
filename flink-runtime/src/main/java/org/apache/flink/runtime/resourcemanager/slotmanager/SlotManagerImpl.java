@@ -402,11 +402,13 @@ public class SlotManagerImpl implements SlotManager {
 
             return false;
         } else {
+            //构建请求
             PendingSlotRequest pendingSlotRequest = new PendingSlotRequest(slotRequest);
 
             pendingSlotRequests.put(slotRequest.getAllocationId(), pendingSlotRequest);
 
             try {
+                // 请求操作
                 internalRequestSlot(pendingSlotRequest);
             } catch (ResourceManagerException e) {
                 // requesting the slot failed --> remove pending slot request
@@ -934,14 +936,18 @@ public class SlotManagerImpl implements SlotManager {
      */
     private void internalRequestSlot(PendingSlotRequest pendingSlotRequest)
             throws ResourceManagerException {
+        // 获取配置...
         final ResourceProfile resourceProfile = pendingSlotRequest.getResourceProfile();
 
         OptionalConsumer.of(findMatchingSlot(resourceProfile))
-                .ifPresent(taskManagerSlot -> allocateSlot(taskManagerSlot, pendingSlotRequest))
-                .ifNotPresent(
-                        () ->
-                                fulfillPendingSlotRequestWithPendingTaskManagerSlot(
-                                        pendingSlotRequest));
+                .ifPresent(taskManagerSlot -> {
+                    // taskManagerSlot 存在操作
+                    allocateSlot(taskManagerSlot, pendingSlotRequest);
+                })
+                .ifNotPresent(() -> {
+                            // taskManagerSlot 不存在操作
+                            fulfillPendingSlotRequestWithPendingTaskManagerSlot( pendingSlotRequest);
+                        });
     }
 
     private void fulfillPendingSlotRequestWithPendingTaskManagerSlot(
@@ -951,6 +957,7 @@ public class SlotManagerImpl implements SlotManager {
                 findFreeMatchingPendingTaskManagerSlot(resourceProfile);
 
         if (!pendingTaskManagerSlotOptional.isPresent()) {
+            // 分配资源
             pendingTaskManagerSlotOptional = allocateResource(resourceProfile);
         }
 
@@ -1039,8 +1046,13 @@ public class SlotManagerImpl implements SlotManager {
 
     private Optional<PendingTaskManagerSlot> allocateResource(
             ResourceProfile requestedSlotResourceProfile) {
+        // 已经注册solt的树林
         final int numRegisteredSlots = getNumberRegisteredSlots();
+
+        // 已经注册solt的树林
         final int numPendingSlots = getNumberPendingTaskManagerSlots();
+
+
         if (isMaxSlotNumExceededAfterAdding(numSlotsPerWorker)) {
             LOG.warn(
                     "Could not allocate {} more slots. The number of registered and pending slots is {}, while the maximum is {}.",
@@ -1055,6 +1067,7 @@ public class SlotManagerImpl implements SlotManager {
             return Optional.empty();
         }
 
+        // 分配资源allocateResource
         if (!resourceActions.allocateResource(defaultWorkerResourceSpec)) {
             // resource cannot be allocated
             return Optional.empty();

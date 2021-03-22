@@ -226,6 +226,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
     @Override
     public final void onStart() throws Exception {
         try {
+            // 启动 ResourceManager Service
             startResourceManagerServices();
         } catch (Throwable t) {
             final ResourceManagerException exception =
@@ -236,17 +237,23 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
             throw exception;
         }
     }
-
+    //
+    // 启动 Resource Manager
     private void startResourceManagerServices() throws Exception {
         try {
             leaderElectionService =
                     highAvailabilityServices.getResourceManagerLeaderElectionService();
 
+            // 执行初始化操作
+            // 构建Yarn的 RM和NM的客户端 并进行初始化&启动
             initialize();
 
+            // 通过选举服务,启动RM
             leaderElectionService.start(this);
+
             jobLeaderIdService.start(new JobLeaderIdActionsImpl());
 
+            // 注册TaskExecutor Metrics
             registerTaskExecutorMetrics();
         } catch (Exception e) {
             handleStartResourceManagerServicesException(e);
@@ -314,7 +321,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
     }
 
     // ------------------------------------------------------------------------
-    //  RPC methods
+    //  RPC methods : 注册 JobManager
     // ------------------------------------------------------------------------
 
     @Override
@@ -502,11 +509,14 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
         closeJobManagerConnection(jobId, cause);
     }
 
+
+    // 进入到远程调用....
     @Override
     public CompletableFuture<Acknowledge> requestSlot(
             JobMasterId jobMasterId, SlotRequest slotRequest, final Time timeout) {
 
         JobID jobId = slotRequest.getJobId();
+        // 获取JobManager的注册信息
         JobManagerRegistration jobManagerRegistration = jobManagerRegistrations.get(jobId);
 
         if (null != jobManagerRegistration) {
@@ -518,6 +528,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                         slotRequest.getAllocationId());
 
                 try {
+                    // RM内部的  slotManager 向Yarn 的RM 请求资源
                     slotManager.registerSlotRequest(slotRequest);
                 } catch (ResourceManagerException e) {
                     return FutureUtils.completedExceptionally(e);
@@ -1151,15 +1162,23 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
      */
     @Override
     public void grantLeadership(final UUID newLeaderSessionID) {
+
+
+
+        // 重点在这里 : tryAcceptLeadership
+        // 尝试接收 Leadership
         final CompletableFuture<Boolean> acceptLeadershipFuture =
                 clearStateFuture.thenComposeAsync(
                         (ignored) -> tryAcceptLeadership(newLeaderSessionID),
                         getUnfencedMainThreadExecutor());
 
+
+
         final CompletableFuture<Void> confirmationFuture =
                 acceptLeadershipFuture.thenAcceptAsync(
                         (acceptLeadership) -> {
                             if (acceptLeadership) {
+                                // 确认, 没做任何操作...
                                 // confirming the leader session ID might be blocking,
                                 leaderElectionService.confirmLeadership(
                                         newLeaderSessionID, getAddress());
@@ -1190,8 +1209,10 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                 clearStateInternal();
             }
 
+            // token 相关
             setFencingToken(newResourceManagerId);
 
+            // 启动 Services  Leader ship
             startServicesOnLeadership();
 
             return prepareLeadershipAsync().thenApply(ignored -> true);
@@ -1201,8 +1222,10 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
     }
 
     private void startServicesOnLeadership() {
+        // 启动心跳服务: 跟TaskManager 服务.
         startHeartbeatServices();
 
+        // slotManager 服务启动...
         slotManager.start(getFencingToken(), getMainThreadExecutor(), new ResourceActionsImpl());
 
         onLeadership();
@@ -1369,7 +1392,9 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 
         @Override
         public boolean allocateResource(WorkerResourceSpec workerResourceSpec) {
+            // 验证相关
             validateRunsInMainThread();
+            // 启动新的ActiveResourceManager# Worker
             return startNewWorker(workerResourceSpec);
         }
 

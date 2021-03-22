@@ -50,14 +50,17 @@ class DefaultDispatcherGatewayServiceFactory
         this.partialDispatcherServices = partialDispatcherServices;
     }
 
+    //xxxxx
     @Override
     public AbstractDispatcherLeaderProcess.DispatcherGatewayService create(
             DispatcherId fencingToken,
             Collection<JobGraph> recoveredJobs,
             JobGraphWriter jobGraphWriter) {
 
+        // 定义Dispatcher
         final Dispatcher dispatcher;
         try {
+            //创建Dispatcher
             dispatcher =
                     dispatcherFactory.createDispatcher(
                             rpcService,
@@ -71,6 +74,9 @@ class DefaultDispatcherGatewayServiceFactory
             throw new FlinkRuntimeException("Could not create the Dispatcher rpc endpoint.", e);
         }
 
+        // 启动 Dispatcher :  Dispatcher#OnStart
+        //      1. 接收用户作业
+        //      2. 启动JobMaster
         dispatcher.start();
 
         return DefaultDispatcherGatewayService.from(dispatcher);

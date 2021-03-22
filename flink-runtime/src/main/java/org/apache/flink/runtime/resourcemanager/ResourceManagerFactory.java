@@ -36,6 +36,9 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Executor;
 
 /**
+ * 核心查看ActiveResourceManagerFactory下的YarnResourceManagerFactory
+ *
+ *
  * {@link ResourceManager} factory.
  *
  * @param <T> type of the workers of the ResourceManager

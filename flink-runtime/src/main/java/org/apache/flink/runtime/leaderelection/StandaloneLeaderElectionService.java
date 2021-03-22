@@ -35,6 +35,7 @@ public class StandaloneLeaderElectionService implements LeaderElectionService {
 
     private LeaderContender contender = null;
 
+    // StandaloneLeaderElectionService
     @Override
     public void start(LeaderContender newContender) throws Exception {
         if (contender != null) {
@@ -45,6 +46,7 @@ public class StandaloneLeaderElectionService implements LeaderElectionService {
 
         contender = Preconditions.checkNotNull(newContender);
 
+        // 核心
         // directly grant leadership to the given contender
         contender.grantLeadership(HighAvailabilityServices.DEFAULT_LEADER_ID);
     }
@@ -57,6 +59,7 @@ public class StandaloneLeaderElectionService implements LeaderElectionService {
         }
     }
 
+    // 不做任何操作, 直接启动....
     @Override
     public void confirmLeadership(UUID leaderSessionID, String leaderAddress) {}
 

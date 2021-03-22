@@ -52,6 +52,8 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
     protected DefaultDispatcherResourceManagerComponentFactory
             createDispatcherResourceManagerComponentFactory(Configuration configuration)
                     throws IOException {
+
+        // yarn-pre-job
         return DefaultDispatcherResourceManagerComponentFactory.createJobComponentFactory(
                 YarnResourceManagerFactory.getInstance(),
                 FileJobGraphRetriever.createFrom(
@@ -74,6 +76,7 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
         Map<String, String> env = System.getenv();
 
         final String workingDirectory = env.get(ApplicationConstants.Environment.PWD.key());
+
         Preconditions.checkArgument(
                 workingDirectory != null,
                 "Working directory variable (%s) not set",
@@ -90,12 +93,15 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
                         args,
                         new DynamicParametersConfigurationParserFactory(),
                         YarnJobClusterEntrypoint.class);
+
+        // 构建配置
         final Configuration configuration =
                 YarnEntrypointUtils.loadConfiguration(workingDirectory, dynamicParameters, env);
 
-        YarnJobClusterEntrypoint yarnJobClusterEntrypoint =
-                new YarnJobClusterEntrypoint(configuration);
+        // 构建YarnJobClusterEntrypoint
+        YarnJobClusterEntrypoint yarnJobClusterEntrypoint = new YarnJobClusterEntrypoint(configuration);
 
+        // 启动
         ClusterEntrypoint.runClusterEntrypoint(yarnJobClusterEntrypoint);
     }
 }

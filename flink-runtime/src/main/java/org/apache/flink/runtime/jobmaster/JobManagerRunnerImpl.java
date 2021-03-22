@@ -157,10 +157,14 @@ public class JobManagerRunnerImpl
                         e);
                 throw new Exception("Could not start the leader election service.", e);
             }
+
+            // 启动 JobManager
             // now start the JobManager
             this.jobMasterService =
                     jobMasterFactory.createJobMasterService(
                             jobGraph, this, userCodeLoader, initializationTimestamp);
+
+
             jobMasterCreationFuture.complete(null);
         }
     }

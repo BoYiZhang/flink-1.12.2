@@ -97,20 +97,29 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
     }
 
     // ---------------------------------------------------------------
-    // Leader election
+    // Leader election ==> Dispatcher
     // ---------------------------------------------------------------
 
     @Override
     public void grantLeadership(UUID leaderSessionID) {
-        runActionIfRunning(() -> startNewDispatcherLeaderProcess(leaderSessionID));
+
+        runActionIfRunning(() -> {
+            // 构建 & 启动
+            startNewDispatcherLeaderProcess(leaderSessionID);
+        });
     }
 
     private void startNewDispatcherLeaderProcess(UUID leaderSessionID) {
+
+        // 停止之前的DispatcherLeader 进程
         stopDispatcherLeaderProcess();
 
+        // 构建新的 DispatcherLeader 进程
         dispatcherLeaderProcess = createNewDispatcherLeaderProcess(leaderSessionID);
 
         final DispatcherLeaderProcess newDispatcherLeaderProcess = dispatcherLeaderProcess;
+
+        // 启动
         FutureUtils.assertNoException(
                 previousDispatcherLeaderProcessTerminationFuture.thenRun(
                         newDispatcherLeaderProcess::start));
@@ -207,6 +216,7 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
             FatalErrorHandler fatalErrorHandler,
             DispatcherLeaderProcessFactory dispatcherLeaderProcessFactory)
             throws Exception {
+        // 构建dispatcherRunner
         final DefaultDispatcherRunner dispatcherRunner =
                 new DefaultDispatcherRunner(
                         leaderElectionService, fatalErrorHandler, dispatcherLeaderProcessFactory);
