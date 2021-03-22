@@ -427,36 +427,55 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                 ioExecutor);
     }
 
+
+    // 向ResouceManager 注册 TaskExecutor
     @Override
     public CompletableFuture<RegistrationResponse> registerTaskExecutor(
             final TaskExecutorRegistration taskExecutorRegistration, final Time timeout) {
 
+
+        // 连接taskExecutor
         CompletableFuture<TaskExecutorGateway> taskExecutorGatewayFuture =
                 getRpcService()
                         .connect(
                                 taskExecutorRegistration.getTaskExecutorAddress(),
                                 TaskExecutorGateway.class);
+
+
+        // 加入缓存
         taskExecutorGatewayFutures.put(
                 taskExecutorRegistration.getResourceId(), taskExecutorGatewayFuture);
 
+        //
         return taskExecutorGatewayFuture.handleAsync(
                 (TaskExecutorGateway taskExecutorGateway, Throwable throwable) -> {
+
+
                     final ResourceID resourceId = taskExecutorRegistration.getResourceId();
                     if (taskExecutorGatewayFuture == taskExecutorGatewayFutures.get(resourceId)) {
+
                         taskExecutorGatewayFutures.remove(resourceId);
                         if (throwable != null) {
+
                             return new RegistrationResponse.Decline(throwable.getMessage());
                         } else {
+
+
+                            // 开始注册TaskExecutor
                             return registerTaskExecutorInternal(
                                     taskExecutorGateway, taskExecutorRegistration);
                         }
                     } else {
+
+                        // 拒绝注册...
                         log.debug(
                                 "Ignoring outdated TaskExecutorGateway connection for {}.",
                                 resourceId.getStringWithMetadata());
                         return new RegistrationResponse.Decline(
                                 "Decline outdated task executor registration.");
                     }
+
+
                 },
                 getMainThreadExecutor());
     }
@@ -467,14 +486,25 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
             InstanceID taskManagerRegistrationId,
             SlotReport slotReport,
             Time timeout) {
-        final WorkerRegistration<WorkerType> workerTypeWorkerRegistration =
-                taskExecutors.get(taskManagerResourceId);
+
+
+        // 获取 worker 的注册信息
+        final WorkerRegistration<WorkerType> workerTypeWorkerRegistration = taskExecutors.get(taskManagerResourceId);
 
         if (workerTypeWorkerRegistration.getInstanceID().equals(taskManagerRegistrationId)) {
+
+            // 向 slotManager 注册 slot 信息
+            // SlotManagerImpl#registerTaskManager
             if (slotManager.registerTaskManager(workerTypeWorkerRegistration, slotReport)) {
+
+                // 注册完成之后的操作...
                 onWorkerRegistered(workerTypeWorkerRegistration.getWorker());
             }
+
+
             return CompletableFuture.completedFuture(Acknowledge.get());
+
+
         } else {
             return FutureUtils.completedExceptionally(
                     new ResourceManagerException(
@@ -913,6 +943,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
     }
 
     /**
+     * 注册 TaskExecutor
      * Registers a new TaskExecutor.
      *
      * @param taskExecutorRegistration task executor registration parameters
@@ -921,10 +952,21 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
     private RegistrationResponse registerTaskExecutorInternal(
             TaskExecutorGateway taskExecutorGateway,
             TaskExecutorRegistration taskExecutorRegistration) {
+
+
+        // 获取 taskExecutorResourceId
         ResourceID taskExecutorResourceId = taskExecutorRegistration.getResourceId();
-        WorkerRegistration<WorkerType> oldRegistration =
-                taskExecutors.remove(taskExecutorResourceId);
+
+
+        // 移除缓存信息
+        WorkerRegistration<WorkerType> oldRegistration =  taskExecutors.remove(taskExecutorResourceId);
+
+
+
         if (oldRegistration != null) {
+            // 清理就的注册操作....
+
+
             // TODO :: suggest old taskExecutor to stop itself
             log.debug(
                     "Replacing old registration of TaskExecutor {}.",
@@ -939,10 +981,13 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                                     taskExecutorResourceId.getStringWithMetadata())));
         }
 
+        // 获取新的WorkerType
         final WorkerType newWorker = workerStarted(taskExecutorResourceId);
 
+        // 获取 taskExecutor 地址
         String taskExecutorAddress = taskExecutorRegistration.getTaskExecutorAddress();
         if (newWorker == null) {
+            // 如果newWorker为null 抛出异常...
             log.warn(
                     "Discard registration from TaskExecutor {} at ({}) because the framework did "
                             + "not recognize it",
@@ -950,6 +995,8 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                     taskExecutorAddress);
             return new RegistrationResponse.Decline("unrecognized TaskExecutor");
         } else {
+
+            // 构造 WorkerRegistration 对象
             WorkerRegistration<WorkerType> registration =
                     new WorkerRegistration<>(
                             taskExecutorGateway,
@@ -963,8 +1010,13 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                     "Registering TaskManager with ResourceID {} ({}) at ResourceManager",
                     taskExecutorResourceId.getStringWithMetadata(),
                     taskExecutorAddress);
+
+
+            // 加入缓存
             taskExecutors.put(taskExecutorResourceId, registration);
 
+
+            // 监控&心跳相关
             taskManagerHeartbeatManager.monitorTarget(
                     taskExecutorResourceId,
                     new HeartbeatTarget<Void>() {
@@ -980,6 +1032,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                         }
                     });
 
+            // 反馈注册成功信息
             return new TaskExecutorRegistrationSuccess(
                     registration.getInstanceID(), resourceId, clusterInformation);
         }

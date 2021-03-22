@@ -286,13 +286,17 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
         Preconditions.checkArgument(index < numberSlots);
 
+        // 获取TaskSlot
         TaskSlot<T> taskSlot = allocatedSlots.get(allocationId);
+
         if (taskSlot != null) {
             LOG.info("Allocation ID {} is already allocated in {}.", allocationId, taskSlot);
             return false;
         }
 
+        // 如果taskSlots 已经包含index
         if (taskSlots.containsKey(index)) {
+
             TaskSlot<T> duplicatedTaskSlot = taskSlots.get(index);
             LOG.info(
                     "Slot with index {} already exist, with resource profile {}, job id {} and allocation id {}.",
@@ -306,8 +310,10 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
             return true;
         }
 
+        // 获取 resourceProfile
         resourceProfile = index >= 0 ? defaultSlotResourceProfile : resourceProfile;
 
+        // 存储resourceProfile
         if (!budgetManager.reserve(resourceProfile)) {
             LOG.info(
                     "Cannot allocate the requested resources. Trying to allocate {}, "
@@ -318,6 +324,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
             return false;
         }
 
+        // 构建 taskSlot
         taskSlot =
                 new TaskSlot<>(
                         index,
@@ -326,16 +333,22 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
                         jobId,
                         allocationId,
                         memoryVerificationExecutor);
+
+
         if (index >= 0) {
+            // 加入缓存...
             taskSlots.put(index, taskSlot);
         }
 
+        // 更新 allocatedSlots
         // update the allocation id to task slot map
         allocatedSlots.put(allocationId, taskSlot);
 
+        // 注册超时时间
         // register a timeout for this slot since it's in state allocated
         timerService.registerTimeout(allocationId, slotTimeout.getSize(), slotTimeout.getUnit());
 
+        //  更新 slotsPerJob 的slot 集合
         // add this slot to the set of job slots
         Set<AllocationID> slots = slotsPerJob.get(jobId);
 

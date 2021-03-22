@@ -451,8 +451,13 @@ public class SlotManagerImpl implements SlotManager {
     }
 
     /**
-     * Registers a new task manager at the slot manager. This will make the task managers slots
-     * known and, thus, available for allocation.
+     *
+     * 在 slot manager中注册一个新的task manager
+     *
+     * 从而是 task managers slots 可以被感知/调度
+     *
+     * Registers a new task manager at the slot manager.
+     * This will make the task managers slots known and, thus, available for allocation.
      *
      * @param taskExecutorConnection for the new task manager
      * @param initialSlotReport for the new task manager
@@ -462,6 +467,9 @@ public class SlotManagerImpl implements SlotManager {
     @Override
     public boolean registerTaskManager(
             final TaskExecutorConnection taskExecutorConnection, SlotReport initialSlotReport) {
+
+        // 初始化检查
+        // The slot manager has not been started.
         checkInit();
 
         LOG.debug(
@@ -469,12 +477,18 @@ public class SlotManagerImpl implements SlotManager {
                 taskExecutorConnection.getResourceID().getStringWithMetadata(),
                 taskExecutorConnection.getInstanceID());
 
+        // 我们通过任务管理器的实例id来识别它们
         // we identify task managers by their instance id
+
         if (taskManagerRegistrations.containsKey(taskExecutorConnection.getInstanceID())) {
+
+            // 之间已经连接过, 直接报搞slot的状态.
             reportSlotStatus(taskExecutorConnection.getInstanceID(), initialSlotReport);
             return false;
         } else {
+
             if (isMaxSlotNumExceededAfterRegistration(initialSlotReport)) {
+                // 是否查过最大的 slot 数量...
                 LOG.info(
                         "The total number of slots exceeds the max limitation {}, release the excess resource.",
                         maxSlotNum);
@@ -485,6 +499,7 @@ public class SlotManagerImpl implements SlotManager {
                 return false;
             }
 
+            // 第一次注册TaskManager
             // first register the TaskManager
             ArrayList<SlotID> reportedSlots = new ArrayList<>();
 
@@ -498,8 +513,11 @@ public class SlotManagerImpl implements SlotManager {
             taskManagerRegistrations.put(
                     taskExecutorConnection.getInstanceID(), taskManagerRegistration);
 
+
             // next register the new slots
             for (SlotStatus slotStatus : initialSlotReport) {
+
+                // 开始注册slots
                 registerSlot(
                         slotStatus.getSlotID(),
                         slotStatus.getAllocationID(),
@@ -702,11 +720,20 @@ public class SlotManagerImpl implements SlotManager {
 
     // ---------------------------------------------------------------------------------------------
     // Internal slot operations
+    // 内部插槽操作
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * Registers a slot for the given task manager at the slot manager. The slot is identified by
-     * the given slot id. The given resource profile defines the available resources for the slot.
+     *
+     * 在 slot manager 中为给定的task manager 注册slot。
+     * slot由给定的 slot id 标识。
+     * 给定的资源配置文件定义了slot的可用资源。
+     *
+     * Registers a slot for the given task manager at the slot manager.
+     * The slot is identified by the given slot id.
+     *
+     * The given resource profile defines the available resources for the slot.
+     *
      * The task manager connection can be used to communicate with the task manager.
      *
      * @param slotId identifying the slot on the task manager
@@ -721,6 +748,7 @@ public class SlotManagerImpl implements SlotManager {
             ResourceProfile resourceProfile,
             TaskExecutorConnection taskManagerConnection) {
 
+        // 移除缓存汇总的 slot
         if (slots.containsKey(slotId)) {
             // remove the old slot first
             removeSlot(
@@ -731,28 +759,41 @@ public class SlotManagerImpl implements SlotManager {
                                     slotId)));
         }
 
+
+        // 构建 slot 信息
         final TaskManagerSlot slot =
                 createAndRegisterTaskManagerSlot(slotId, resourceProfile, taskManagerConnection);
 
+
         final PendingTaskManagerSlot pendingTaskManagerSlot;
 
+        // 获取队列中挂起的slot请求...
         if (allocationId == null) {
             pendingTaskManagerSlot = findExactlyMatchingPendingTaskManagerSlot(resourceProfile);
         } else {
             pendingTaskManagerSlot = null;
         }
 
+        // 如果队列中挂起的slot为null , 直接更新
         if (pendingTaskManagerSlot == null) {
+            // 更新slot状态
             updateSlot(slotId, allocationId, jobId);
         } else {
+            // 将队列中挂起的solt清理掉
             pendingSlots.remove(pendingTaskManagerSlot.getTaskManagerSlotId());
+
+            // 获取挂起slot的请求
             final PendingSlotRequest assignedPendingSlotRequest =
                     pendingTaskManagerSlot.getAssignedPendingSlotRequest();
 
+            // 分配slot
             if (assignedPendingSlotRequest == null) {
+                // 挂起的请求都已经满足了, 处理空闲的slot.
                 handleFreeSlot(slot);
             } else {
+                // 表示该slot要被分配...
                 assignedPendingSlotRequest.unassignPendingTaskManagerSlot();
+                // 执行分配操作...
                 allocateSlot(slot, assignedPendingSlotRequest);
             }
         }
@@ -822,13 +863,18 @@ public class SlotManagerImpl implements SlotManager {
      * @return True if the slot could be updated; otherwise false
      */
     private boolean updateSlot(SlotID slotId, AllocationID allocationId, JobID jobId) {
+
+        // 获取slot
         final TaskManagerSlot slot = slots.get(slotId);
 
         if (slot != null) {
+
+            // 获取 TaskManager 注册信息
             final TaskManagerRegistration taskManagerRegistration =
                     taskManagerRegistrations.get(slot.getInstanceId());
 
             if (taskManagerRegistration != null) {
+                // 更新 slot 信息
                 updateSlotState(slot, taskManagerRegistration, allocationId, jobId);
 
                 return true;
@@ -845,6 +891,7 @@ public class SlotManagerImpl implements SlotManager {
         }
     }
 
+    // 根据slot的状态进行不同的操作...
     private void updateSlotState(
             TaskManagerSlot slot,
             TaskManagerRegistration taskManagerRegistration,
@@ -852,6 +899,7 @@ public class SlotManagerImpl implements SlotManager {
             @Nullable JobID jobId) {
         if (null != allocationId) {
             switch (slot.getState()) {
+                // 挂起...
                 case PENDING:
                     // we have a pending slot request --> check whether we have to reject it
                     PendingSlotRequest pendingSlotRequest = slot.getAssignedSlotRequest();
@@ -891,12 +939,14 @@ public class SlotManagerImpl implements SlotManager {
                     taskManagerRegistration.occupySlot();
                     break;
                 case ALLOCATED:
+                    // 分配
                     if (!Objects.equals(allocationId, slot.getAllocationId())) {
                         slot.freeSlot();
                         slot.updateAllocation(allocationId, jobId);
                     }
                     break;
                 case FREE:
+                    // 释放..
                     // the slot is currently free --> it is stored in freeSlots
                     freeSlots.remove(slot.getSlotId());
                     slot.updateAllocation(allocationId, jobId);
@@ -909,12 +959,15 @@ public class SlotManagerImpl implements SlotManager {
             // no allocation reported
             switch (slot.getState()) {
                 case FREE:
+                    // 处理空闲
                     handleFreeSlot(slot);
                     break;
                 case PENDING:
+                    // 不要做任何事情，因为我们还有一个挂起的插槽请求
                     // don't do anything because we still have a pending slot request
                     break;
                 case ALLOCATED:
+                    // 分配操作...
                     AllocationID oldAllocation = slot.getAllocationId();
                     slot.freeSlot();
                     fulfilledSlotRequests.remove(oldAllocation);
@@ -1099,21 +1152,39 @@ public class SlotManagerImpl implements SlotManager {
      */
     private void allocateSlot(
             TaskManagerSlot taskManagerSlot, PendingSlotRequest pendingSlotRequest) {
+        // 检测 taskManager 的slot状态是否空闲
         Preconditions.checkState(taskManagerSlot.getState() == SlotState.FREE);
 
+        // 获取 taskManager 的连接信息
         TaskExecutorConnection taskExecutorConnection = taskManagerSlot.getTaskManagerConnection();
+
+        // 获取 TaskManager 的Gateway ...
         TaskExecutorGateway gateway = taskExecutorConnection.getTaskExecutorGateway();
 
+
+        // 缓存task slot的回调 completableFuture
         final CompletableFuture<Acknowledge> completableFuture = new CompletableFuture<>();
+
+        // 获取 allocationId
         final AllocationID allocationId = pendingSlotRequest.getAllocationId();
+
+        // 获取 slotId
         final SlotID slotId = taskManagerSlot.getSlotId();
+
+        // 获取taskManager的 实例id
         final InstanceID instanceID = taskManagerSlot.getInstanceId();
 
+
+        // task manager 的slot 处理 : 将slot的状态设置为 PENDING
         taskManagerSlot.assignPendingSlotRequest(pendingSlotRequest);
+
+        // 设置回调 completableFuture ...
         pendingSlotRequest.setRequestFuture(completableFuture);
 
+        //设置 返回挂起的TaskManager Slot
         returnPendingTaskManagerSlotIfAssigned(pendingSlotRequest);
 
+        // 获取实例的 TaskManagerRegistration
         TaskManagerRegistration taskManagerRegistration = taskManagerRegistrations.get(instanceID);
 
         if (taskManagerRegistration == null) {
@@ -1121,8 +1192,11 @@ public class SlotManagerImpl implements SlotManager {
                     "Could not find a registered task manager for instance id " + instanceID + '.');
         }
 
+        // taskManagerRegistration 标注为已经使用 ???
         taskManagerRegistration.markUsed();
 
+        // RPC 通知 Task Manager 分配slot给 JobManager
+        // TaskExecutor#requestSlot
         // RPC call to the task manager
         CompletableFuture<Acknowledge> requestFuture =
                 gateway.requestSlot(
@@ -1134,21 +1208,27 @@ public class SlotManagerImpl implements SlotManager {
                         resourceManagerId,
                         taskManagerRequestTimeout);
 
+
         requestFuture.whenComplete(
                 (Acknowledge acknowledge, Throwable throwable) -> {
                     if (acknowledge != null) {
+                        // 请求继续 ???
                         completableFuture.complete(acknowledge);
                     } else {
+                        // 执行完成 ...
                         completableFuture.completeExceptionally(throwable);
                     }
                 });
 
+        // 异步操作 ???
         completableFuture.whenCompleteAsync(
                 (Acknowledge acknowledge, Throwable throwable) -> {
                     try {
                         if (acknowledge != null) {
+                            // 更新 slot
                             updateSlot(slotId, allocationId, pendingSlotRequest.getJobId());
                         } else {
+                            // 处理异常状况信息....
                             if (throwable instanceof SlotOccupiedException) {
                                 SlotOccupiedException exception = (SlotOccupiedException) throwable;
                                 updateSlot(

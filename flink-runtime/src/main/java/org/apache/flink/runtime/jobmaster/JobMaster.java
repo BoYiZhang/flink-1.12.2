@@ -617,7 +617,10 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                 new RpcTaskManagerGateway(taskExecutorGateway, getFencingToken());
 
         return CompletableFuture.completedFuture(
-                slotPool.offerSlots(taskManagerLocation, rpcTaskManagerGateway, slots));
+                // [重要] 提供slots
+                slotPool.offerSlots(taskManagerLocation, rpcTaskManagerGateway, slots)
+
+        );
     }
 
     @Override

@@ -99,7 +99,7 @@ public abstract class RegisteredRpcConnection<
                 !isConnected() && pendingRegistration == null,
                 "The RPC connection is already started");
 
-        // 构建注册...
+        // 构建注册... ,  生成 generateRegistration
         final RetryingRegistration<F, G, S> newRegistration = createNewRegistration();
 
 
@@ -235,7 +235,7 @@ public abstract class RegisteredRpcConnection<
 
     private RetryingRegistration<F, G, S> createNewRegistration() {
 
-        // 生成注册 : JobMaster: generateRegistration
+        // 生成注册 : JobMaster: generateRegistration 方法
         RetryingRegistration<F, G, S> newRegistration = checkNotNull(generateRegistration());
 
         CompletableFuture<Tuple2<G, S>> future = newRegistration.getFuture();

@@ -72,10 +72,13 @@ public class TaskExecutorToResourceManagerConnection
         this.taskExecutorRegistration = checkNotNull(taskExecutorRegistration);
     }
 
+    // TaskExecutor 注册
+
     @Override
     protected RetryingRegistration<
                     ResourceManagerId, ResourceManagerGateway, TaskExecutorRegistrationSuccess>
             generateRegistration() {
+        // 构建生成 TaskExecutorToResourceManagerConnection
         return new TaskExecutorToResourceManagerConnection.ResourceManagerRegistration(
                 log,
                 rpcService,
@@ -85,6 +88,7 @@ public class TaskExecutorToResourceManagerConnection
                 taskExecutorRegistration);
     }
 
+    // 注册成功
     @Override
     protected void onRegistrationSuccess(TaskExecutorRegistrationSuccess success) {
         log.info(
@@ -120,6 +124,8 @@ public class TaskExecutorToResourceManagerConnection
                 RetryingRegistrationConfiguration retryingRegistrationConfiguration,
                 TaskExecutorRegistration taskExecutorRegistration) {
 
+
+            // 调用父类
             super(
                     log,
                     rpcService,
@@ -131,6 +137,8 @@ public class TaskExecutorToResourceManagerConnection
             this.taskExecutorRegistration = taskExecutorRegistration;
         }
 
+        // 开始注册的时候 RetryingRegistration#register 方法
+        // 会 调用 invokeRegistration 方法
         @Override
         protected CompletableFuture<RegistrationResponse> invokeRegistration(
                 ResourceManagerGateway resourceManager,
@@ -139,6 +147,9 @@ public class TaskExecutorToResourceManagerConnection
                 throws Exception {
 
             Time timeout = Time.milliseconds(timeoutMillis);
+
+            // ResourceManager#registerTaskExecutor
+            // 注册 TaskExecutor
             return resourceManager.registerTaskExecutor(taskExecutorRegistration, timeout);
         }
     }

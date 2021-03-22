@@ -366,11 +366,13 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     // ------------------------------------------------------------------------
     //  Life cycle
+    //  TaskExecutor 方法启动
     // ------------------------------------------------------------------------
 
     @Override
     public void onStart() throws Exception {
         try {
+            // 启动服务...
             startTaskExecutorServices();
         } catch (Throwable t) {
             final TaskManagerException exception =
@@ -383,12 +385,15 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         startRegistrationTimeout();
     }
 
+    // 启动 TaskExecutor 服务.
     private void startTaskExecutorServices() throws Exception {
         try {
             // start by connecting to the ResourceManager
+            // 连接 ResourceManager .   StandaloneLeaderRetrievalService#Start
             resourceManagerLeaderRetriever.start(new ResourceManagerLeaderListener());
 
             // tell the task slot table who's responsible for the task slot actions
+            // 告诉 task slot table 谁负责 task slot 操作
             taskSlotTable.start(new SlotActionsImpl(), getMainThreadExecutor());
 
             // start the job leader service
@@ -990,6 +995,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     // ----------------------------------------------------------------------
     // Slot allocation RPCs
+    //
     // ----------------------------------------------------------------------
 
     @Override
@@ -1004,12 +1010,15 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         // TODO: Filter invalid requests from the resource manager by using the
         // instance/registration Id
 
+        // 输出日志信息
         log.info(
                 "Receive slot request {} for job {} from resource manager with leader id {}.",
                 allocationId,
                 jobId,
                 resourceManagerId);
 
+
+        // 是否连接到 ResourceManager
         if (!isConnectedToResourceManager(resourceManagerId)) {
             final String message =
                     String.format(
@@ -1020,6 +1029,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         }
 
         try {
+
+            //[重点] 分配 slot
             allocateSlot(slotId, jobId, allocationId, resourceProfile);
         } catch (SlotAllocationException sae) {
             return FutureUtils.completedExceptionally(sae);
@@ -1028,9 +1039,14 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         final JobTable.Job job;
 
         try {
-            job =
-                    jobTable.getOrCreateJob(
-                            jobId, () -> registerNewJobAndCreateServices(jobId, targetAddress));
+
+            // 获取/构建  JobTable.Job
+
+
+            job =jobTable.getOrCreateJob(jobId, () -> registerNewJobAndCreateServices(jobId, targetAddress));
+
+
+
         } catch (Exception e) {
             // free the allocated slot
             try {
@@ -1054,6 +1070,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         }
 
         if (job.isConnected()) {
+
+            //[重要]  向JobManager提供Slot
             offerSlotsToJobManager(jobId);
         }
 
@@ -1074,7 +1092,13 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     private void allocateSlot(
             SlotID slotId, JobID jobId, AllocationID allocationId, ResourceProfile resourceProfile)
             throws SlotAllocationException {
+
+
         if (taskSlotTable.isSlotFree(slotId.getSlotNumber())) {
+
+
+            // 进行分配操作..
+            // TaskSlotTableImpl # allocateSlot
             if (taskSlotTable.allocateSlot(
                     slotId.getSlotNumber(),
                     jobId,
@@ -1219,8 +1243,12 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     private void notifyOfNewResourceManagerLeader(
             String newLeaderAddress, ResourceManagerId newResourceManagerId) {
+
+        // 获取ResourceManager 地址
         resourceManagerAddress =
                 createResourceManagerAddress(newLeaderAddress, newResourceManagerId);
+
+        // 重新连接ResourceManager
         reconnectToResourceManager(
                 new FlinkException(
                         String.format(
@@ -1240,24 +1268,32 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     }
 
     private void reconnectToResourceManager(Exception cause) {
+        // 关闭之前的连接
         closeResourceManagerConnection(cause);
+
+        // 开始注册, 超时: 默认5分钟
         startRegistrationTimeout();
+
+        // 尝试重新连接ResourceManager
         tryConnectToResourceManager();
     }
 
     private void tryConnectToResourceManager() {
         if (resourceManagerAddress != null) {
+            // 重新连接
             connectToResourceManager();
         }
     }
 
     private void connectToResourceManager() {
+        // 校验相关
         assert (resourceManagerAddress != null);
         assert (establishedResourceManagerConnection == null);
         assert (resourceManagerConnection == null);
 
         log.info("Connecting to ResourceManager {}.", resourceManagerAddress);
 
+        // 构建 TaskExecutor Registration
         final TaskExecutorRegistration taskExecutorRegistration =
                 new TaskExecutorRegistration(
                         getAddress(),
@@ -1269,6 +1305,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                         taskManagerConfiguration.getDefaultSlotResourceProfile(),
                         taskManagerConfiguration.getTotalResourceProfile());
 
+        // 资源管理 Connection
         resourceManagerConnection =
                 new TaskExecutorToResourceManagerConnection(
                         log,
@@ -1279,6 +1316,9 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                         getMainThreadExecutor(),
                         new ResourceManagerRegistrationListener(),
                         taskExecutorRegistration);
+
+
+        // 建立连接操作
         resourceManagerConnection.start();
     }
 
@@ -1288,6 +1328,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             InstanceID taskExecutorRegistrationId,
             ClusterInformation clusterInformation) {
 
+        // ResourceManager#sendSlotReport
+        // 发送 Slot 报告
         final CompletableFuture<Acknowledge> slotReportResponseFuture =
                 resourceManagerGateway.sendSlotReport(
                         getResourceID(),
@@ -1298,6 +1340,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         slotReportResponseFuture.whenCompleteAsync(
                 (acknowledge, throwable) -> {
                     if (throwable != null) {
+
+                        // 重新连接 ResourceManager  抛出异常...
                         reconnectToResourceManager(
                                 new TaskManagerException(
                                         "Failed to send initial slot report to ResourceManager.",
@@ -1306,6 +1350,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                 },
                 getMainThreadExecutor());
 
+        // 心跳相关
         // monitor the resource manager as heartbeat target
         resourceManagerHeartbeatManager.monitorTarget(
                 resourceManagerResourceId,
@@ -1324,6 +1369,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                     }
                 });
 
+        // 设置 blob server 地址...
         // set the propagated blob server address
         final InetSocketAddress blobServerAddress =
                 new InetSocketAddress(
@@ -1332,12 +1378,15 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
         blobCacheService.setBlobServerAddress(blobServerAddress);
 
+
+        // 建立ResourceManager 连接...
         establishedResourceManagerConnection =
                 new EstablishedResourceManagerConnection(
                         resourceManagerGateway,
                         resourceManagerResourceId,
                         taskExecutorRegistrationId);
 
+        // 停止超时操作...
         stopRegistrationTimeout();
     }
 
@@ -1415,21 +1464,29 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     // ------------------------------------------------------------------------
 
     private void offerSlotsToJobManager(final JobID jobId) {
+        // 向JobManager提供Slot : internalOfferSlotsToJobManager
         jobTable.getConnection(jobId).ifPresent(this::internalOfferSlotsToJobManager);
     }
 
     private void internalOfferSlotsToJobManager(JobTable.Connection jobManagerConnection) {
+        // 获取JobID
         final JobID jobId = jobManagerConnection.getJobId();
 
+        // JobID是否已经分配
         if (taskSlotTable.hasAllocatedSlots(jobId)) {
+
             log.info("Offer reserved slots to the leader of job {}.", jobId);
 
+            // 获取JobMaster 的  Gateway
             final JobMasterGateway jobMasterGateway = jobManagerConnection.getJobManagerGateway();
 
-            final Iterator<TaskSlot<Task>> reservedSlotsIterator =
-                    taskSlotTable.getAllocatedSlots(jobId);
+            // 获取 分配给jobId 的所有 TaskSlot
+            final Iterator<TaskSlot<Task>> reservedSlotsIterator =  taskSlotTable.getAllocatedSlots(jobId);
+
+            // 获取 JobMasterId
             final JobMasterId jobMasterId = jobManagerConnection.getJobMasterId();
 
+            // 保留的Slot
             final Collection<SlotOffer> reservedSlots = new HashSet<>(2);
 
             while (reservedSlotsIterator.hasNext()) {
@@ -1437,10 +1494,14 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                 reservedSlots.add(offer);
             }
 
+            // offerSlots
+            // JobMaster#offerSlots
             CompletableFuture<Collection<SlotOffer>> acceptedSlotsFuture =
                     jobMasterGateway.offerSlots(
                             getResourceID(), reservedSlots, taskManagerConfiguration.getTimeout());
 
+
+            // 异步操作.
             acceptedSlotsFuture.whenCompleteAsync(
                     handleAcceptedSlotOffers(jobId, jobMasterGateway, jobMasterId, reservedSlots),
                     getMainThreadExecutor());
@@ -2042,6 +2103,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         public void notifyLeaderAddress(final String leaderAddress, final UUID leaderSessionID) {
             runAsync(
                     () ->
+                            // 开始执行
                             notifyOfNewResourceManagerLeader(
                                     leaderAddress,
                                     ResourceManagerId.fromUuidOrNull(leaderSessionID)));
@@ -2108,17 +2170,24 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             final ClusterInformation clusterInformation = success.getClusterInformation();
             final ResourceManagerGateway resourceManagerGateway = connection.getTargetGateway();
 
+            // 异步执行
             runAsync(
                     () -> {
                         // filter out outdated connections
                         //noinspection ObjectEquality
+
                         if (resourceManagerConnection == connection) {
                             try {
+
+                                // 建立连接
                                 establishResourceManagerConnection(
                                         resourceManagerGateway,
                                         resourceManagerId,
                                         taskExecutorRegistrationId,
                                         clusterInformation);
+
+
+
                             } catch (Throwable t) {
                                 log.error(
                                         "Establishing Resource Manager connection in Task Executor failed",

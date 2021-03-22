@@ -82,7 +82,8 @@ public class StandaloneLeaderRetrievalService implements LeaderRetrievalService 
             started = true;
 
             // 通知 Leader
-            // ResourceManagerLeaderListener#notifyLeaderAddress
+            // JobMaster : ResourceManagerLeaderListener#notifyLeaderAddress
+            // TaskExecutor : TaskExecutor#notifyLeaderAddress
             // directly notify the listener, because we already know the leading JobManager's address
             listener.notifyLeaderAddress(leaderAddress, leaderId);
         }

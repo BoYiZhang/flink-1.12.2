@@ -128,7 +128,10 @@ public class TaskManagerSlot implements TaskManagerSlotInformation {
         Preconditions.checkState(
                 state == SlotState.FREE, "Slot must be free to be assigned a slot request.");
 
+        // 更新slot的状态
         state = SlotState.PENDING;
+
+
         assignedSlotRequest = Preconditions.checkNotNull(pendingSlotRequest);
     }
 

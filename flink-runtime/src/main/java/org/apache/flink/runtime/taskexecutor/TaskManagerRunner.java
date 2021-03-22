@@ -339,6 +339,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
     // --------------------------------------------------------------------------------------------
     //  Static entry point
+    //  TaskManager 启动入口
     // --------------------------------------------------------------------------------------------
 
     public static void main(String[] args) throws Exception {
@@ -355,6 +356,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
             LOG.info("Cannot determine the maximum number of open file descriptors");
         }
 
+        // 入口
         runTaskManagerProcessSecurely(args);
     }
 
@@ -368,11 +370,14 @@ public class TaskManagerRunner implements FatalErrorHandler {
         final TaskManagerRunner taskManagerRunner;
 
         try {
+            // 构建 TaskManagerRunner
             taskManagerRunner =
                     new TaskManagerRunner(
                             configuration,
                             pluginManager,
                             TaskManagerRunner::createTaskExecutorService);
+
+            // 启动 TaskManagerRunner
             taskManagerRunner.start();
         } catch (Exception exception) {
             throw new FlinkException("Failed to start the TaskManagerRunner.", exception);
@@ -391,30 +396,37 @@ public class TaskManagerRunner implements FatalErrorHandler {
         Configuration configuration = null;
 
         try {
+            // 加载配置...
             configuration = loadConfiguration(args);
         } catch (FlinkParseException fpe) {
             LOG.error("Could not load the configuration.", fpe);
             System.exit(FAILURE_EXIT_CODE);
         }
 
+        // 开始执行
         runTaskManagerProcessSecurely(checkNotNull(configuration));
     }
 
     public static void runTaskManagerProcessSecurely(Configuration configuration) {
         replaceGracefulExitWithHaltIfConfigured(configuration);
+
+        // 加载插件 ???
         final PluginManager pluginManager =
                 PluginUtils.createPluginManagerFromRootFolder(configuration);
+        // 文件初始化
         FileSystem.initialize(configuration, pluginManager);
 
         int exitCode;
         Throwable throwable = null;
 
         try {
+            // 安全模块
             SecurityUtils.install(new SecurityConfiguration(configuration));
 
             exitCode =
                     SecurityUtils.getInstalledContext()
-                            .runSecured(() -> runTaskManager(configuration, pluginManager));
+                            // 启动TaskManager = > runTaskManager
+                            .runSecured(() -> runTaskManager(configuration, pluginManager)  );
         } catch (Throwable t) {
             throwable = ExceptionUtils.stripException(t, UndeclaredThrowableException.class);
             exitCode = FAILURE_EXIT_CODE;

@@ -37,6 +37,7 @@ public interface LeaderRetrievalService {
      * @param listener The leader retrieval listener which will be notified about new leaders.
      * @throws Exception
      */
+    // StandaloneLeaderRetrievalService#Start
     void start(LeaderRetrievalListener listener) throws Exception;
 
     /**
