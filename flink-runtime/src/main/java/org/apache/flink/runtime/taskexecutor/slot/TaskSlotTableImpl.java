@@ -304,6 +304,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
                     duplicatedTaskSlot.getResourceProfile(),
                     duplicatedTaskSlot.getJobId(),
                     duplicatedTaskSlot.getAllocationId());
+
             return duplicatedTaskSlot.getJobId().equals(jobId)
                     && duplicatedTaskSlot.getAllocationId().equals(allocationId);
         } else if (allocatedSlots.containsKey(allocationId)) {

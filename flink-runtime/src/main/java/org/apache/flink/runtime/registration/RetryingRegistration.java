@@ -221,6 +221,7 @@ public abstract class RetryingRegistration<
 
 
             // [重点]注册的时候会调用 invokeRegistration 方法 .................
+            // TaskExecutorToResourceManagerConnection#invokeRegistration
             CompletableFuture<RegistrationResponse> registrationFuture =
                     invokeRegistration(gateway, fencingToken, timeoutMillis);
 

@@ -434,7 +434,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
             final TaskExecutorRegistration taskExecutorRegistration, final Time timeout) {
 
 
-        // 连接taskExecutor
+        // 1. 连接taskExecutor
         CompletableFuture<TaskExecutorGateway> taskExecutorGatewayFuture =
                 getRpcService()
                         .connect(
@@ -442,7 +442,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
                                 TaskExecutorGateway.class);
 
 
-        // 加入缓存
+        // 2. 加入缓存
         taskExecutorGatewayFutures.put(
                 taskExecutorRegistration.getResourceId(), taskExecutorGatewayFuture);
 
@@ -493,7 +493,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 
         if (workerTypeWorkerRegistration.getInstanceID().equals(taskManagerRegistrationId)) {
 
-            // 向 slotManager 注册 slot 信息
+            // [重点] 向 slotManager 注册 slot 信息
             // SlotManagerImpl#registerTaskManager
             if (slotManager.registerTaskManager(workerTypeWorkerRegistration, slotReport)) {
 
