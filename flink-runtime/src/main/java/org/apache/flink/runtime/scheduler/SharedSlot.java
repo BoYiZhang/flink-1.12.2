@@ -159,6 +159,9 @@ class SharedSlot implements SlotOwner, PhysicalSlot.Payload {
         logicalSlotFuture =
                 slotContextFuture.thenApply(
                         physicalSlot -> {
+                            // Allocated logical slot (SlotRequestId{b92b8214e9ddc0c1cf67249f731e89e7})
+                            // for execution vertex (id cbc357ccb763df2852fee8c4fc7d55f2_0) from the
+                            // physical slot (SlotRequestId{d3517a9282334314b63f9493850f55f0})
                             LOG.debug("Allocated {}", logMessageBase);
                             return createLogicalSlot(physicalSlot, logicalSlotRequestId);
                         });

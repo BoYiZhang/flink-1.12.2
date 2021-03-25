@@ -379,6 +379,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     private boolean markExistingSlotActive(TaskSlot<T> taskSlot) {
         if (taskSlot.markActive()) {
             // unregister a potential timeout
+            // Activate slot 3755cb8f9962a9a7738db04f2a02084c.
             LOG.info("Activate slot {}.", taskSlot.getAllocationId());
 
             timerService.unregisterTimeout(taskSlot.getAllocationId());
@@ -532,6 +533,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
         if (taskSlot != null) {
             if (taskSlot.isActive(task.getJobID(), task.getAllocationId())) {
+                // 加入队列 ??
                 if (taskSlot.add(task)) {
                     taskSlotMappings.put(
                             task.getExecutionId(), new TaskSlotMapping<>(task, taskSlot));

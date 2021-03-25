@@ -702,6 +702,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                                     return new RegistrationResponse.Decline(throwable.getMessage());
                                 }
 
+                                // 注册 ???
                                 slotPool.registerTaskManager(taskManagerId);
                                 registeredTaskManagers.put(
                                         taskManagerId,
@@ -867,6 +868,10 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         // 真正启动 JobMaster
         startJobMasterServices();
 
+        // Starting execution of job
+        //      Socket Window WordCount (694474d11da6100e82744c9e47e2f511)
+        // under job master id
+        //      00000000000000000000000000000000.
         log.info(
                 "Starting execution of job {} ({}) under job master id {}.",
                 jobGraph.getName(),
@@ -1003,6 +1008,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         jobManagerJobMetricGroup = newJobManagerJobMetricGroup;
     }
 
+    // 启动Scheduler ??
     private void resetAndStartScheduler() throws Exception {
         validateRunsInMainThread();
 
@@ -1040,6 +1046,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         jobStatusListener = new JobManagerJobStatusListener();
         schedulerNG.registerJobStatusListener(jobStatusListener);
 
+        // 开始调度 ???
         schedulerNG.startScheduling();
     }
 

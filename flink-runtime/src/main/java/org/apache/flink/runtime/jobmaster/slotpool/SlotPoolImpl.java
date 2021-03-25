@@ -293,7 +293,7 @@ public class SlotPoolImpl implements SlotPool {
         // 在等待此连接的 所有 slot 上工作
         // work on all slots waiting for this connection
         for (PendingRequest pendingRequest : waitingForResourceManager.values()) {
-            // 请求 RM
+            // 请求 RM / 获取资源
             requestSlotFromResourceManager(resourceManagerGateway, pendingRequest);
         }
 
@@ -311,6 +311,9 @@ public class SlotPoolImpl implements SlotPool {
     // ------------------------------------------------------------------------
 
     /**
+     * 从RM中请求一个新的slot
+     *
+     *
      * Requests a new slot from the ResourceManager. If there is currently not ResourceManager
      * connected, then the request is stashed and send once a new ResourceManager is connected.
      *
@@ -325,12 +328,14 @@ public class SlotPoolImpl implements SlotPool {
         if (resourceManagerGateway == null) {
             stashRequestWaitingForResourceManager(pendingRequest);
         } else {
+            // 从RM中请求一个新的slot
             requestSlotFromResourceManager(resourceManagerGateway, pendingRequest);
         }
 
         return pendingRequest.getAllocatedSlotFuture();
     }
 
+    // JobMaster 通过 SlotPoolImpl 请求一个新的solt
     private void requestSlotFromResourceManager(
             final ResourceManagerGateway resourceManagerGateway,
             final PendingRequest pendingRequest) {
@@ -361,6 +366,13 @@ public class SlotPoolImpl implements SlotPool {
                                 }
                             }
                         });
+
+
+
+        // Requesting new slot [SlotRequestId{d3517a9282334314b63f9493850f55f0}]
+        // and
+        // profile ResourceProfile{UNKNOWN} with allocation id 3755cb8f9962a9a7738db04f2a02084c
+        // from resource manager.
 
         log.info(
                 "Requesting new slot [{}] and profile {} with allocation id {} from resource manager.",
@@ -609,6 +621,12 @@ public class SlotPoolImpl implements SlotPool {
         final PendingRequest pendingRequest = findMatchingPendingRequest(allocatedSlot);
 
         if (pendingRequest != null) {
+
+            // Fulfilling pending slot request [
+            //      SlotRequestId{d3517a9282334314b63f9493850f55f0}
+            // ] with slot [
+            //      3755cb8f9962a9a7738db04f2a02084c
+            // ]
             log.debug(
                     "Fulfilling pending slot request [{}] with slot [{}]",
                     pendingRequest.getSlotRequestId(),
@@ -891,6 +909,7 @@ public class SlotPoolImpl implements SlotPool {
 
         componentMainThreadExecutor.assertRunningInMainThread();
 
+        // Register new TaskExecutor container_1615446205104_0025_01_000002(192.168.8.188:57958).
         log.debug("Register new TaskExecutor {}.", resourceID.getStringWithMetadata());
         return registeredTaskManagers.add(resourceID);
     }

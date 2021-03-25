@@ -158,7 +158,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
 
     @Override
     public boolean startNewWorker(WorkerResourceSpec workerResourceSpec) {
-        // requestNewWorker 操作
+        // requestNewWorker 操作 , 请求资源 & 启动 TaskExecutor
         requestNewWorker(workerResourceSpec);
         return true;
     }
@@ -183,6 +183,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
     @Override
     protected void onWorkerRegistered(WorkerType worker) {
         final ResourceID resourceId = worker.getResourceID();
+        // Worker container_1615446205104_0025_01_000002(192.168.8.188:57958) is registered.
         log.info("Worker {} is registered.", resourceId.getStringWithMetadata());
 
         final WorkerResourceSpec workerResourceSpec =
@@ -236,6 +237,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
     //  Internal
     // ------------------------------------------------------------------------
 
+    // 请求一个新的 TaskManager
     private void requestNewWorker(WorkerResourceSpec workerResourceSpec) {
         final TaskExecutorProcessSpec taskExecutorProcessSpec =
                 TaskExecutorProcessUtils.processSpecFromWorkerResourceSpec(
@@ -247,8 +249,13 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
                 workerResourceSpec,
                 pendingCount);
 
+        // 请求Container 资源
+        // YarnResourceManagerDriver#requestResource
+
         CompletableFuture<WorkerType> requestResourceFuture =
                 resourceManagerDriver.requestResource(taskExecutorProcessSpec);
+
+
         FutureUtils.assertNoException(
                 requestResourceFuture.handle(
                         (worker, exception) -> {
@@ -262,10 +269,26 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
                                         exception);
                                 requestWorkerIfRequired();
                             } else {
+
+
                                 final ResourceID resourceId = worker.getResourceID();
                                 workerNodeMap.put(resourceId, worker);
                                 currentAttemptUnregisteredWorkers.put(
                                         resourceId, workerResourceSpec);
+
+                                // org.apache.flink.runtime.resourcemanager.active.ActiveResourceManager [] -
+                                //
+                                // Requested worker
+                                // container_1615446205104_0025_01_000002(192.168.8.188:57958)
+                                //
+                                // with resource spec WorkerResourceSpec
+                                //  {
+                                //      cpuCores=1.0,
+                                //      taskHeapSize=384.000mb (402653174 bytes),
+                                //      taskOffHeapSize=0 bytes,
+                                //      networkMemSize=128.000mb (134217730 bytes),
+                                //      managedMemSize=512.000mb (536870920 bytes)
+                                //  }.
                                 log.info(
                                         "Requested worker {} with resource spec {}.",
                                         resourceId.getStringWithMetadata(),
@@ -293,6 +316,13 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
                 currentAttemptUnregisteredWorkers.remove(resourceId);
         if (workerResourceSpec != null) {
             final int count = pendingWorkerCounter.decreaseAndGet(workerResourceSpec);
+
+            //  Worker container_1615446205104_0025_01_000002(192.168.8.188:57958)
+            //  with resource spec
+            //          WorkerResourceSpec {cpuCores=1.0, taskHeapSize=384.000mb (402653174 bytes), taskOffHeapSize=0 bytes, networkMemSize=128.000mb (134217730 bytes), managedMemSize=512.000mb (536870920 bytes)}
+            //  was requested in current attempt.
+            //
+            //  Current pending count after registering: 0.
             log.info(
                     "Worker {} with resource spec {} was requested in current attempt and has not registered."
                             + " Current pending count after removing: {}.",

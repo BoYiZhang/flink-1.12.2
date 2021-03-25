@@ -126,6 +126,7 @@ public class StaticFileServerHandler<T extends RestfulGateway> extends LeaderRet
     //  Responses to requests
     // ------------------------------------------------------------------------
 
+    // 发布web服务
     @Override
     protected void respondAsLeader(
             ChannelHandlerContext channelHandlerContext, RoutedRequest routedRequest, T gateway)
@@ -141,6 +142,7 @@ public class StaticFileServerHandler<T extends RestfulGateway> extends LeaderRet
         }
 
         try {
+            // 加载web页面资源
             respondToRequest(channelHandlerContext, request, requestPath);
         } catch (RestHandlerException rhe) {
             HandlerUtils.sendErrorResponse(
@@ -151,6 +153,62 @@ public class StaticFileServerHandler<T extends RestfulGateway> extends LeaderRet
                     responseHeaders);
         }
     }
+
+
+
+
+
+
+    // 记载页面资源
+    //    Loading missing file from classloader: /index.html
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/index.html'
+    //    Loading missing file from classloader: /runtime.5c36d63f36c4d73a35bd.js
+    //    Loading missing file from classloader: /polyfills.bb2456cce5322b484b77.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/runtime.5c36d63f36c4d73a35bd.js'
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/polyfills.bb2456cce5322b484b77.js'
+    //    Loading missing file from classloader: /styles.1ae47a79a0f8d3c2901e.css
+    //    Loading missing file from classloader: /main.2a1be4f3c13d83f3b693.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/styles.1ae47a79a0f8d3c2901e.css'
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/main.2a1be4f3c13d83f3b693.js'
+    //    Loading missing file from classloader: /common.96cce8c7d776298af1ea.js
+    //    Loading missing file from classloader: /9.b7311ed29acd9eac9234.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/9.b7311ed29acd9eac9234.js'
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/common.96cce8c7d776298af1ea.js'
+    //    Loading missing file from classloader: /assets/images/flink.svg
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/assets/images/flink.svg'
+    //    Loading missing file from classloader: /2.98f70f5b4a148b9b9955.js
+    //    Loading missing file from classloader: /10.e661d8148a27bc774837.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/10.e661d8148a27bc774837.js'
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/2.98f70f5b4a148b9b9955.js'
+    //    Loading missing file from classloader: /4.df1809aa67d38317aa5b.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/4.df1809aa67d38317aa5b.js'
+    //    Loading missing file from classloader: /14.e298c74efca63daa839b.js
+    //    Loading missing file from classloader: /12.b855e90313db046d9c33.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/12.b855e90313db046d9c33.js'
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/14.e298c74efca63daa839b.js'
+    //    Loading missing file from classloader: /11.264d4e1507e8d7dea08a.js
+    //    Loading missing file from classloader: /3.ec8e0449824e9a58eb2b.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/11.264d4e1507e8d7dea08a.js'
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/3.ec8e0449824e9a58eb2b.js'
+    //    Loading missing file from classloader: /13.53d6719faba0b4c2707a.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/13.53d6719faba0b4c2707a.js'
+    //    Loading missing file from classloader: /assets/favicon/favicon.ico
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/assets/favicon/favicon.ico'
+
+
+    //    Loading missing file from classloader: /libs/vs/loader.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/libs/vs/loader.js'
+    //    Loading missing file from classloader: /libs/vs/editor/editor.main.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/libs/vs/editor/editor.main.js'
+    //    Loading missing file from classloader: /libs/vs/editor/editor.main.css
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/libs/vs/editor/editor.main.css'
+    //    Loading missing file from classloader: /libs/vs/editor/editor.main.nls.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/libs/vs/editor/editor.main.nls.js'
+    //    Loading missing file from classloader: /libs/vs/basic-languages/apex/apex.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/libs/vs/basic-languages/apex/apex.js'
+    //    Loading missing file from classloader: /libs/vs/base/worker/workerMain.js
+    //    Responding with file '/private/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead/flink-web-ui/libs/vs/base/worker/workerMain.js'
+
 
     /** Response when running with leading JobManager. */
     private void respondToRequest(

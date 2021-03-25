@@ -512,6 +512,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
 
     protected void beforeInvoke() throws Exception {
         disposedOperators = false;
+
+        // Initializing Source: Socket Stream -> Flat Map (1/1)#0.
+        // Initializing Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction) -> Sink: Print to Std. Out (1/1)#0.
         LOG.debug("Initializing {}.", getName());
 
         operatorChain = new OperatorChain<>(this, recordWriter);
@@ -526,6 +529,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         }
 
         // -------- Invoke --------
+        // Invoking Source: Socket Stream -> Flat Map (1/1)#0
         LOG.debug("Invoking {}", getName());
 
         // we need to make sure that any triggers scheduled in open() cannot be
@@ -1271,6 +1275,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
             ExceptionUtils.rethrow(e);
         }
 
+        // Using partitioner HASH for output 0 of task Source: Socket Stream -> Flat Map
         LOG.debug(
                 "Using partitioner {} for output {} of task {}",
                 outputPartitioner,

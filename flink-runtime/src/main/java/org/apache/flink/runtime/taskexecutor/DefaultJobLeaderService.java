@@ -184,6 +184,7 @@ public class DefaultJobLeaderService implements JobLeaderService {
                 DefaultJobLeaderService.State.STARTED == state,
                 "The service is currently not running.");
 
+        // Add job 694474d11da6100e82744c9e47e2f511 for job leader monitoring.
         LOG.info("Add job {} for job leader monitoring.", jobId);
 
         final LeaderRetrievalService leaderRetrievalService =
@@ -297,6 +298,12 @@ public class DefaultJobLeaderService implements JobLeaderService {
                 } else {
                     final JobMasterId jobMasterId = JobMasterId.fromUuidOrNull(leaderId);
 
+                    //  New leader information for job
+                    //          694474d11da6100e82744c9e47e2f511.
+                    //  Address:
+                    //          akka.tcp://flink@192.168.8.188:62257/user/rpc/jobmanager_2,
+                    //  leader id:
+                    //          00000000000000000000000000000000.
                     LOG.debug(
                             "New leader information for job {}. Address: {}, leader id: {}.",
                             jobId,
@@ -338,6 +345,11 @@ public class DefaultJobLeaderService implements JobLeaderService {
                     new JobManagerRegisteredRpcConnection(
                             LOG, leaderAddress, jobMasterId, rpcService.getExecutor());
 
+
+            // Try to register at job manager
+            //      akka.tcp://flink@192.168.8.188:62257/user/rpc/jobmanager_2 with
+            // leader id
+            //      00000000-0000-0000-0000-000000000000.
             LOG.info(
                     "Try to register at job manager {} with leader id {}.",
                     leaderAddress,
@@ -397,6 +409,10 @@ public class DefaultJobLeaderService implements JobLeaderService {
             protected void onRegistrationSuccess(JMTMRegistrationSuccess success) {
                 // filter out old registration attempts
                 if (Objects.equals(getTargetLeaderId(), getCurrentJobMasterId())) {
+                    // Successful registration at job manager
+                    //      akka.tcp://flink@192.168.8.188:62257/user/rpc/jobmanager_2
+                    // for job
+                    //      694474d11da6100e82744c9e47e2f511.
                     log.info(
                             "Successful registration at job manager {} for job {}.",
                             getTargetAddress(),

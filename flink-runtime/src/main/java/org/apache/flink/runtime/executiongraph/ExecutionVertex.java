@@ -692,6 +692,8 @@ public class ExecutionVertex
             SlotProviderStrategy slotProviderStrategy,
             LocationPreferenceConstraint locationPreferenceConstraint,
             @Nonnull Set<AllocationID> allPreviousExecutionGraphAllocationIds) {
+
+        //??
         return this.currentExecution.scheduleForExecution(
                 slotProviderStrategy,
                 locationPreferenceConstraint,

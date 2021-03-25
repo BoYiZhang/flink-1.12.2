@@ -438,6 +438,12 @@ public class TaskManagerServices {
                     long usableSpaceGb = file.getUsableSpace() >> 30;
                     double usablePercentage = (double) usableSpaceGb / totalSpaceGb * 100;
                     String path = file.getAbsolutePath();
+
+                    // Temporary file directory
+                    //      '/opt/tools/hadoop-3.2.1/local-dirs/usercache/sysadmin/appcache/application_1615446205104_0025':
+                    //
+                    //      total 465 GB, usable 56 GB (12.04% usable)
+
                     LOG.info(
                             String.format(
                                     "Temporary file directory '%s': total %d GB, "

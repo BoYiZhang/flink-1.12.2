@@ -563,7 +563,10 @@ public class Task
         executingThread.start();
     }
 
-    /** The core work method that bootstraps the task and executes its code. */
+    /**
+     * 引导任务并执行其代码的核心工作方法。
+     * The core work method that bootstraps the task and executes its code.
+     * */
     @Override
     public void run() {
         try {
@@ -578,13 +581,19 @@ public class Task
         //  Initial State transition
         // ----------------------------
         while (true) {
+            // 获取当前状态
             ExecutionState current = this.executionState;
             if (current == ExecutionState.CREATED) {
+                // 创建&执行
                 if (transitionState(ExecutionState.CREATED, ExecutionState.DEPLOYING)) {
                     // success, we can start our work
+                    // 跳出,开始执行任务...
                     break;
                 }
+
+
             } else if (current == ExecutionState.FAILED) {
+                // 失败
                 // we were immediately failed. tell the TaskManager that we reached our final state
                 notifyFinalState();
                 if (metrics != null) {
@@ -592,6 +601,7 @@ public class Task
                 }
                 return;
             } else if (current == ExecutionState.CANCELING) {
+                // 取消
                 if (transitionState(ExecutionState.CANCELING, ExecutionState.CANCELED)) {
                     // we were immediately canceled. tell the TaskManager that we reached our final
                     // state
@@ -610,6 +620,7 @@ public class Task
             }
         }
 
+        // 所有从这里获取和注册的资源最终都需要撤消
         // all resource acquisitions and registrations from here on
         // need to be undone in the end
         Map<String, Future<Path>> distributedCacheEntries = new HashMap<>();
@@ -617,19 +628,36 @@ public class Task
 
         try {
             // ----------------------------
+            //  任务引导-我们定期检查是否作为快捷方式取消
             //  Task Bootstrap - We periodically
             //  check for canceling as a shortcut
             // ----------------------------
 
             // activate safety net for task thread
+            // Creating FileSystem stream leak safety net for task
+            //
+            //      Window(TumblingProcessingTimeWindows(5000),  ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)
+            //      ->
+            //      Sink: Print to Std. Out (1/1)#0 (141dd597dc560a831b2b4bc195943f0b) [DEPLOYING]
+            //
             LOG.debug("Creating FileSystem stream leak safety net for task {}", this);
             FileSystemSafetyNet.initializeSafetyNetForThread();
 
+
+            // 首先，获取一个用户代码类加载器这可能涉及下载作业的JAR文件和/或类
             // first of all, get a user-code classloader
             // this may involve downloading the job's JAR files and/or classes
+
+            // 加载Task 所需的JAR
+            // Loading JAR files for task
+            //      Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction) -> Sink: Print to Std. Out (1/1)#0 (141dd597dc560a831b2b4bc195943f0b) [DEPLOYING].
             LOG.info("Loading JAR files for task {}.", this);
 
+
+            // 获取用户类加载器 : UserCodeClassLoader
+            // Getting user code class loader for task 141dd597dc560a831b2b4bc195943f0b at library cache manager took 10 milliseconds
             userCodeClassLoader = createUserCodeClassloader();
+
             final ExecutionConfig executionConfig =
                     serializedExecutionConfig.deserializeValue(userCodeClassLoader.asClassLoader());
 
@@ -654,6 +682,9 @@ public class Task
             // the registration must also strictly be undone
             // ----------------------------------------------------------------
 
+            // 接收任务
+            //Registering task at network: Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction) -> Sink: Print to Std. Out (1/1)#0 (141dd597dc560a831b2b4bc195943f0b) [DEPLOYING].
+            //Registering task at network: Source: Socket Stream -> Flat Map (1/1)#0 (fc2db808f4399d580c05db4fd3c2d2df) [DEPLOYING].
             LOG.info("Registering task at network: {}.", this);
 
             setupPartitionsAndGates(consumableNotifyingPartitionWriters, inputGates);
@@ -982,6 +1013,7 @@ public class Task
         final UserCodeClassLoader userCodeClassLoader =
                 classLoaderHandle.getOrResolveClassLoader(requiredJarFiles, requiredClasspaths);
 
+        // Getting user code class loader for task 141dd597dc560a831b2b4bc195943f0b at library cache manager took 10 milliseconds
         LOG.debug(
                 "Getting user code class loader for task {} at library cache manager took {} milliseconds",
                 executionId,
@@ -1001,6 +1033,7 @@ public class Task
     }
 
     /**
+     * 尝试将执行状态从当前状态转换到新状态。
      * Try to transition the execution state from the current state to the new state.
      *
      * @param currentState of the execution
@@ -1023,6 +1056,18 @@ public class Task
             ExecutionState currentState, ExecutionState newState, Throwable cause) {
         if (STATE_UPDATER.compareAndSet(this, currentState, newState)) {
             if (cause == null) {
+
+                //      Window(
+                //          TumblingProcessingTimeWindows(5000),
+                //          ProcessingTimeTrigger,
+                //          ReduceFunction$1,
+                //          PassThroughWindowFunction
+                //      )
+                //      ->
+                //      Sink: Print to Std. Out (1/1)#0 (141dd597dc560a831b2b4bc195943f0b)
+                //
+                // switched from CREATED to
+                //      DEPLOYING.
                 LOG.info(
                         "{} ({}) switched from {} to {}.",
                         taskNameWithSubtask,

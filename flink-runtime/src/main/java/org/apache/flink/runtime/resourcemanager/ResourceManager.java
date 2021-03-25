@@ -541,6 +541,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 
 
     // 进入到远程调用....
+    // SlotPoolImpl 向RM 请求获取slot..
     @Override
     public CompletableFuture<Acknowledge> requestSlot(
             JobMasterId jobMasterId, SlotRequest slotRequest, final Time timeout) {

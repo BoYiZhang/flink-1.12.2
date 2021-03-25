@@ -77,6 +77,7 @@ public class HeartbeatManagerSenderImpl<I, O> extends HeartbeatManagerImpl<I, O>
     @Override
     public void run() {
         if (!stopped) {
+            // 心跳相关...
             log.debug("Trigger heartbeat request.");
             for (HeartbeatMonitor<O> heartbeatMonitor : getHeartbeatTargets().values()) {
                 requestHeartbeat(heartbeatMonitor);

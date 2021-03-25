@@ -105,6 +105,7 @@ public class MemoryManager {
         this.sharedResources = new SharedResources();
         verifyIntTotalNumberOfPages(memorySize, totalNumberOfPages);
 
+        // Initialized MemoryManager with total memory size 536870920 and page size 32768.
         LOG.debug(
                 "Initialized MemoryManager with total memory size {} and page size {}.",
                 memorySize,

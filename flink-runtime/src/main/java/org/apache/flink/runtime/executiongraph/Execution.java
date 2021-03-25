@@ -957,6 +957,7 @@ public class Execution
         return releaseFuture;
     }
 
+    // ??
     private void scheduleConsumer(ExecutionVertex consumerVertex) {
         assert isLegacyScheduling();
 

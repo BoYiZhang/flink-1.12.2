@@ -492,6 +492,8 @@ public class TaskManagerRunner implements FatalErrorHandler {
         checkNotNull(rpcService);
         checkNotNull(highAvailabilityServices);
 
+        // Starting TaskManager with ResourceID:
+        //      container_1615446205104_0025_01_000002(192.168.8.188:57958)
         LOG.info("Starting TaskManager with ResourceID: {}", resourceID.getStringWithMetadata());
 
         String externalAddress = rpcService.getAddress();
@@ -591,6 +593,9 @@ public class TaskManagerRunner implements FatalErrorHandler {
                 configuration.getString(TaskManagerOptions.HOST);
 
         if (configuredTaskManagerHostname != null) {
+
+            // Using configured hostname/address for TaskManager: 192.168.8.188.
+
             LOG.info(
                     "Using configured hostname/address for TaskManager: {}.",
                     configuredTaskManagerHostname);

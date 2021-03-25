@@ -566,6 +566,22 @@ public class SlotManagerImpl implements SlotManager {
         TaskManagerRegistration taskManagerRegistration = taskManagerRegistrations.get(instanceId);
 
         if (null != taskManagerRegistration) {
+            // Received slot report from instance
+            //      5ad0a12f8bb03f9d016f8d1e18380563 :
+            //      SlotReport{
+            //          SlotStatus{
+            //              slotID=container_1615446205104_0025_01_000002_0,
+            //              allocationID=3755cb8f9962a9a7738db04f2a02084c,
+            //              jobID=694474d11da6100e82744c9e47e2f511,
+            //              resourceProfile=ResourceProfile{
+            //                  cpuCores=1.0000000000000000,
+            //                  taskHeapMemory=384.000mb (402653174 bytes),
+            //                  taskOffHeapMemory=0 bytes,
+            //                  managedMemory=512.000mb (536870920 bytes),
+            //                  networkMemory=128.000mb (134217730 bytes)
+            //              }
+            //          }
+            //    }.
             LOG.debug("Received slot report from instance {}: {}.", instanceId, slotReport);
 
             for (SlotStatus slotStatus : slotReport) {
@@ -998,7 +1014,7 @@ public class SlotManagerImpl implements SlotManager {
                     allocateSlot(taskManagerSlot, pendingSlotRequest);
                 })
                 .ifNotPresent(() -> {
-                            // taskManagerSlot 不存在操作
+                            // taskManagerSlot 不存在操作 ==>  启动 TaskManager
                             fulfillPendingSlotRequestWithPendingTaskManagerSlot( pendingSlotRequest);
                         });
     }
@@ -1010,7 +1026,7 @@ public class SlotManagerImpl implements SlotManager {
                 findFreeMatchingPendingTaskManagerSlot(resourceProfile);
 
         if (!pendingTaskManagerSlotOptional.isPresent()) {
-            // 分配资源
+            // 分配资源allocateResource & 启动Worker
             pendingTaskManagerSlotOptional = allocateResource(resourceProfile);
         }
 
@@ -1120,7 +1136,7 @@ public class SlotManagerImpl implements SlotManager {
             return Optional.empty();
         }
 
-        // 分配资源allocateResource
+        // 分配资源allocateResource & 启动Worker
         if (!resourceActions.allocateResource(defaultWorkerResourceSpec)) {
             // resource cannot be allocated
             return Optional.empty();

@@ -91,6 +91,10 @@ public class TaskExecutorToResourceManagerConnection
     // 注册成功
     @Override
     protected void onRegistrationSuccess(TaskExecutorRegistrationSuccess success) {
+        // Successful registration at resource manager
+        //      akka.tcp://flink@192.168.8.188:62257/user/rpc/resourcemanager_*
+        // under registration id
+        //      5ad0a12f8bb03f9d016f8d1e18380563.
         log.info(
                 "Successful registration at resource manager {} under registration id {}.",
                 getTargetAddress(),

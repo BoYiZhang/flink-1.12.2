@@ -367,6 +367,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
         transitionToScheduled(verticesToDeploy);
 
+        // allocateSlots ??
         final List<SlotExecutionVertexAssignment> slotExecutionVertexAssignments =
                 allocateSlots(executionVertexDeploymentOptions);
 
@@ -406,6 +407,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
     private List<SlotExecutionVertexAssignment> allocateSlots(
             final List<ExecutionVertexDeploymentOption> executionVertexDeploymentOptions) {
+        // 分配slots ?
         return executionSlotAllocator.allocateSlotsFor(
                 executionVertexDeploymentOptions.stream()
                         .map(ExecutionVertexDeploymentOption::getExecutionVertexId)

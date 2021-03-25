@@ -67,6 +67,7 @@ public class HadoopUtils {
 
         final String hadoopHome = System.getenv("HADOOP_HOME");
         if (hadoopHome != null) {
+            // Searching Hadoop configuration files in HADOOP_HOME: /opt/tools/hadoop-3.2.1
             LOG.debug("Searching Hadoop configuration files in HADOOP_HOME: {}", hadoopHome);
             possibleHadoopConfPaths[0] = hadoopHome + "/conf";
             possibleHadoopConfPaths[1] = hadoopHome + "/etc/hadoop"; // hadoop 2.2
@@ -74,6 +75,9 @@ public class HadoopUtils {
 
         for (String possibleHadoopConfPath : possibleHadoopConfPaths) {
             if (possibleHadoopConfPath != null) {
+
+                //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/core-site.xml to hadoop configuration
+                //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/hdfs-site.xml to hadoop configuration
                 foundHadoopConfiguration = addHadoopConfIfFound(result, possibleHadoopConfPath);
             }
         }
@@ -83,6 +87,8 @@ public class HadoopUtils {
                 flinkConfiguration.getString(ConfigConstants.HDFS_DEFAULT_CONFIG, null);
         if (hdfsDefaultPath != null) {
             result.addResource(new org.apache.hadoop.fs.Path(hdfsDefaultPath));
+
+
             LOG.debug(
                     "Using hdfs-default configuration-file path from Flink config: {}",
                     hdfsDefaultPath);
@@ -110,6 +116,12 @@ public class HadoopUtils {
         String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
         if (hadoopConfDir != null) {
             LOG.debug("Searching Hadoop configuration files in HADOOP_CONF_DIR: {}", hadoopConfDir);
+
+
+            //  Searching Hadoop configuration files in HADOOP_CONF_DIR: /opt/tools/hadoop-3.2.1/etc/hadoop
+            //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/core-site.xml to hadoop configuration
+            //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/hdfs-site.xml to hadoop configuration
+
             foundHadoopConfiguration =
                     addHadoopConfIfFound(result, hadoopConfDir) || foundHadoopConfiguration;
         }
@@ -208,12 +220,15 @@ public class HadoopUtils {
             if (new File(possibleHadoopConfPath + "/core-site.xml").exists()) {
                 configuration.addResource(
                         new org.apache.hadoop.fs.Path(possibleHadoopConfPath + "/core-site.xml"));
+
+                // Adding /opt/tools/hadoop-3.2.1/etc/hadoop/core-site.xml to hadoop configuration
                 LOG.debug(
                         "Adding "
                                 + possibleHadoopConfPath
                                 + "/core-site.xml to hadoop configuration");
                 foundHadoopConfiguration = true;
             }
+            //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/hdfs-site.xml to hadoop configuration
             if (new File(possibleHadoopConfPath + "/hdfs-site.xml").exists()) {
                 configuration.addResource(
                         new org.apache.hadoop.fs.Path(possibleHadoopConfPath + "/hdfs-site.xml"));

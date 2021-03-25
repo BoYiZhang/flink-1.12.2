@@ -155,6 +155,19 @@ public class SingleInputGateFactory {
         }
         inputGate.setInputChannels(inputChannels);
 
+        //      Window(
+        //              TumblingProcessingTimeWindows(5000),
+        //              ProcessingTimeTrigger,
+        //              ReduceFunction$1,
+        //              PassThroughWindowFunction
+        //      ) ->
+        //      Sink: Print to Std.
+        //      Out (1/1)#0 (141dd597dc560a831b2b4bc195943f0b):
+        //
+        // Created
+        //      1
+        // input channels
+        //      (local: 1, remote: 0, unknown: 0).
         LOG.debug(
                 "{}: Created {} input channels ({}).",
                 owningTaskName,

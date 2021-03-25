@@ -80,6 +80,7 @@ public abstract class LeaderRetrievalHandler<T extends RestfulGateway>
                 .ifPresent(
                         gateway -> {
                             try {
+                                // web ui 服务
                                 respondAsLeader(channelHandlerContext, routedRequest, gateway);
                             } catch (Exception e) {
                                 logger.error("Error while responding to the http request.", e);

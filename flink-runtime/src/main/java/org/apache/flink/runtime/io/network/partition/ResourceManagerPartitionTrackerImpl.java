@@ -67,6 +67,11 @@ public class ResourceManagerPartitionTrackerImpl implements ResourceManagerParti
             ResourceID taskExecutorId, ClusterPartitionReport clusterPartitionReport) {
         Preconditions.checkNotNull(taskExecutorId);
         Preconditions.checkNotNull(clusterPartitionReport);
+
+        // Processing cluster partition report from task executor
+        //              container_1615446205104_0025_01_000002
+        //      :
+        //              PartitionReport{entries=[]}.
         LOG.debug(
                 "Processing cluster partition report from task executor {}: {}.",
                 taskExecutorId,

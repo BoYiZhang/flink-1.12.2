@@ -186,6 +186,8 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
             List<ExecutionVertexID> executionIds = entry.getValue();
 
             for (ExecutionVertexID executionId : executionIds) {
+
+                // 请求分配一个逻辑的slot ???
                 CompletableFuture<LogicalSlot> logicalSlotFuture =
                         slots.get(group).allocateLogicalSlot(executionId);
                 SlotExecutionVertexAssignment assignment =

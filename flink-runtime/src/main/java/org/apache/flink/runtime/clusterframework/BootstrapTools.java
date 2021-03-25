@@ -474,6 +474,44 @@ public class BootstrapTools {
                         ConfigConstants.YARN_CONTAINER_START_COMMAND_TEMPLATE,
                         ConfigConstants.DEFAULT_YARN_CONTAINER_START_COMMAND_TEMPLATE);
         String startCommand = getStartCommand(commandTemplate, startCommandValues);
+
+        // TaskManager start command:
+        // $JAVA_HOME/bin/java
+        // -Xmx536870902
+        // -Xms536870902
+        // -XX:MaxDirectMemorySize=268435458
+        // -XX:MaxMetaspaceSize=268435456
+        // -Dlog.file=<LOG_DIR>/taskmanager.log
+        // -Dlog4j.configuration=file:./log4j.properties
+        // -Dlog4j.configurationFile=file:./log4j.properties
+        //
+        // org.apache.flink.yarn.YarnTaskExecutorRunner
+        // -D taskmanager.memory.framework.off-heap.size=134217728b
+        // -D taskmanager.memory.network.max=134217730b
+        // -D taskmanager.memory.network.min=134217730b
+        // -D taskmanager.memory.framework.heap.size=134217728b
+        // -D taskmanager.memory.managed.size=536870920b
+        // -D taskmanager.cpu.cores=1.0
+        // -D taskmanager.memory.task.heap.size=402653174b
+        // -D taskmanager.memory.task.off-heap.size=0b
+        // -D taskmanager.memory.jvm-metaspace.size=268435456b
+        // -D taskmanager.memory.jvm-overhead.max=201326592b
+        // -D taskmanager.memory.jvm-overhead.min=201326592b
+        // --configDir .
+        // -Djobmanager.rpc.address='192.168.8.188'
+        // -Djobmanager.memory.jvm-overhead.min='201326592b'
+        // -Dtaskmanager.resource-id='container_1615446205104_0025_01_000002'
+        // -Dweb.port='0'
+        // -Djobmanager.memory.off-heap.size='134217728b'
+        // -Dweb.tmpdir='/var/folders/37/9746t_yx10v2g49vkwtzjw_80000gn/T/flink-web-95c0d2ad-b600-4c39-9af0-3d60c3b11ead'
+        // -Dinternal.taskmanager.resource-id.metadata='192.168.8.188:57958'
+        // -Djobmanager.rpc.port='62257' -Drest.address='192.168.8.188'
+        // -Djobmanager.memory.jvm-metaspace.size='268435456b'
+        // -Djobmanager.memory.heap.size='1073741824b'
+        // -Djobmanager.memory.jvm-overhead.max='201326592b'
+        // 1> <LOG_DIR>/taskmanager.out
+        // 2> <LOG_DIR>/taskmanager.err
+
         LOG.debug("TaskManager start command: " + startCommand);
 
         return startCommand;

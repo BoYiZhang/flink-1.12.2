@@ -2420,6 +2420,7 @@ public class TaskExecutorTest extends TestLogger {
 
         @Override
         public boolean markSlotActive(AllocationID allocationId) throws SlotNotFoundException {
+
             final boolean result = super.markSlotActive(allocationId);
 
             if (result) {

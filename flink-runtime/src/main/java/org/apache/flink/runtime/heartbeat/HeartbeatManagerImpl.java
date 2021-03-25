@@ -193,6 +193,8 @@ public class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
     @Override
     public void receiveHeartbeat(ResourceID heartbeatOrigin, I heartbeatPayload) {
         if (!stopped) {
+            // Received heartbeat from container_1615446205104_0025_01_000002.
+
             log.debug("Received heartbeat from {}.", heartbeatOrigin);
             reportHeartbeat(heartbeatOrigin);
 

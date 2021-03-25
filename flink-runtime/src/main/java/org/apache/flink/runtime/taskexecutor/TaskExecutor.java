@@ -532,6 +532,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     // ----------------------------------------------------------------------
     // Task lifecycle RPCs
+    // 提交 任务 ???
     // ----------------------------------------------------------------------
 
     @Override
@@ -655,6 +656,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
             final JobManagerTaskRestore taskRestore = tdd.getTaskRestore();
 
+            // 构造 TaskStateManager
             final TaskStateManager taskStateManager =
                     new TaskStateManagerImpl(
                             jobId,
@@ -670,6 +672,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                 throw new TaskSubmissionException("Could not submit task.", e);
             }
 
+            // 构造一个新的Task
             Task task =
                     new Task(
                             jobInformation,
@@ -704,6 +707,17 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
             taskMetricGroup.gauge(MetricNames.IS_BACKPRESSURED, task::isBackPressured);
 
+            // Received task
+            //      Window(
+            //          TumblingProcessingTimeWindows(5000),
+            //          ProcessingTimeTrigger,
+            //          ReduceFunction$1, PassThroughWindowFunction
+            //      ) ->
+            //      Sink: Print to Std. Out (1/1)#0 (141dd597dc560a831b2b4bc195943f0b),
+            //
+            // deploy into slot with allocation id
+            //      3755cb8f9962a9a7738db04f2a02084c.
+
             log.info(
                     "Received task {} ({}), deploy into slot with allocation id {}.",
                     task.getTaskInfo().getTaskNameWithSubtasks(),
@@ -719,6 +733,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             }
 
             if (taskAdded) {
+                // 启动线程
                 task.startTaskThread();
 
                 setupResultPartitionBookkeeping(
@@ -1010,7 +1025,16 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         // TODO: Filter invalid requests from the resource manager by using the
         // instance/registration Id
 
+
+
         // 输出日志信息
+        // Receive slot request
+        //      3755cb8f9962a9a7738db04f2a02084c
+        // for job
+        //      694474d11da6100e82744c9e47e2f511
+        // from resource manager with leader id
+        //      00000000000000000000000000000000.
+
         log.info(
                 "Receive slot request {} for job {} from resource manager with leader id {}.",
                 allocationId,
@@ -1105,6 +1129,9 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                     allocationId,
                     resourceProfile,
                     taskManagerConfiguration.getTimeout())) {
+
+
+                // Allocated slot for 3755cb8f9962a9a7738db04f2a02084c.
                 log.info("Allocated slot for {}.", allocationId);
             } else {
                 log.info("Could not allocate slot for {}.", allocationId);
@@ -1291,6 +1318,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         assert (establishedResourceManagerConnection == null);
         assert (resourceManagerConnection == null);
 
+        // Connecting to ResourceManager
+        //          akka.tcp://flink@192.168.8.188:62257/user/rpc/resourcemanager_*(00000000000000000000000000000000).
         log.info("Connecting to ResourceManager {}.", resourceManagerAddress);
 
         // 构建 TaskExecutor Registration
@@ -1475,6 +1504,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         // JobID是否已经分配
         if (taskSlotTable.hasAllocatedSlots(jobId)) {
 
+            // Offer reserved slots to the leader of job 694474d11da6100e82744c9e47e2f511.
             log.info("Offer reserved slots to the leader of job {}.", jobId);
 
             // 获取JobMaster 的  Gateway
@@ -1540,6 +1570,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                     // mark accepted slots active
                     for (SlotOffer acceptedSlot : acceptedSlots) {
                         try {
+                            // 激活Slot
                             if (!taskSlotTable.markSlotActive(acceptedSlot.getAllocationId())) {
                                 // the slot is either free or releasing at the moment
                                 final String message = "Could not mark slot " + jobId + " active.";
@@ -1601,6 +1632,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             }
         }
 
+        // Establish JobManager connection for job 694474d11da6100e82744c9e47e2f511.
         log.info("Establish JobManager connection for job {}.", jobId);
 
         ResourceID jobManagerResourceID = registrationSuccess.getResourceID();
