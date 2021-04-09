@@ -579,7 +579,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
     public static void runClusterEntrypoint(ClusterEntrypoint clusterEntrypoint) {
 
-        // 获取名字
+        // 获取名字 : YarnJobClusterEntrypoint
         final String clusterEntrypointName = clusterEntrypoint.getClass().getSimpleName();
         try {
             // 启动集群

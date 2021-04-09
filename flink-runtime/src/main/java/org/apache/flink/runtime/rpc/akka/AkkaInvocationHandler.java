@@ -108,6 +108,14 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
         this.captureAskCallStack = captureAskCallStack;
     }
 
+    /**
+     * 代理转发
+     * @param proxy
+     * @param method
+     * @param args
+     * @return
+     * @throws Throwable
+     */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         Class<?> declaringClass = method.getDeclaringClass();
@@ -120,6 +128,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
                 || declaringClass.equals(StartStoppable.class)
                 || declaringClass.equals(MainThreadExecutable.class)
                 || declaringClass.equals(RpcServer.class)) {
+            // 如果是网关类走这里 ...
             result = method.invoke(this, args);
         } else if (declaringClass.equals(FencedRpcGateway.class)) {
             throw new UnsupportedOperationException(
@@ -129,6 +138,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
                             + "fencing token. Please use RpcService#connect(RpcService, F, Time) with F being the fencing token to "
                             + "retrieve a properly FencedRpcGateway.");
         } else {
+            // 非网关类, 走RPC请求
             result = invokeRpc(method, args);
         }
 
@@ -205,18 +215,26 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
         Annotation[][] parameterAnnotations = method.getParameterAnnotations();
         Time futureTimeout = extractRpcTimeout(parameterAnnotations, args, timeout);
 
-        final RpcInvocation rpcInvocation =
-                createRpcInvocationMessage(methodName, parameterTypes, args);
+        // 把消息进行封装  RpcInvocation
+        //      本地则是 LocalRpcInvocation 类型,
+        //      远程则是 RemoteRpcInvocation 类型
+        final RpcInvocation rpcInvocation =  createRpcInvocationMessage(methodName, parameterTypes, args);
 
         Class<?> returnType = method.getReturnType();
 
         final Object result;
 
+
         if (Objects.equals(returnType, Void.TYPE)) {
+
+            // 如果方法的返回值是 void
+            // 使用tell方式...
             tell(rpcInvocation);
 
             result = null;
         } else {
+            // 有返回值, 会使用ask方式
+
             // Capture the call stack. It is significantly faster to do that via an exception than
             // via Thread.getStackTrace(), because exceptions lazily initialize the stack trace,
             // initially only
@@ -240,9 +258,14 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
                     });
 
             if (Objects.equals(returnType, CompletableFuture.class)) {
+
+
+                // 如果类型是CompletableFuture  , 直接返回 (非阻塞)
                 result = completableFuture;
             } else {
                 try {
+                    // 如果返回类型不是CompletableFuture
+                    // 主动获取结果(阻塞等待结果)
                     result =
                             completableFuture.get(futureTimeout.getSize(), futureTimeout.getUnit());
                 } catch (ExecutionException ee) {
@@ -269,6 +292,8 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
             final String methodName, final Class<?>[] parameterTypes, final Object[] args)
             throws IOException {
         final RpcInvocation rpcInvocation;
+
+        // 根据类型进行处理
 
         if (isLocal) {
             rpcInvocation = new LocalRpcInvocation(methodName, parameterTypes, args);

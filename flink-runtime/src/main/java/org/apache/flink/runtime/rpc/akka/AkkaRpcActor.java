@@ -203,6 +203,10 @@ class AkkaRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
         sendErrorIfSender(new AkkaUnknownMessageException(message));
     }
 
+    /**
+     *  处理RPC消息
+     * @param message
+     */
     protected void handleRpcMessage(Object message) {
         if (message instanceof RunAsync) {
             handleRunAsync((RunAsync) message);
