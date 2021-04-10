@@ -87,6 +87,8 @@ public class DefaultSchedulerFactory implements SchedulerNGFactory {
                 jobGraph.getName(),
                 jobGraph.getJobID());
 
+
+        // 返回一个 DefaultScheduler 调取器
         return new DefaultScheduler(
                 log,
                 jobGraph,

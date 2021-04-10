@@ -486,10 +486,14 @@ public class JobVertex implements java.io.Serializable {
     public JobEdge connectNewDataSetAsInput(
             JobVertex input, DistributionPattern distPattern, ResultPartitionType partitionType) {
 
+        // 获取上游节点的输出 中间结果
         IntermediateDataSet dataSet = input.createAndAddResultDataSet(partitionType);
 
+        // new JobEdge
         JobEdge edge = new JobEdge(dataSet, this, distPattern);
         this.inputs.add(edge);
+
+        // 设置 中间结果数据的 消费者
         dataSet.addConsumer(edge);
         return edge;
     }

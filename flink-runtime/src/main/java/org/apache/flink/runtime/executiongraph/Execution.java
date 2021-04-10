@@ -725,6 +725,7 @@ public class Execution
     }
 
     /**
+     *  将 execution 部署到先前分配的资源。
      * Deploys the execution to the previously assigned resource.
      *
      * @throws JobException if the execution cannot be deployed to the assigned resource
@@ -732,6 +733,7 @@ public class Execution
     public void deploy() throws JobException {
         assertRunningInJobMasterMainThread();
 
+        // 获取slot
         final LogicalSlot slot = assignedResource;
 
         checkNotNull(
@@ -808,8 +810,11 @@ public class Execution
                         "Rescaling from unaligned checkpoint is not yet supported.");
             }
 
+            // 转换操作...
+            // 将 IntermediateResultPartition 转化成 ResultPartition
+            // 将 ExecutionEdge 转成 InputChannelDeploymentDescriptor（最终会在执行时转化成InputGate）
             final TaskDeploymentDescriptor deployment =
-                    TaskDeploymentDescriptorFactory.fromExecutionVertex(vertex, attemptNumber)
+                    TaskDeploymentDescriptorFactory.fromExecutionVertex(vertex, attemptNumber) // task
                             .createDeploymentDescriptor(
                                     slot.getAllocationId(),
                                     slot.getPhysicalSlotNumber(),
@@ -829,6 +834,7 @@ public class Execution
             // does not block
             // the main thread and sync back to the main thread once submission is completed.
             CompletableFuture.supplyAsync(
+                            // 提交任务!!!!
                             () -> taskManagerGateway.submitTask(deployment, rpcTimeout), executor)
                     .thenCompose(Function.identity())
                     .whenCompleteAsync(

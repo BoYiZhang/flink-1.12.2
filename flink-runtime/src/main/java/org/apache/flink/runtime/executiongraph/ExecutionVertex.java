@@ -357,6 +357,7 @@ public class ExecutionVertex
     public void connectSource(
             int inputNumber, IntermediateResult source, JobEdge edge, int consumerNumber) {
 
+        // 只有forward的方式的情况下，pattern才是 POINTWISE的，否则均为 ALL_TO_ALL
         final DistributionPattern pattern = edge.getDistributionPattern();
         final IntermediateResultPartition[] sourcePartitions = source.getPartitions();
 
@@ -366,7 +367,7 @@ public class ExecutionVertex
             case POINTWISE:
                 edges = connectPointwise(sourcePartitions, inputNumber);
                 break;
-
+            // 看这里.. 构造ExecutionEdge
             case ALL_TO_ALL:
                 edges = connectAllToAll(sourcePartitions, inputNumber);
                 break;
@@ -712,6 +713,7 @@ public class ExecutionVertex
     }
 
     public void deploy() throws JobException {
+        // 部署
         currentExecution.deploy();
     }
 

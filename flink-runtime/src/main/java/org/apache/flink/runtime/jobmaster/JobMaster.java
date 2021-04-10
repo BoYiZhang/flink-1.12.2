@@ -327,6 +327,8 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         this.shuffleMaster = checkNotNull(shuffleMaster);
 
         this.jobManagerJobMetricGroup = jobMetricGroupFactory.create(jobGraph);
+
+        // [重点] 构建一个Scheduler ,创建 调度器，创建的时候把 JobGraph转换成 ExecutionGraph
         this.schedulerNG = createScheduler(executionDeploymentTracker, jobManagerJobMetricGroup);
         this.jobStatusListener = null;
 
@@ -1023,6 +1025,9 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                             "ExecutionGraph is being reset in order to be rescheduled."));
             final JobManagerJobMetricGroup newJobManagerJobMetricGroup =
                     jobMetricGroupFactory.create(jobGraph);
+
+
+
             final SchedulerNG newScheduler =
                     createScheduler(executionDeploymentTracker, newJobManagerJobMetricGroup);
 
@@ -1036,7 +1041,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                                         return null;
                                     });
         }
-
+        // 启动调度 startScheduling
         FutureUtils.assertNoException(schedulerAssignedFuture.thenRun(this::startScheduling));
     }
 

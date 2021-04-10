@@ -414,6 +414,7 @@ public class ExecutionJobVertex
             Map<IntermediateDataSetID, IntermediateResult> intermediateDataSets)
             throws JobException {
 
+        // 获取输入的JobEdge列表
         List<JobEdge> inputs = jobVertex.getInputs();
 
         if (LOG.isDebugEnabled()) {
@@ -423,6 +424,7 @@ public class ExecutionJobVertex
                             jobVertex.getID(), jobVertex.getName(), inputs.size()));
         }
 
+        // 遍历每条JobEdge
         for (int num = 0; num < inputs.size(); num++) {
             JobEdge edge = inputs.get(num);
 
@@ -450,6 +452,9 @@ public class ExecutionJobVertex
             // fetch the intermediate result via ID. if it does not exist, then it either has not
             // been created, or the order
             // in which this method is called for the job vertices is not a topological order
+
+
+            /*TODO 通过 ID获取当前JobEdge的输入所对应的 IntermediateResult*/
             IntermediateResult ires = intermediateDataSets.get(edge.getSourceId());
             if (ires == null) {
                 throw new JobException(
@@ -457,12 +462,16 @@ public class ExecutionJobVertex
                                 + edge.getSourceId());
             }
 
+            /*TODO 将IntermediateResult加入到当前ExecutionJobVertex的输入中*/
             this.inputs.add(ires);
 
+            /*TODO 为 IntermediateResult 注册 consumer，就是当前节点*/
             int consumerIndex = ires.registerConsumer();
 
+            // 由于每⼀个并行度都对应⼀个节点。所以要把每个节点都和前面中间结果相连。
             for (int i = 0; i < parallelism; i++) {
                 ExecutionVertex ev = taskVertices[i];
+                /*TODO 将 ExecutionVertex与 IntermediateResult关联起来*/
                 ev.connectSource(num, ires, edge, consumerIndex);
             }
         }

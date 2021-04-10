@@ -177,6 +177,7 @@ public class ExecutionGraphBuilder {
         // create a new execution graph, if none exists so far
         final ExecutionGraph executionGraph;
         try {
+            // 构建ExecutionGraph
             executionGraph =
                     (prior != null)
                             ? prior
@@ -202,6 +203,9 @@ public class ExecutionGraphBuilder {
         } catch (IOException e) {
             throw new JobException("Could not create the ExecutionGraph.", e);
         }
+
+
+        // 设置基础属性 ...
 
         // set the basic properties
 
@@ -245,6 +249,8 @@ public class ExecutionGraphBuilder {
                 "Successfully ran initialization on master in {} ms.",
                 (System.nanoTime() - initMasterStart) / 1_000_000);
 
+        // job vertices 拓扑排序
+        // 对作业顶点进行拓扑排序，然后将图形附加到现有的顶点上 . 获取所有的JobVertex
         // topologically sort the job vertices and attach the graph to the existing one
         List<JobVertex> sortedTopology = jobGraph.getVerticesSortedTopologicallyFromSources();
         if (log.isDebugEnabled()) {
@@ -254,6 +260,8 @@ public class ExecutionGraphBuilder {
                     jobName,
                     jobId);
         }
+
+        // [重点]
         executionGraph.attachJobGraph(sortedTopology);
 
         if (log.isDebugEnabled()) {

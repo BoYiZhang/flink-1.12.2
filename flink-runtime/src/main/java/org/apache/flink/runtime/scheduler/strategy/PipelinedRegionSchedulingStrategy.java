@@ -94,10 +94,15 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
 
     @Override
     public void startScheduling() {
+
+
         final Set<SchedulingPipelinedRegion> sourceRegions =
                 IterableUtils.toStream(schedulingTopology.getAllPipelinedRegions())
                         .filter(region -> !region.getConsumedResults().iterator().hasNext())
                         .collect(Collectors.toSet());
+
+
+        // 这里...
         maybeScheduleRegions(sourceRegions);
     }
 
@@ -150,6 +155,7 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
                 SchedulingStrategyUtils.sortPipelinedRegionsInTopologicalOrder(
                         schedulingTopology, regions);
         for (SchedulingPipelinedRegion region : regionsSorted) {
+            // 继续...
             maybeScheduleRegion(region);
         }
     }
@@ -166,6 +172,9 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
         final List<ExecutionVertexDeploymentOption> vertexDeploymentOptions =
                 SchedulingStrategyUtils.createExecutionVertexDeploymentOptions(
                         regionVerticesSorted.get(region), id -> deploymentOption);
+
+        // 这里...
+        // DefaultScheduler # allocateSlotsAndDeploy
         schedulerOperations.allocateSlotsAndDeploy(vertexDeploymentOptions);
     }
 

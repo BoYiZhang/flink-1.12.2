@@ -201,7 +201,13 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         log.info(
                 "Starting scheduling with scheduling strategy [{}]",
                 schedulingStrategy.getClass().getName());
+
+
+
         prepareExecutionGraphForNgScheduling();
+
+        // 默认调度策略 : PipelinedRegion   SchedulingStrategy
+        // PipelinedRegionSchedulingStrategy#startScheduling
         schedulingStrategy.startScheduling();
     }
 
@@ -377,6 +383,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
                         deploymentOptionsByVertex,
                         slotExecutionVertexAssignments);
 
+        // 开始部署 ...
         waitForAllSlotsAndDeploy(deploymentHandles);
     }
 
@@ -435,6 +442,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
     }
 
     private void waitForAllSlotsAndDeploy(final List<DeploymentHandle> deploymentHandles) {
+        //  分配资源, 开始部署
         FutureUtils.assertNoException(
                 assignAllResources(deploymentHandles).handle(deployAll(deploymentHandles)));
     }
@@ -455,6 +463,8 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
     private BiFunction<Void, Throwable, Void> deployAll(
             final List<DeploymentHandle> deploymentHandles) {
+
+
         return (ignored, throwable) -> {
             propagateIfNonNull(throwable);
             for (final DeploymentHandle deploymentHandle : deploymentHandles) {
@@ -463,7 +473,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
                 final CompletableFuture<LogicalSlot> slotAssigned =
                         slotExecutionVertexAssignment.getLogicalSlotFuture();
                 checkState(slotAssigned.isDone());
-
+                // slot 分配任务 : deployOrHandleError
                 FutureUtils.assertNoException(
                         slotAssigned.handle(deployOrHandleError(deploymentHandle)));
             }
@@ -552,6 +562,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
             }
 
             if (throwable == null) {
+                // 部署task
                 deployTaskSafe(executionVertexId);
             } else {
                 handleTaskDeploymentFailure(executionVertexId, throwable);
@@ -562,7 +573,10 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
     private void deployTaskSafe(final ExecutionVertexID executionVertexId) {
         try {
+            // 获取ExecutionVertex
             final ExecutionVertex executionVertex = getExecutionVertex(executionVertexId);
+            // 开始部署 : ExecutionVertex
+            // DefaultExecutionVertexOperations#deploy
             executionVertexOperations.deploy(executionVertex);
         } catch (Throwable e) {
             handleTaskDeploymentFailure(executionVertexId, e);
