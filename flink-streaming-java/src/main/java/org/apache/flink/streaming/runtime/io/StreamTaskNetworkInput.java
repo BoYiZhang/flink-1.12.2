@@ -171,6 +171,7 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
                 }
 
                 if (result.isFullRecord()) {
+                    // 处理数据
                     processElement(deserializationDelegate.getInstance(), output);
                     return InputStatus.MORE_AVAILABLE;
                 }
@@ -199,15 +200,24 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
         }
     }
 
+    // 处理任务...
     private void processElement(StreamElement recordOrMark, DataOutput<T> output) throws Exception {
+
+
         if (recordOrMark.isRecord()) {
+            //  [ 重点 ]  如果是数据
+            // OneInputStreamTask $ StreamTaskNetworkOutput#emitRecord
             output.emitRecord(recordOrMark.asRecord());
+
         } else if (recordOrMark.isWatermark()) {
+            // 如果是 Watermark ...
             statusWatermarkValve.inputWatermark(
                     recordOrMark.asWatermark(), flattenedChannelIndices.get(lastChannel), output);
         } else if (recordOrMark.isLatencyMarker()) {
+            // 如果是 迟到的数据
             output.emitLatencyMarker(recordOrMark.asLatencyMarker());
         } else if (recordOrMark.isStreamStatus()) {
+            // 如果是 StreamStatus
             statusWatermarkValve.inputStreamStatus(
                     recordOrMark.asStreamStatus(),
                     flattenedChannelIndices.get(lastChannel),

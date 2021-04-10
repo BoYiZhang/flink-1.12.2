@@ -186,9 +186,14 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 
         @Override
         public void emitRecord(StreamRecord<IN> record) throws Exception {
+
             numRecordsIn.inc();
+
             operator.setKeyContextElement1(record);
+            // 转换操作
+            // 如果是map之类的算子, processElement应该在 StreamMap.java调用
             operator.processElement(record);
+
         }
 
         @Override
