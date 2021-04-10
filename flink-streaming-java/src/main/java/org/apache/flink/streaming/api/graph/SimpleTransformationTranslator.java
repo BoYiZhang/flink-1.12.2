@@ -57,6 +57,7 @@ public abstract class SimpleTransformationTranslator<OUT, T extends Transformati
         checkNotNull(transformation);
         checkNotNull(context);
 
+        // translateForStreamingInternal ??
         final Collection<Integer> transformedIds =
                 translateForStreamingInternal(transformation, context);
         configure(transformation, context);
@@ -78,6 +79,10 @@ public abstract class SimpleTransformationTranslator<OUT, T extends Transformati
             final T transformation, final Context context);
 
     /**
+     * 算子对应关系 :
+     * key xxx 分区相关的算子 : translateForStreamingInternal
+     * map flatmap  转换算子  : OneInputTransformationTranslator#translateForStreamingInternal
+     *
      * Translates a given {@link Transformation} to its runtime implementation for STREAMING-style
      * execution.
      *

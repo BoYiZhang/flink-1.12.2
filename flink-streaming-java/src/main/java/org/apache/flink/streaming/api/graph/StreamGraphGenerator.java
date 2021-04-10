@@ -258,13 +258,27 @@ public class StreamGraphGenerator {
         this.savepointRestoreSettings = savepointRestoreSettings;
     }
 
+    // 构造StreamGraph
     public StreamGraph generate() {
+
+
         streamGraph = new StreamGraph(executionConfig, checkpointConfig, savepointRestoreSettings);
+
+
+
         shouldExecuteInBatchMode = shouldExecuteInBatchMode(runtimeExecutionMode);
+
+
+
         configureStreamGraph(streamGraph);
+
+
 
         alreadyTransformed = new HashMap<>();
 
+
+        // transformations 是在DataStream#doTransform方法中
+        // 遍历所有的算子,存放到
         for (Transformation<?> transformation : transformations) {
             transform(transformation);
         }
@@ -400,6 +414,7 @@ public class StreamGraphGenerator {
 
         Collection<Integer> transformedIds;
         if (translator != null) {
+            // 翻译 ???
             transformedIds = translate(translator, transform);
         } else {
             transformedIds = legacyTransform(transform);
@@ -666,9 +681,10 @@ public class StreamGraphGenerator {
         final TransformationTranslator.Context context =
                 new ContextImpl(this, streamGraph, slotSharingGroup, configuration);
 
+        // 是否执行在批处理模式 ????
         return shouldExecuteInBatchMode
-                ? translator.translateForBatch(transform, context)
-                : translator.translateForStreaming(transform, context);
+                ? translator.translateForBatch(transform, context)  // 批处理
+                : translator.translateForStreaming(transform, context); //流处理
     }
 
     /**

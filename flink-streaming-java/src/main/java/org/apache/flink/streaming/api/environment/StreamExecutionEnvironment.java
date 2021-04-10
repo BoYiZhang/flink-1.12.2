@@ -1669,22 +1669,33 @@ public class StreamExecutionEnvironment {
     }
 
     private <OUT> DataStreamSource<OUT> addSource(
+            // SocketTextStreamFunction
             final SourceFunction<OUT> function,
+            // Socket Stream
             final String sourceName,
+            // null
             @Nullable final TypeInformation<OUT> typeInfo,
+            // 无界: Boundedness.CONTINUOUS_UNBOUNDED
             final Boundedness boundedness) {
+        // Boundedness 是枚举类, 代表数据源的类型是有界数据[BOUNDED]或者是无界[CONTINUOUS_UNBOUNDED]数据.
         checkNotNull(function);
         checkNotNull(sourceName);
         checkNotNull(boundedness);
 
+        // 获取数据的处理类型 : String
         TypeInformation<OUT> resolvedTypeInfo =
                 getTypeInfo(function, sourceName, SourceFunction.class, typeInfo);
 
+        // 是否是并行的SourceFunction  : false
         boolean isParallel = function instanceof ParallelSourceFunction;
 
+        // 清理函数...
         clean(function);
 
+        // 构建sourceOperator
         final StreamSource<OUT, ?> sourceOperator = new StreamSource<>(function);
+
+        // 构建 DataStreamSource
         return new DataStreamSource<>(
                 this, resolvedTypeInfo, sourceOperator, isParallel, sourceName, boundedness);
     }
@@ -1966,6 +1977,7 @@ public class StreamExecutionEnvironment {
      */
     @Internal
     public StreamGraph getStreamGraph(String jobName, boolean clearTransformations) {
+        // 获取构造器,生成 StreamGraph
         StreamGraph streamGraph = getStreamGraphGenerator().setJobName(jobName).generate();
         if (clearTransformations) {
             this.transformations.clear();
@@ -1974,6 +1986,7 @@ public class StreamExecutionEnvironment {
     }
 
     private StreamGraphGenerator getStreamGraphGenerator() {
+        //算子 ???
         if (transformations.size() <= 0) {
             throw new IllegalStateException(
                     "No operators defined in streaming topology. Cannot execute.");
@@ -2059,6 +2072,8 @@ public class StreamExecutionEnvironment {
      */
     public static StreamExecutionEnvironment getExecutionEnvironment(Configuration configuration) {
         return Utils.resolveFactory(threadLocalContextEnvironmentFactory, contextEnvironmentFactory)
+
+                // StreamContextEnvironment
                 .map(factory -> factory.createExecutionEnvironment(configuration))
                 .orElseGet(() -> StreamExecutionEnvironment.createLocalEnvironment(configuration));
     }
@@ -2294,6 +2309,7 @@ public class StreamExecutionEnvironment {
         }
         if (resolvedTypeInfo == null) {
             try {
+                // 处理返回的数据类型 :  String
                 resolvedTypeInfo =
                         TypeExtractor.createTypeInfo(
                                 baseSourceClass, source.getClass(), 0, null, null);

@@ -59,6 +59,13 @@ public final class OneInputTransformationTranslator<IN, OUT>
         return ids;
     }
 
+    /**
+     * map , flatmap  转换算子 相关
+     *
+     * @param transformation The transformation to be translated.
+     * @param context The translation context.
+     * @return
+     */
     @Override
     public Collection<Integer> translateForStreamingInternal(
             final OneInputTransformation<IN, OUT> transformation, final Context context) {

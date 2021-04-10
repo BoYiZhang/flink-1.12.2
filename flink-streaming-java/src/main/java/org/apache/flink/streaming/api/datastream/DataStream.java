@@ -608,10 +608,17 @@ public class DataStream<T> {
      */
     public <R> SingleOutputStreamOperator<R> flatMap(FlatMapFunction<T, R> flatMapper) {
 
+        // outType返回一个PojoType类型的TypeInformation
+        // PojoType
+        // <
+        // org.apache.flink.streaming.examples.socket.SocketWindowWordCount$WordWithCount,
+        // fields = [count: Long, word: String]
+        // >
         TypeInformation<R> outType =
                 TypeExtractor.getFlatMapReturnTypes(
                         clean(flatMapper), getType(), Utils.getCallLocationName(), true);
 
+        // 调用flatMap 方法
         return flatMap(flatMapper, outType);
     }
 
@@ -629,6 +636,9 @@ public class DataStream<T> {
      */
     public <R> SingleOutputStreamOperator<R> flatMap(
             FlatMapFunction<T, R> flatMapper, TypeInformation<R> outputType) {
+
+
+
         return transform("Flat Map", outputType, new StreamFlatMap<>(clean(flatMapper)));
     }
 
@@ -1161,6 +1171,9 @@ public class DataStream<T> {
             TypeInformation<R> outTypeInfo,
             OneInputStreamOperator<T, R> operator) {
 
+        //  operatorName:  Flat Map
+        //  outTypeInfo : PojoType<org.apache.flink.streaming.examples.socket.SocketWindowWordCount$WordWithCount, fields = [count: Long, word: String]>
+        //  operator : StreamFlatMap
         return doTransform(operatorName, outTypeInfo, SimpleOperatorFactory.of(operator));
     }
 
@@ -1194,6 +1207,7 @@ public class DataStream<T> {
         // read the output type of the input Transform to coax out errors about MissingTypeInfo
         transformation.getOutputType();
 
+        // 构造OneInputTransformation 单输入转换
         OneInputTransformation<T, R> resultTransform =
                 new OneInputTransformation<>(
                         this.transformation,
@@ -1206,6 +1220,7 @@ public class DataStream<T> {
         SingleOutputStreamOperator<R> returnStream =
                 new SingleOutputStreamOperator(environment, resultTransform);
 
+        // 添加到StreamExecutionEnvironment中的 List<Transformation<?>> transformations 集合中
         getExecutionEnvironment().addOperator(resultTransform);
 
         return returnStream;

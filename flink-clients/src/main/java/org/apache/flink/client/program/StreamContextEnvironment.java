@@ -162,6 +162,29 @@ public class StreamContextEnvironment extends StreamExecutionEnvironment {
                     Configuration mergedConfiguration = new Configuration();
                     mergedConfiguration.addAll(configuration);
                     mergedConfiguration.addAll(conf);
+
+                    //    "env.java.opts.client" -> "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5666"
+                    //    "jobmanager.webapp.authentication.type" -> "simple"
+                    //    "taskmanager.memory.process.size" -> "1728m"
+                    //    "jobmanager.execution.failover-strategy" -> "region"
+                    //    "jobmanager.rpc.address" -> "localhost"
+                    //    "execution.target" -> "yarn-per-job"
+                    //    "jobmanager.memory.process.size" -> "1600m"
+                    //    "security.kerberos.login.use-ticket-cache" -> "true"
+                    //    "jobmanager.rpc.port" -> "6123"
+                    //    "jobmanager.webapp.authentication.kerberos.keytab" -> "/opt/keytab/HTTP.keytab"
+                    //    "security.kerberos.login.principal" -> "yarn/henghe-030@HENGHE.COM"
+                    //    "sun.security.krb5.debug" -> "true"
+                    //    "jobmanager.webapp.authentication.kerberos.principal" -> "HTTP/henghe-030@HENGHE.COM"
+                    //    "execution.savepoint.ignore-unclaimed-state" -> {Boolean@3223} false
+                    //    "execution.attached" -> {Boolean@3225} true
+                    //    "execution.shutdown-on-attached-exit" -> {Boolean@3223} false
+                    //    "pipeline.jars" -> {ArrayList@3228}  size = 1
+                    //    "parallelism.default" -> "1"
+                    //    "taskmanager.numberOfTaskSlots" -> "1"
+                    //    "pipeline.classpaths" -> {ArrayList@3234}  size = 0
+                    //    "security.kerberos.login.keytab" -> "/opt/keytab/yarn.keytab"
+                    //    "$internal.deployment.config-dir" -> "/opt/tools/flink-1.12.0/conf"
                     return new StreamContextEnvironment(
                             executorServiceLoader,
                             mergedConfiguration,

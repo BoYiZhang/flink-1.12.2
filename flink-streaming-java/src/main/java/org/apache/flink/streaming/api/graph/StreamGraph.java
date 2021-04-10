@@ -558,12 +558,14 @@ public class StreamGraph implements Pipeline {
             OutputTag outputTag,
             ShuffleMode shuffleMode) {
 
+        // 当上游是侧输出时,递归调用,并传入侧输出信息
         if (virtualSideOutputNodes.containsKey(upStreamVertexID)) {
             int virtualId = upStreamVertexID;
             upStreamVertexID = virtualSideOutputNodes.get(virtualId).f0;
             if (outputTag == null) {
                 outputTag = virtualSideOutputNodes.get(virtualId).f1;
             }
+            // 递归调用
             addEdgeInternal(
                     upStreamVertexID,
                     downStreamVertexID,
@@ -573,12 +575,15 @@ public class StreamGraph implements Pipeline {
                     outputTag,
                     shuffleMode);
         } else if (virtualPartitionNodes.containsKey(upStreamVertexID)) {
+            // 当上游是partition时, 递归调用, 并传入partitioner信息
             int virtualId = upStreamVertexID;
             upStreamVertexID = virtualPartitionNodes.get(virtualId).f0;
             if (partitioner == null) {
                 partitioner = virtualPartitionNodes.get(virtualId).f1;
             }
             shuffleMode = virtualPartitionNodes.get(virtualId).f2;
+
+            // 递归调用
             addEdgeInternal(
                     upStreamVertexID,
                     downStreamVertexID,
@@ -588,8 +593,15 @@ public class StreamGraph implements Pipeline {
                     outputTag,
                     shuffleMode);
         } else {
+            // 真正构建 StreamEdge
+
+            // 上游节点
             StreamNode upstreamNode = getStreamNode(upStreamVertexID);
+
+            // 下游节点
             StreamNode downstreamNode = getStreamNode(downStreamVertexID);
+
+            // 如果没有指定分区器, 则使用ForwardPartitioner 或者 RebalancePartitioner 分区
 
             // If no partitioner was specified and the parallelism of upstream and downstream
             // operator matches use forward partitioning, use rebalance otherwise.
@@ -600,6 +612,7 @@ public class StreamGraph implements Pipeline {
                 partitioner = new RebalancePartitioner<Object>();
             }
 
+            // 如果上游的并行度和下游的并行度不一致,则抛出异常...
             if (partitioner instanceof ForwardPartitioner) {
                 if (upstreamNode.getParallelism() != downstreamNode.getParallelism()) {
                     throw new UnsupportedOperationException(
@@ -620,6 +633,7 @@ public class StreamGraph implements Pipeline {
                 shuffleMode = ShuffleMode.UNDEFINED;
             }
 
+            // 构建 edge
             StreamEdge edge =
                     new StreamEdge(
                             upstreamNode,
@@ -629,6 +643,7 @@ public class StreamGraph implements Pipeline {
                             outputTag,
                             shuffleMode);
 
+            // 添加 edge
             getStreamNode(edge.getSourceId()).addOutEdge(edge);
             getStreamNode(edge.getTargetId()).addInEdge(edge);
         }

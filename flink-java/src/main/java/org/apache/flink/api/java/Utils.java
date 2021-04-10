@@ -331,6 +331,8 @@ public final class Utils {
     public static <T> Optional<T> resolveFactory(
             ThreadLocal<T> threadLocalFactory, @Nullable T staticFactory) {
         final T localFactory = threadLocalFactory.get();
+
+        //
         final T factory = localFactory == null ? staticFactory : localFactory;
 
         return Optional.ofNullable(factory);
