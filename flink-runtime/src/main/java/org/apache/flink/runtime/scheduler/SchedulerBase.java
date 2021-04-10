@@ -245,6 +245,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
         this.executionVertexVersioner = checkNotNull(executionVertexVersioner);
         this.legacyScheduling = legacyScheduling;
 
+        // 构建执行图   [ExecutionGraph  ]
         this.executionGraph =
                 createAndRestoreExecutionGraph(
                         jobManagerJobMetricGroup,
@@ -264,6 +265,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
         this.coordinatorMap = createCoordinatorMap();
     }
 
+    // 创建&存储执行图
     private ExecutionGraph createAndRestoreExecutionGraph(
             JobManagerJobMetricGroup currentJobManagerJobMetricGroup,
             ShuffleMaster<?> shuffleMaster,
@@ -272,6 +274,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
             long initializationTimestamp)
             throws Exception {
 
+        // 构建ExecutionGraph
         ExecutionGraph newExecutionGraph =
                 createExecutionGraph(
                         currentJobManagerJobMetricGroup,
@@ -319,6 +322,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
                         ? FailoverStrategyLoader.loadFailoverStrategy(jobMasterConfiguration, log)
                         : new NoOpFailoverStrategy.Factory();
 
+        // 使用ExecutionGraphBuilder构建 ExecutionGraph
         return ExecutionGraphBuilder.buildGraph(
                 null,
                 jobGraph,
@@ -622,6 +626,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
         mainThreadExecutor.assertRunningInMainThread();
         registerJobMetrics();
         startAllOperatorCoordinators();
+        // 启动
         startSchedulingInternal();
     }
 
