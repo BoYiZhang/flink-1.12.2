@@ -46,7 +46,10 @@ public class StreamGraphTranslator implements FlinkPipelineTranslator {
         checkArgument(
                 pipeline instanceof StreamGraph, "Given pipeline is not a DataStream StreamGraph.");
 
+        // 获取StreamGraph
         StreamGraph streamGraph = (StreamGraph) pipeline;
+
+        // 构建JobGraph
         return streamGraph.getJobGraph(null);
     }
 

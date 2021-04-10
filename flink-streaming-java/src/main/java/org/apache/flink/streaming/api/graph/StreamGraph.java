@@ -920,6 +920,9 @@ public class StreamGraph implements Pipeline {
 
     /** Gets the assembled {@link JobGraph} with a specified {@link JobID}. */
     public JobGraph getJobGraph(@Nullable JobID jobID) {
+
+
+        //  开始构建JobGraph
         return StreamingJobGraphGenerator.createJobGraph(this, jobID);
     }
 
