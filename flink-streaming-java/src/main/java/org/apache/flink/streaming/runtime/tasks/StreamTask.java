@@ -385,14 +385,24 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
     }
 
     /**
+     *
+     * 此方法实现任务的默认操作（例如，处理来自输入的一个事件）。 （通常）实现应是非阻塞的。
+     *
      * This method implements the default action of the task (e.g. processing one event from the
      * input). Implementations should (in general) be non-blocking.
      *
-     * @param controller controller object for collaborative interaction between the action and the
-     *     stream task.
+     *  控制器对象，用于操作和流任务之间的协作交互。
+     * @param controller controller object for collaborative interaction between the action and the stream task.
+     *
      * @throws Exception on any problems in the action.
      */
     protected void processInput(MailboxDefaultAction.Controller controller) throws Exception {
+        // 获取 输入 Processor
+
+        // 有三种 :
+        // StreamOneInputProcessor
+        // StreamTwoInputProcessor
+        // StreamMultipleInputProcessor
         InputStatus status = inputProcessor.processInput();
         if (status == InputStatus.MORE_AVAILABLE && recordWriter.isAvailable()) {
             return;
@@ -571,9 +581,12 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         isRunning = true;
     }
 
+    // map之类的算子...
     @Override
     public final void invoke() throws Exception {
         try {
+
+            // 初始化行管...
             beforeInvoke();
 
             // final check to exit early before starting to run
@@ -581,6 +594,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
                 throw new CancelTaskException();
             }
 
+            // [核心] 执行任务...
             // let the task do its work
             runMailboxLoop();
 
@@ -618,6 +632,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
     }
 
     public void runMailboxLoop() throws Exception {
+        // runMailboxLoop ??
+        //
         mailboxProcessor.runMailboxLoop();
     }
 

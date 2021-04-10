@@ -756,6 +756,8 @@ public class Task
             // so that it is available to the invokable during its entire lifetime.
             executingThread.setContextClassLoader(userCodeClassLoader.asClassLoader());
 
+
+            // 加载&实例化task的可执行代码
             // now load and instantiate the task's invokable code
             invokable =
                     loadAndInstantiateInvokable(
@@ -783,6 +785,16 @@ public class Task
             executingThread.setContextClassLoader(userCodeClassLoader.asClassLoader());
 
             // run the invokable
+
+
+            // 开始执行 !!!!!!!!!!!
+            // source : DataSourceTask
+            // 流任务 : StreamTask
+            //
+            // sink : DataSinkTask / IterationSynchronizationSinkTask
+            //
+
+            // 批任务: BatchTask
             invokable.invoke();
 
             // make sure, we enter the catch block if the task leaves the invoke() method due

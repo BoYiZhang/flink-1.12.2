@@ -62,6 +62,10 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 
     @Override
     public InputStatus processInput() throws Exception {
+
+
+        //  input 直接发送数据给 output
+        // StreamTaskNetworkInput#emitNext
         InputStatus status = input.emitNext(output);
 
         if (status == InputStatus.END_OF_INPUT) {

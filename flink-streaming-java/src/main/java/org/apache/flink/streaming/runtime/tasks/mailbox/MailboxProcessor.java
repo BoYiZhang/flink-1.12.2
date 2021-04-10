@@ -171,6 +171,7 @@ public class MailboxProcessor implements Closeable {
         }
     }
 
+    // 运行邮箱处理循环。 这是完成主要工作的地方。
     /** Runs the mailbox processing loop. This is where the main work is done. */
     public void runMailboxLoop() throws Exception {
 
@@ -184,13 +185,21 @@ public class MailboxProcessor implements Closeable {
 
         final MailboxController defaultActionContext = new MailboxController(this);
 
+        // 邮箱里有邮件,就进行处理. 邮件就是类似map之类的任务...
         while (isMailboxLoopRunning()) {
+            // 在默认操作可用之前，阻塞的`processMail`调用将不会返回。
             // The blocking `processMail` call will not return until default action is available.
             processMail(localMailbox, false);
+
             if (isMailboxLoopRunning()) {
+                // 邮箱默认操作在StreamTask构造器中指定,为 processInput
                 mailboxDefaultAction.runDefaultAction(
-                        defaultActionContext); // lock is acquired inside default action as needed
+                        // 根据需要在默认操作中获取锁
+                        // lock is acquired inside default action as needed
+                        defaultActionContext);
+
             }
+
         }
     }
 
