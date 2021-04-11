@@ -278,8 +278,8 @@ public class StreamGraphGenerator {
 
 
         // transformations 是在DataStream#doTransform方法中
-        // 遍历所有的算子,存放到
         for (Transformation<?> transformation : transformations) {
+            // 遍历所有transformation并转换为计算图
             transform(transformation);
         }
 
@@ -388,6 +388,7 @@ public class StreamGraphGenerator {
      * delegates to one of the transformation specific methods.
      */
     private Collection<Integer> transform(Transformation<?> transform) {
+        // 直接返回已经完成转换的实例
         if (alreadyTransformed.containsKey(transform)) {
             return alreadyTransformed.get(transform);
         }
@@ -666,6 +667,7 @@ public class StreamGraphGenerator {
 
         final List<Collection<Integer>> allInputIds = getParentInputIds(transform.getInputs());
 
+        // 根据不同的类型调用相应的转换逻辑
         // the recursive call might have already transformed this
         if (alreadyTransformed.containsKey(transform)) {
             return alreadyTransformed.get(transform);

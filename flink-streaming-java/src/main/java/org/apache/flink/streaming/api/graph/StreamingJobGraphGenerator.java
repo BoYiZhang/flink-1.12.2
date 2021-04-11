@@ -102,16 +102,20 @@ public class StreamingJobGraphGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(StreamingJobGraphGenerator.class);
 
+    // 默认网络 BUFFER 超时时间 : 100 L
     private static final long DEFAULT_NETWORK_BUFFER_TIMEOUT = 100L;
 
+    //未定义的网络缓冲区超时  : -1
     public static final long UNDEFINED_NETWORK_BUFFER_TIMEOUT = -1L;
 
     // ------------------------------------------------------------------------
 
+    // 构建根据StreamGraph 构建 JobGraph
     public static JobGraph createJobGraph(StreamGraph streamGraph) {
         return createJobGraph(streamGraph, null);
     }
 
+    // 构建根据StreamGraph 构建 JobGraph
     public static JobGraph createJobGraph(StreamGraph streamGraph, @Nullable JobID jobID) {
 
 
@@ -121,25 +125,42 @@ public class StreamingJobGraphGenerator {
 
     // ------------------------------------------------------------------------
 
+    // StreamGraph 对象
     private final StreamGraph streamGraph;
 
+    // job的 jobVertices
     private final Map<Integer, JobVertex> jobVertices;
+
+    // JobGraph 对象
     private final JobGraph jobGraph;
+
+    // 构建的 Vertices
     private final Collection<Integer> builtVertices;
 
+    // 排序后的物理 Edges
     private final List<StreamEdge> physicalEdgesInOrder;
 
+    // chainedConfigs 配置相关
     private final Map<Integer, Map<Integer, StreamConfig>> chainedConfigs;
 
+    // vertex 配置相关
     private final Map<Integer, StreamConfig> vertexConfigs;
+
+    // chainedNames 结合
     private final Map<Integer, String> chainedNames;
 
+    // chained 最小 资源
     private final Map<Integer, ResourceSpec> chainedMinResources;
+
+    // chained 的首选 资源
     private final Map<Integer, ResourceSpec> chainedPreferredResources;
+
 
     private final Map<Integer, InputOutputFormatContainer> chainedInputOutputFormats;
 
+
     private final StreamGraphHasher defaultStreamGraphHasher;
+
     private final List<StreamGraphHasher> legacyStreamGraphHashers;
 
     private StreamingJobGraphGenerator(StreamGraph streamGraph, @Nullable JobID jobID) {
@@ -1399,7 +1420,7 @@ public class StreamingJobGraphGenerator {
                                 .collect(Collectors.joining(", ")));
     }
 
-    /**
+    /** 一个维护 operator chain 信息的私有类, 在递归请求createChain方法期间使用.
      * A private class to help maintain the information of an operator chain during the recursive
      * call in {@link #createChain(Integer, int, OperatorChainInfo, Map)}.
      */

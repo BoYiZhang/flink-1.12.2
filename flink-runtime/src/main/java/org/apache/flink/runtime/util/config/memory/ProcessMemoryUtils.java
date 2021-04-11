@@ -69,18 +69,27 @@ public class ProcessMemoryUtils<FM extends FlinkMemory> {
         this.flinkMemoryUtils = checkNotNull(flinkMemoryUtils);
     }
 
+    // 内存管理
     public CommonProcessMemorySpec<FM> memoryProcessSpecFromConfig(Configuration config) {
         if (options.getRequiredFineGrainedOptions().stream().allMatch(config::contains)) {
             // all internal memory options are configured, use these to derive total Flink and
             // process memory
+
+            // 所有内部内存选项都已配置，使用这些选项可得出总Flink和进程内存
             return deriveProcessSpecWithExplicitInternalMemory(config);
         } else if (config.contains(options.getTotalFlinkMemoryOption())) {
             // internal memory options are not configured, total Flink memory is configured,
             // derive from total flink memory
+
+            // 未配置内部内存选项，配置了total Flink memory，从total Flink memory派生
+            // flink 内存方式...
             return deriveProcessSpecWithTotalFlinkMemory(config);
         } else if (config.contains(options.getTotalProcessMemoryOption())) {
             // total Flink memory is not configured, total process memory is configured,
             // derive from total process memory
+
+            // 未配置总Flink内存，已配置总进程内存，从总进程内存派生
+            // flink 内存进程的方式
             return deriveProcessSpecWithTotalProcessMemory(config);
         }
         return failBecauseRequiredOptionsNotConfigured();
@@ -97,8 +106,13 @@ public class ProcessMemoryUtils<FM extends FlinkMemory> {
 
     private CommonProcessMemorySpec<FM> deriveProcessSpecWithTotalFlinkMemory(
             Configuration config) {
+
+
         MemorySize totalFlinkMemorySize =
                 getMemorySizeFromConfig(config, options.getTotalFlinkMemoryOption());
+
+
+        // 
         FM flinkInternalMemory =
                 flinkMemoryUtils.deriveFromTotalFlinkMemory(config, totalFlinkMemorySize);
         JvmMetaspaceAndOverhead jvmMetaspaceAndOverhead =

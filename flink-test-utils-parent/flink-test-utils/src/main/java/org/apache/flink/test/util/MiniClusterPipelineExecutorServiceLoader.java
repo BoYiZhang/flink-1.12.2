@@ -134,7 +134,11 @@ public class MiniClusterPipelineExecutorServiceLoader implements PipelineExecuto
         public CompletableFuture<JobClient> execute(
                 Pipeline pipeline, Configuration configuration, ClassLoader userCodeClassLoader)
                 throws Exception {
+
+            // 获取JobGraph
             final JobGraph jobGraph = PipelineExecutorUtils.getJobGraph(pipeline, configuration);
+
+
             if (jobGraph.getSavepointRestoreSettings() == SavepointRestoreSettings.none()
                     && pipeline instanceof StreamGraph) {
                 jobGraph.setSavepointRestoreSettings(

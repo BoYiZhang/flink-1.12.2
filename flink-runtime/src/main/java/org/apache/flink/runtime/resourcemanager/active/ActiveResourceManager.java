@@ -239,9 +239,14 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
 
     // 请求一个新的 TaskManager
     private void requestNewWorker(WorkerResourceSpec workerResourceSpec) {
+
+
+        // 获取内存资源配置
         final TaskExecutorProcessSpec taskExecutorProcessSpec =
                 TaskExecutorProcessUtils.processSpecFromWorkerResourceSpec(
                         flinkConfig, workerResourceSpec);
+
+
         final int pendingCount = pendingWorkerCounter.increaseAndGet(workerResourceSpec);
 
         log.info(

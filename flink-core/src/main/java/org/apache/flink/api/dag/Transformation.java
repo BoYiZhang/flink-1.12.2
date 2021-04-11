@@ -118,7 +118,13 @@ public abstract class Transformation<T> {
 
     protected String name;
 
+
+    // 输出类型通过TypeInformation类封装，
+    // 用来生成序列化用的serializers和比较大小用的comparators，以及进行一些类型检查。
     protected TypeInformation<T> outputType;
+
+
+
     // This is used to handle MissingTypeInfo. As long as the outputType has not been queried
     // it can still be changed using setOutputType(). Afterwards an exception is thrown when
     // trying to change the output type.

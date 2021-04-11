@@ -116,9 +116,23 @@ import java.util.concurrent.ExecutionException;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * The StreamExecutionEnvironment is the context in which a streaming program is executed. A {@link
- * LocalStreamEnvironment} will cause execution in the current JVM, a {@link
- * RemoteStreamEnvironment} will cause execution on a remote setup.
+ *
+ *
+ * StreamExecutionEnvironment类表示运行一个Flink任务所需的环境
+ *
+ * The StreamExecutionEnvironment is the context in which a streaming program is executed.
+ *
+ *
+ * - LocalStreamEnvironment : 在当前JVM环境中运行
+ * A {@link LocalStreamEnvironment} will cause execution in the current JVM,
+ *
+ * - RemoteStreamEnvironment : 将导致在远程设置上执行
+ * a {@link RemoteStreamEnvironment} will cause execution on a remote setup.
+ *
+ *
+
+ *
+ * 这个环境提供了Job执行的方法(例如设置并行度/检查点参数) 以及 与外界的交互 (数据访问/获取)
  *
  * <p>The environment provides methods to control the job execution (such as setting the parallelism
  * or the fault tolerance/checkpointing parameters) and to interact with the outside world (data
@@ -154,11 +168,39 @@ public class StreamExecutionEnvironment {
     /** The execution configuration for this environment. */
     private final ExecutionConfig config = new ExecutionConfig();
 
-    /** Settings that control the checkpointing behavior. */
+    /**
+     * 设置控制checkpointing的行为
+     * Settings that control the checkpointing behavior.
+     *
+     * 该配置包含checkpoint模式（默认EXACTLY_ONCE），
+     * checkpoint超时时限，触发间隔，
+     * 并发checkpoint数量，
+     * 清理持久化的checkpoint文件（任务取消时删除还是保留对应checkpoint），失败处理策略等等配置。
+     *
+     * */
     private final CheckpointConfig checkpointCfg = new CheckpointConfig();
 
+    // 保存了该任务所有的StreamTransformation实例的集合
+
+    // 一个StreamTransformation<T>表示会生成一个DataStream的操作单元，
+    // 每一个DataStream<T>都包含指向其生成源StreamTransformation<T>的引用。
+
+    // 调用DataStream的方法（比如map）时，
+    // Flink会根据计算拓扑结构生成一个由StreamTransformation组成的树状结构，
+    // 只有当真正执行任务计算时用StreamGraphGenerator将其转换为StreamGraph。
+    //
+    // 需要注意的是，并不是所有的方法都会产生实际操作单元，
+    // 比如union，split，select，rebalance，partition等对操作单元进行归类，
+    // 整理的操作不会生成操作单元。
+    //
+    // 每个实例有一个int类型的唯一id，
+    // 通过一个static的递增的idCounter获得 。
+    // 同时还有一个String类型的uid，由用户指定并且在任务重启前后保持一致。
+    //
     protected final List<Transformation<?>> transformations = new ArrayList<>();
 
+
+    // 通过设置bufferTimeout可以控制输出缓存flush的间隔，用来平衡延迟和吞吐量。
     private long bufferTimeout = StreamingJobGraphGenerator.UNDEFINED_NETWORK_BUFFER_TIMEOUT;
 
     protected boolean isChainingEnabled = true;
@@ -252,6 +294,12 @@ public class StreamExecutionEnvironment {
     }
 
     /** Gets the config object. */
+    /**
+     * 负责设置默认的任务并发度（当一个function没有显式指定时适用），
+     * 失败重试次数及间隔，数据传递模式（batch或pipelined），
+     * 开启UDF代码分析模式，注册序列化方式等等配置。
+     * @return
+     */
     public ExecutionConfig getConfig() {
         return config;
     }
@@ -1668,6 +1716,13 @@ public class StreamExecutionEnvironment {
         return addSource(function, sourceName, typeInfo, Boundedness.CONTINUOUS_UNBOUNDED);
     }
 
+    // addSource方法用来添加一个数据源到计算任务中。
+    // 默认情况下数据源是非并行的，
+    // 用户需要实现ParallelSourceFunction接口或者继承RichParallelSourceFunction来实现可并行的数据源。
+    //
+    // addSource方法将一个StreamFunction封装为StreamSource，
+    // 当数据源开始执行时调用SourceFunction#run(SourceContext<T> ctx)方法，
+    // 持续地向SourceContext发送生成的数据。
     private <OUT> DataStreamSource<OUT> addSource(
             // SocketTextStreamFunction
             final SourceFunction<OUT> function,
@@ -1791,6 +1846,9 @@ public class StreamExecutionEnvironment {
         Preconditions.checkNotNull(jobName, "Streaming Job name should not be null.");
 
         // 获取 getStreamGraph 继续执行...
+
+        // getStreamGraph方法会调用StreamGraphGenerator#generate方法，
+        // 使用StreamExecutionEnvironment及其包含的所有transformations生成计算图。
         return execute(getStreamGraph(jobName));
     }
 
@@ -1966,6 +2024,10 @@ public class StreamExecutionEnvironment {
     }
 
     /**
+     *
+     * getStreamGraph方法会调用StreamGraphGenerator#generate方法
+     * 使用StreamExecutionEnvironment及其包含的所有transformations生成计算图。
+     *
      * Getter of the {@link org.apache.flink.streaming.api.graph.StreamGraph StreamGraph} of the
      * streaming job with the option to clear previously registered {@link Transformation
      * transformations}. Clearing the transformations allows, for example, to not re-execute the
@@ -2015,6 +2077,10 @@ public class StreamExecutionEnvironment {
     }
 
     /**
+     * ClosureCleaner，开启后可以分析用户代码，将不需要的closure置为null，
+     * 从而在大多数情况下使得闭包或匿名类可以序列化。
+     * 用户代码必须是可以序列化的，以做到在集群不同节点之间传输任务。
+     *
      * Returns a "closure-cleaned" version of the given function. Cleans only if closure cleaning is
      * not disabled in the {@link org.apache.flink.api.common.ExecutionConfig}
      */

@@ -149,6 +149,7 @@ public class TaskExecutorProcessUtils {
         final MemorySize frameworkOffHeapMemorySize =
                 TaskExecutorFlinkMemoryUtils.getFrameworkOffHeapMemorySize(config);
 
+        // 构建 TaskExecutorFlinkMemory
         final TaskExecutorFlinkMemory flinkMemory =
                 new TaskExecutorFlinkMemory(
                         frameworkHeapMemorySize,
@@ -158,9 +159,12 @@ public class TaskExecutorProcessUtils {
                         workerResourceSpec.getNetworkMemSize(),
                         workerResourceSpec.getManagedMemSize());
 
+
+        // JVM 元空间配置 相关...
         final JvmMetaspaceAndOverhead jvmMetaspaceAndOverhead =
                 PROCESS_MEMORY_UTILS.deriveJvmMetaspaceAndOverheadFromTotalFlinkMemory(
                         config, flinkMemory.getTotalFlinkMemorySize());
+
 
         return new TaskExecutorProcessSpec(
                 workerResourceSpec.getCpuCores(), flinkMemory, jvmMetaspaceAndOverhead);
