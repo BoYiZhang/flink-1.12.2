@@ -26,16 +26,32 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
  * The time characteristic defines how the system determines time for time-dependent order and
  * operations that depend on time (such as time windows).
  *
+ * 在Flink 1.12版本, 默认的stream time characteristic 已经变更为: TimeCharacteristic#EventTime
+ * 因此，您不再需要调用此方法来启用事件时间支持
+ *
+ * 显式使用 processing-time windows 和计时器在event-time 模式下工作。
+ *
+ * 如果你要禁用掉watermarks , 请使用  {@link ExecutionConfig#setAutoWatermarkInterval(long)}.
+ *
+ * 如果你想手动的使用 {@link  TimeCharacteristic#IngestionTime},请手动的设置一个恰当的   {@link  WatermarkStrategy}.
+ *
+ * 如果你要使用的是一个常规的"time window" 操作.   (比如 : {@link  org.apache.flink.streaming.api.datastream.KeyedStream#timeWindow(org.apache.flink.streaming.api.windowing.time.Time)}
+ * 根据 time characteristic 改变行为
+ *
  * @deprecated In Flink 1.12 the default stream time characteristic has been changed to {@link
  *     TimeCharacteristic#EventTime}, thus you don't need to call this method for enabling
- *     event-time support anymore. Explicitly using processing-time windows and timers works in
- *     event-time mode. If you need to disable watermarks, please use {@link
- *     ExecutionConfig#setAutoWatermarkInterval(long)}. If you are using {@link
- *     TimeCharacteristic#IngestionTime}, please manually set an appropriate {@link
- *     WatermarkStrategy}. If you are using generic "time window" operations (for example {@link
- *     org.apache.flink.streaming.api.datastream.KeyedStream#timeWindow(org.apache.flink.streaming.api.windowing.time.Time)}
- *     that change behaviour based on the time characteristic, please use equivalent operations that
- *     explicitly specify processing time or event time.
+ *     event-time support anymore.
+ *
+ *     Explicitly using processing-time windows and timers works in event-time mode.
+ *
+ *     If you need to disable watermarks, please use {@link ExecutionConfig#setAutoWatermarkInterval(long)}.
+ *
+ *
+ *     If you are using {@link  TimeCharacteristic#IngestionTime}, please manually set an appropriate {@link  WatermarkStrategy}.
+ *
+ *     If you are using generic "time window" operations (for example {@link  org.apache.flink.streaming.api.datastream.KeyedStream#timeWindow(org.apache.flink.streaming.api.windowing.time.Time)}
+ *     that change behaviour based on the time characteristic,
+ *     please use equivalent operations that  explicitly specify processing time or event time.
  */
 @PublicEvolving
 @Deprecated

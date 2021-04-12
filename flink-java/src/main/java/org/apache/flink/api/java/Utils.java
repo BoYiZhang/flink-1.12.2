@@ -320,6 +320,11 @@ public final class Utils {
     // --------------------------------------------------------------------------------------------
 
     /**
+     * 处理指定的factories
+     *
+     *  local factory 优先于static factory。
+     *  如果为设置, 返回一个 Optional#empty()
+     *
      * Resolves the given factories. The thread local factory has preference over the static
      * factory. If none is set, the method returns {@link Optional#empty()}.
      *

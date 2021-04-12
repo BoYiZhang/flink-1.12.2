@@ -848,6 +848,49 @@ public class CliFrontend {
 
     protected void executeProgram(final Configuration configuration, final PackagedProgram program)
             throws ProgramInvocationException {
+
+        //  configuration 相关的配置信息.....
+        //    configuration = {Configuration@3126} "{env.java.opts.client=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5666, jobmanager.webapp.authentication.type=simple, taskmanager.memory.process.size=1728m, jobmanager.execution.failover-strategy=region, jobmanager.rpc.address=localhost, execution.target=yarn-per-job, jobmanager.memory.process.size=1600m, security.kerberos.login.use-ticket-cache=true, jobmanager.rpc.port=6123, jobmanager.webapp.authentication.kerberos.keytab=/opt/keytab/HTTP.keytab, security.kerberos.login.principal=yarn/henghe-030@HENGHE.COM, sun.security.krb5.debug=true, jobmanager.webapp.authentication.kerberos.principal=HTTP/henghe-030@HENGHE.COM, execution.savepoint.ignore-unclaimed-state=false, execution.attached=true, execution.shutdown-on-attached-exit=false, pipeline.jars=[file:/opt/tools/flink-1.12.0/examples/streaming/SocketWindowWordCount.jar], parallelism.default=1, taskmanager.numberOfTaskSlots=1, pipeline.classpaths=[], security.kerberos.login.keytab=/opt/keytab/yarn.keytab, $internal.d"
+        //        confData = {HashMap@3129}  size = 22
+        //            "env.java.opts.client" -> "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5666"
+        //            "jobmanager.webapp.authentication.type" -> "simple"
+        //            "taskmanager.memory.process.size" -> "1728m"
+        //            "jobmanager.execution.failover-strategy" -> "region"
+        //            "jobmanager.rpc.address" -> "localhost"
+        //            "execution.target" -> "yarn-per-job"
+        //            "jobmanager.memory.process.size" -> "1600m"
+        //            "security.kerberos.login.use-ticket-cache" -> "true"
+        //            "jobmanager.rpc.port" -> "6123"
+        //            "jobmanager.webapp.authentication.kerberos.keytab" -> "/opt/keytab/HTTP.keytab"
+        //            "security.kerberos.login.principal" -> "yarn/henghe-030@HENGHE.COM"
+        //            "sun.security.krb5.debug" -> "true"
+        //            "jobmanager.webapp.authentication.kerberos.principal" -> "HTTP/henghe-030@HENGHE.COM"
+        //            "execution.savepoint.ignore-unclaimed-state" -> {Boolean@3181} false
+        //            "execution.attached" -> {Boolean@3183} true
+        //            "execution.shutdown-on-attached-exit" -> {Boolean@3181} false
+        //            "pipeline.jars" -> {ArrayList@3186}  size = 1
+        //            "parallelism.default" -> "1"
+        //            "taskmanager.numberOfTaskSlots" -> "1"
+        //            "pipeline.classpaths" -> {ArrayList@3192}  size = 0
+        //            "security.kerberos.login.keytab" -> "/opt/keytab/yarn.keytab"
+        //            "$internal.deployment.config-dir" -> "/opt/tools/flink-1.12.0/conf"
+
+        //----------------------------------------------
+
+
+        //  program 相关的配置信息.....
+
+        //    program = {PackagedProgram@3127}
+        //        jarFile = {URL@3197} "file:/opt/tools/flink-1.12.0/examples/streaming/SocketWindowWordCount.jar"
+        //        args = {String[4]@3198} ["--hostname", "192.168.xx.xx", "--port", "9999"]
+        //        mainClass = {Class@3123} "class org.apache.flink.streaming.examples.socket.SocketWindowWordCount"
+        //        extractedTempLibraries = {Collections$EmptyList@3199}  size = 0
+        //        classpaths = {ArrayList@3200}  size = 0
+        //        userCodeClassLoader = {FlinkUserCodeClassLoaders$SafetyNetWrapperClassLoader@3201}
+        //        savepointSettings = {SavepointRestoreSettings@3202} "SavepointRestoreSettings.none()"
+        //        isPython = false
+
+
         ClientUtils.executeProgram(
                 new DefaultExecutorServiceLoader(), configuration, program, false, false);
     }

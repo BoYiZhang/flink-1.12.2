@@ -80,18 +80,18 @@ public enum ClientUtils {
     }
     // 执行程序代码
     public static void executeProgram(
-            PipelineExecutorServiceLoader executorServiceLoader,
+            PipelineExecutorServiceLoader executorServiceLoader, // DefaultExecutorServiceLoader
             Configuration configuration,
             PackagedProgram program,
-            boolean enforceSingleJobExecution,
-            boolean suppressSysout)
+            boolean enforceSingleJobExecution, // false
+            boolean suppressSysout)  // false
             throws ProgramInvocationException {
         checkNotNull(executorServiceLoader);
 
         // 获取用户了加载器. : FlinkUserCodeClassLoaders$SafetyNetWrapperClassLoader@3439
         final ClassLoader userCodeClassLoader = program.getUserCodeClassLoader();
 
-        // 缓存当前类加载器...
+        // contextClassLoader : Launcher$AppClassLoader
         final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
         try {
@@ -102,8 +102,8 @@ public enum ClientUtils {
                     "Starting program (detached: {})",
                     !configuration.getBoolean(DeploymentOptions.ATTACHED));
 
-            // 获取用户代码中的环境....
-            // getExecutionEnvironment
+
+            // 构造ContextEnvironment , 并执行initializeContextEnvironment 方法
             ContextEnvironment.setAsContext(
                     executorServiceLoader,
                     configuration,
@@ -111,6 +111,7 @@ public enum ClientUtils {
                     enforceSingleJobExecution,
                     suppressSysout);
 
+            // 设置StreamContextEnvironment 环境 并调用initializeContextEnvironment方法进行初始化
             StreamContextEnvironment.setAsContext(
                     executorServiceLoader,
                     configuration,

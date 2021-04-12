@@ -64,8 +64,14 @@ public class StreamContextEnvironment extends StreamExecutionEnvironment {
             final ClassLoader userCodeClassLoader,
             final boolean enforceSingleJobExecution,
             final boolean suppressSysout) {
+
+
         super(executorServiceLoader, configuration, userCodeClassLoader);
+
+        // false
         this.suppressSysout = suppressSysout;
+
+        // false
         this.enforceSingleJobExecution = enforceSingleJobExecution;
 
         this.jobCounter = 0;
