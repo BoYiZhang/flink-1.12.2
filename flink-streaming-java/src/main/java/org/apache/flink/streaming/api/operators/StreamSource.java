@@ -49,6 +49,7 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
 
     private transient volatile boolean canceledOrStopped = false;
 
+    // 已经发送 最大的 Watermark ?
     private transient volatile boolean hasSentMaxWatermark = false;
 
     public StreamSource(SRC sourceFunction) {

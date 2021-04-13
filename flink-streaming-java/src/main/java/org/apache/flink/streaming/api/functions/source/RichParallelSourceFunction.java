@@ -21,12 +21,24 @@ import org.apache.flink.annotation.Public;
 import org.apache.flink.api.common.functions.AbstractRichFunction;
 
 /**
- * Base class for implementing a parallel data source. Upon execution, the runtime will execute as
- * many parallel instances of this function as configured parallelism of the source.
+ * 用于实现并行数据源的基类。
+ * 在执行时，运行时将执行与源的配置并行度相同数量的该函数的并行实例。
+ * 在执行时, runtime会根据source配置中的并行度去启动相同数量的function实例 .
+ *
+ * 这个数据源可以访问 context 信息 (比如数据源的并行实例的数量和当前的实例归属于哪个任务. )
+ *
+ * 它还提供了附加的生命周期方法 #open(org.apache.flink.configuration.Configuration)} and {@link #close()}.
+ *
+ *
+ * Base class for implementing a parallel data source.
+ *
+ * Upon execution, the runtime will execute as many parallel instances of this function as configured parallelism of the source.
  *
  * <p>The data source has access to context information (such as the number of parallel instances of
- * the source, and which parallel instance the current instance is) via {@link
- * #getRuntimeContext()}. It also provides additional life-cycle methods ({@link
+ * the source, and which parallel task the current instance is) via {@link
+ * #getRuntimeContext()}.
+ *
+ * It also provides additional life-cycle methods ({@link
  * #open(org.apache.flink.configuration.Configuration)} and {@link #close()}.
  *
  * @param <OUT> The type of the records produced by this source.

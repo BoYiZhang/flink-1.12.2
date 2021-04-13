@@ -20,11 +20,28 @@ package org.apache.flink.streaming.api.functions.source;
 import org.apache.flink.annotation.Public;
 
 /**
- * A stream data source that is executed in parallel. Upon execution, the runtime will execute as
- * many parallel instances of this function as configured parallelism of the source.
+ *
+ * ParallelSourceFunction是一个接口, 并行执行的stream data 数据源 .
+ * 在执行时, runtime会根据source配置中的并行度去启动相同数量的function实例 .
+ *
+ * 这个接口只是作为一个标记告诉系统这个源可以并行执行。
+ *
+ *
+ *
+ * 当需要不同的并行实例来执行不同的任务时，
+ * 请使用{@link RichParallelSourceFunction}访问 runtime context ，
+ * 该 runtime context 将显示诸如并行任务数 和 当前实例是哪个并行任务等信息。
+ *
+ *
+ *
+ * A stream data source that is executed in parallel.
+ *
+ * Upon execution, the runtime will execute as many parallel instances of this function as configured parallelism of the source.
  *
  * <p>This interface acts only as a marker to tell the system that this source may be executed in
- * parallel. When different parallel instances are required to perform different tasks, use the
+ * parallel.
+ *
+ * When different parallel instances are required to perform different tasks, use the
  * {@link RichParallelSourceFunction} to get access to the runtime context, which reveals
  * information like the number of parallel tasks, and which parallel task the current instance is.
  *
