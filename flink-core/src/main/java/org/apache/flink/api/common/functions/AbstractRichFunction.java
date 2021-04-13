@@ -24,6 +24,12 @@ import org.apache.flink.configuration.Configuration;
 import java.io.Serializable;
 
 /**
+ *
+ * AbstractRichFunction 是RichFunction接口的抽象实现.
+ *
+ * Rich functions 有额外的初始化方法 ({@link #open(Configuration)}) 和 拆解方法  ({@link #close()})
+ * 以及通过{@link #getRuntimeContext()}访问它们的 runtime context
+ *
  * An abstract stub implementation for rich user-defined functions.
  *
  * Rich functions have additional methods for initialization ({@link #open(Configuration)}) and teardown ({@link #close()}),
