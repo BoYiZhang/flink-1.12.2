@@ -34,6 +34,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ *
+ * 此转换表示将
+ * {@link org.apache.flink.streaming.api.operators.OneInputStreamOperator}
+ * 应用于一个输入 {@link  Transformation}.
+ *
  * This Transformation represents the application of a {@link
  * org.apache.flink.streaming.api.operators.OneInputStreamOperator} to one input {@link
  * Transformation}.
