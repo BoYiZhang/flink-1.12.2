@@ -24,8 +24,8 @@ import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 
 /**
- * A {@link Transformation} that creates a physical operation. It enables setting {@link
- * ChainingStrategy}.
+ * A {@link Transformation} that creates a physical operation.
+ * It enables setting {@link  ChainingStrategy}.
  *
  * @param <T> The type of the elements that result from this {@code Transformation}
  * @see Transformation

@@ -41,44 +41,109 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * A {@code Transformation} represents the operation that creates a DataStream. Every DataStream has
- * an underlying {@code Transformation} that is the origin of said DataStream.
+ * {@code Transformation} 代表创建DataStream 的操作.
+ * 每个数据流都有一个底层的{@code Transformation}，它是所述数据流的起源。
+ *
+ * 类似DataStream#map 这样的API操作在底层都会构建一个  {@code Transformation}s 树 .
+ *
+ * 当 stream 程序执行的时候都会将这个graph使用StreamGraphGenerator 生成一个StreamGraph
+ *
+ * {@code Transformation}不一定对应于运行时的物理操作。
+ *
+ * 一些操作仅仅是逻辑上的概念
+ *
+ *
+ * <pre>{@code
+ *   Source              Source
+ *      +                   +
+ *      |                   |
+ *      v                   v
+ *  Rebalance          HashPartition
+ *      +                   +
+ *      |                   |
+ *      |                   |
+ *      +------>Union<------+
+ *                +
+ *                |
+ *                v
+ *              Split
+ *                +
+ *                |
+ *                v
+ *              Select
+ *                +
+ *                v
+ *               Map
+ *                +
+ *                |
+ *                v
+ *              Sink
+ * }</pre>
+ *
+ * 将在运行时生成此操作图：
+ *
+ * <pre>{@code
+ * Source              Source
+ *   +                   +
+ *   |                   |
+ *   |                   |
+ *   +------->Map<-------+
+ *             +
+ *             |
+ *             v
+ *            Sink
+ * }</pre>
+ *
+ * partitioning, union, split/select 之类的操作最终都会被编码在连接map算子的edges中.
+ *
+ *
+ *
+ * ***************************************************************************************************
+ *
+ *
+ *
+ * A {@code Transformation} represents the operation that creates a DataStream.
+ *
+ * Every DataStream has an underlying {@code Transformation} that is the origin of said DataStream.
  *
  * <p>API operations such as DataStream#map create a tree of {@code Transformation}s underneath.
+ *
  * When the stream program is to be executed this graph is translated to a StreamGraph using
  * StreamGraphGenerator.
  *
  * <p>A {@code Transformation} does not necessarily correspond to a physical operation at runtime.
- * Some operations are only logical concepts. Examples of this are union, split/select data stream,
- * partitioning.
+ * Some operations are only logical concepts.
+ *
+ *
+ * Examples of this are union, split/select data stream, partitioning.
  *
  * <p>The following graph of {@code Transformations}:
  *
  * <pre>{@code
- *   Source              Source
- *      +                   +
- *      |                   |
- *      v                   v
- *  Rebalance          HashPartition
- *      +                   +
- *      |                   |
- *      |                   |
- *      +------>Union<------+
- *                +
- *                |
- *                v
- *              Split
- *                +
- *                |
- *                v
- *              Select
- *                +
- *                v
- *               Map
- *                +
- *                |
- *                v
- *              Sink
+ *   Source              Source
+ *      +                   +
+ *      |                   |
+ *      v                   v
+ *  Rebalance          HashPartition
+ *      +                   +
+ *      |                   |
+ *      |                   |
+ *      +------>Union<------+
+ *                +
+ *                |
+ *                v
+ *              Split
+ *                +
+ *                |
+ *                v
+ *              Select
+ *                +
+ *                v
+ *               Map
+ *                +
+ *                |
+ *                v
+ *              Sink
  * }</pre>
  *
  * <p>Would result in this graph of operations at runtime:
@@ -103,9 +168,11 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Internal
 public abstract class Transformation<T> {
 
+    // 32768
     // Has to be equal to StreamGraphGenerator.UPPER_BOUND_MAX_PARALLELISM
     public static final int UPPER_BOUND_MAX_PARALLELISM = 1 << 15;
 
+    // 分配 唯一ID 使用
     // This is used to assign a unique ID to every Transformation
     protected static Integer idCounter = 0;
 
@@ -124,17 +191,23 @@ public abstract class Transformation<T> {
     protected TypeInformation<T> outputType;
 
 
-
-    // This is used to handle MissingTypeInfo. As long as the outputType has not been queried
-    // it can still be changed using setOutputType(). Afterwards an exception is thrown when
-    // trying to change the output type.
+    // 用于处理MissingTypeInfo。
+    //
+    // This is used to handle MissingTypeInfo.
+    //
+    // As long as the outputType has not been queried
+    // it can still be changed using setOutputType().
+    //
+    // Afterwards an exception is thrown when trying to change the output type.
     protected boolean typeUsed;
 
+    // 并行度
     private int parallelism;
 
     /**
-     * The maximum parallelism for this stream transformation. It defines the upper limit for
-     * dynamic scaling and the number of key groups used for partitioned state.
+     * The maximum parallelism for this stream transformation.
+     *
+     * It defines the upper limit for dynamic scaling and the number of key groups used for partitioned state.
      */
     private int maxParallelism = -1;
 
@@ -145,39 +218,58 @@ public abstract class Transformation<T> {
     private ResourceSpec minResources = ResourceSpec.DEFAULT;
 
     /**
-     * The preferred resources for this stream transformation. It defines the upper limit for
-     * dynamic resource resize in future plan.
+     * 此stream转换的首选资源。
+     * 它定义了未来计划中动态资源调整的上限。
+     *
+     *
+     * The preferred resources for this stream transformation.
+     *
+     * It defines the upper limit for dynamic resource resize in future plan.
      */
     private ResourceSpec preferredResources = ResourceSpec.DEFAULT;
 
     /**
-     * Each entry in this map represents a operator scope use case that this transformation needs
-     * managed memory for. The keys indicate the use cases, while the values are the
-     * use-case-specific weights for this transformation. Managed memory reserved for a use case
+     *
+     *
+     * Each entry in this map represents a operator scope use case that this transformation needs managed memory for.
+     *
+     * The keys indicate the use cases, while the values are the
+     * use-case-specific weights for this transformation.
+     *
+     *
+     * Managed memory reserved for a use case
      * will be shared by all the declaring transformations within a slot according to this weight.
      */
-    private final Map<ManagedMemoryUseCase, Integer> managedMemoryOperatorScopeUseCaseWeights =
-            new HashMap<>();
+    private final Map<ManagedMemoryUseCase, Integer> managedMemoryOperatorScopeUseCaseWeights =  new HashMap<>();
 
     /** Slot scope use cases that this transformation needs managed memory for. */
     private final Set<ManagedMemoryUseCase> managedMemorySlotScopeUseCases = new HashSet<>();
 
     /**
+     * transformation 指定的 User-specified ID
+     * job重启时依旧使用相同的 operator ID.
+     * 使用内部的 静态的counter 自动生成id ,
+     *
      * User-specified ID for this transformation. This is used to assign the same operator ID across
-     * job restarts. There is also the automatically generated {@link #id}, which is assigned from a
-     * static counter. That field is independent from this.
+     * job restarts.
+     *
+     * There is also the automatically generated {@link #id}, which is assigned from a static counter. That field is independent from this.
      */
     private String uid;
 
     private String userProvidedNodeHash;
 
+    // 超时相关..
     protected long bufferTimeout = -1;
 
+    // slot sharing 组..
     private String slotSharingGroup;
+
 
     @Nullable private String coLocationGroupKey;
 
     /**
+     * 根据name , 输出类型, 并行度构建Transformation
      * Creates a new {@code Transformation} with the given name, output type and parallelism.
      *
      * @param name The name of the {@code Transformation}, this will be shown in Visualizations and
@@ -295,6 +387,8 @@ public abstract class Transformation<T> {
     }
 
     /**
+     * 声明此转换包含特定的slot作用域托管内存用例。
+     * 
      * Declares that this transformation contains certain slot scope managed memory use case.
      *
      * @param managedMemoryUseCase The use case that this transformation declares needing managed
