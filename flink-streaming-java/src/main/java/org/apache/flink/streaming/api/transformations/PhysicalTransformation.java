@@ -36,8 +36,7 @@ public abstract class PhysicalTransformation<T> extends Transformation<T> {
     /**
      * Creates a new {@code Transformation} with the given name, output type and parallelism.
      *
-     * @param name The name of the {@code Transformation}, this will be shown in Visualizations and
-     *     the Log
+     * @param name The name of the {@code Transformation}, this will be shown in Visualizations and the Log
      * @param outputType The output type of this {@code Transformation}
      * @param parallelism The parallelism of this {@code Transformation}
      */
