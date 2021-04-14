@@ -20,23 +20,32 @@ package org.apache.flink.streaming.api.transformations;
 
 import org.apache.flink.annotation.PublicEvolving;
 
-/** The shuffle mode defines the data exchange mode between operators. */
+/**
+ * ShuffleMode 定义了operators 之间交换数据的模式
+ * The shuffle mode defines the data exchange mode between operators. */
 @PublicEvolving
 public enum ShuffleMode {
     /**
-     * Producer and consumer are online at the same time. Produced data is received by consumer
-     * immediately.
+     * 生产者和消费者同时在线. 生产出的数据立即会被消费者消费...
+     * Producer and consumer are online at the same time. Produced data is received by consumer  immediately.
      */
     PIPELINED,
 
     /**
-     * The producer first produces its entire result and finishes. After that, the consumer is
-     * started and may consume the data.
+     * 生产者先产生数据至完成&停止. 之后 消费者启动消费数据.
+     *
+     * The producer first produces its entire result and finishes. After that, the consumer is  started and may consume the data.
      */
     BATCH,
 
     /**
-     * The shuffle mode is undefined. It leaves it up to the framework to decide the shuffle mode.
+     * shuffle mode : 未定义
+     * 由框架决定 shuffle mode.
+     * 框架最后将选择{@link ShuffleMode＃BATCH}或{@link ShuffleMode＃PIPELINED}中的一个。
+     *
+     * The shuffle mode is undefined.
+     *
+     * It leaves it up to the framework to decide the shuffle mode.
      * The framework will pick one of {@link ShuffleMode#BATCH} or {@link ShuffleMode#PIPELINED} in
      * the end.
      */

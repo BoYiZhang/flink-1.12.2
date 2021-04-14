@@ -20,7 +20,10 @@ package org.apache.flink.runtime.io.network.api.writer;
 
 import org.apache.flink.core.io.IOReadableWritable;
 
+
 /**
+ * {@link ChannelSelector} 决定数据记录如何写入到 logical channels .
+ *
  * The {@link ChannelSelector} determines to which logical channels a record should be written to.
  *
  * @param <T> the type of record which is sent through the attached output gate
@@ -28,16 +31,24 @@ import org.apache.flink.core.io.IOReadableWritable;
 public interface ChannelSelector<T extends IOReadableWritable> {
 
     /**
+     * 设置 初始化 channel selector 的数量.
+     *
      * Initializes the channel selector with the number of output channels.
      *
-     * @param numberOfChannels the total number of output channels which are attached to respective
-     *     output gate.
+     * @param numberOfChannels the total number of output channels which are attached to respective  output gate.
      */
     void setup(int numberOfChannels);
 
     /**
-     * Returns the logical channel index, to which the given record should be written. It is illegal
-     * to call this method for broadcast channel selectors and this method can remain not
+     *
+     * 返回数据写入的 logical channel 的索引
+     * 为broadcast channel selectors 调用此方法是非法的，
+     * 在这种情况下，此方法可能无法实现（例如，通过抛出{@link UnsupportedOperationException}）。
+     *
+     *
+     * Returns the logical channel index, to which the given record should be written.
+     *
+     * It is illegal to call this method for broadcast channel selectors and this method can remain not
      * implemented in that case (for example by throwing {@link UnsupportedOperationException}).
      *
      * @param record the record to determine the output channels for.
@@ -47,6 +58,9 @@ public interface ChannelSelector<T extends IOReadableWritable> {
     int selectChannel(T record);
 
     /**
+     *
+     * 返回channel selector是否始终选择所有输出通道。
+     *
      * Returns whether the channel selector always selects all the output channels.
      *
      * @return true if the selector is for broadcast mode.

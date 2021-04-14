@@ -33,21 +33,41 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 
 /**
+ *
+ * {@code SubtaskStateMapper}缩小了回放期间需要读取的子任务，以便在检查点中存储了in-flight中的数据时从特定子任务恢复。
+ *
+ * 旧子任务到新子任务的映射可以是唯一的，也可以是非唯一的。
+ *
+ * 唯一分配意味着一个特定的旧子任务只分配给一个新的子任务。
+ *
+ * 非唯一分配需要向下筛选。
+ * 这意味着接收方必须交叉验证反序列化记录是否真正属于新的子任务。
+ *
+ * 大多数{@code SubtaskStateMapper}只会产生唯一的赋值，因此是最优的
+ * 一些重缩放器，比如{@link#RANGE}，创建了唯一映射和非唯一映射的混合，其中下游任务需要对一些映射的子任务进行过滤。
+ *
  * The {@code SubtaskStateMapper} narrows down the subtasks that need to be read during rescaling to
  * recover from a particular subtask when in-flight data has been stored in the checkpoint.
  *
- * <p>Mappings of old subtasks to new subtasks may be unique or non-unique. A unique assignment
- * means that a particular old subtask is only assigned to exactly one new subtask. Non-unique
- * assignments require filtering downstream. That means that the receiver side has to cross-verify
- * for a deserialized record if it truly belongs to the new subtask or not. Most {@code
- * SubtaskStateMapper} will only produce unique assignments and are thus optimal. Some rescaler,
- * such as {@link #RANGE}, create a mixture of unique and non-unique mappings, where downstream
+ * <p>Mappings of old subtasks to new subtasks may be unique or non-unique.
+ *
+ * A unique assignment  means that a particular old subtask is only assigned to exactly one new subtask.
+ *
+ * Non-unique assignments require filtering downstream.
+ *
+ * That means that the receiver side has to cross-verify for a deserialized record if it truly belongs to the new subtask or not.
+ *
+ * Most {@code SubtaskStateMapper} will only produce unique assignments and are thus optimal.
+ *
+ * Some rescaler,  such as {@link #RANGE}, create a mixture of unique and non-unique mappings, where downstream
  * tasks need to filter on some mapped subtasks.
  */
 @Internal
 public enum SubtaskStateMapper {
 
     /**
+     * 额外的状态被重新分配到其他子任务，而没有任何特定的保证（只匹配上行和下行）。
+     *
      * Extra state is redistributed to other subtasks without any specific guarantee (only that up-
      * and downstream are matched).
      */
@@ -62,6 +82,8 @@ public enum SubtaskStateMapper {
     },
 
     /**
+     * 丢弃额外状态。如果所有子任务都已包含相同的信息（广播），则非常有用。
+     *
      * Discards extra state. Useful if all subtasks already contain the same information
      * (broadcast).
      */
@@ -73,7 +95,10 @@ public enum SubtaskStateMapper {
         }
     },
 
-    /** Restores extra subtasks to the first subtask. */
+    /**
+     * 将额外的子任务还原到第一个子任务。
+     * Restores extra subtasks to the first subtask.
+     * */
     FIRST {
         @Override
         public Set<Integer> getOldSubtasks(
@@ -85,6 +110,8 @@ public enum SubtaskStateMapper {
     },
 
     /**
+     * 将状态复制到所有子任务。这种回放会造成巨大的开销，完全依赖于对下游数据进行过滤。
+     * 
      * Replicates the state to all subtasks. This rescaling causes a huge overhead and completely
      * relies on filtering the data downstream.
      */
@@ -97,6 +124,22 @@ public enum SubtaskStateMapper {
     },
 
     /**
+     * 将旧范围重新映射到新范围。
+     * 对于较小的重缩放，这意味着新的子任务主要分配给2个旧的子任务。
+     *
+     * 举例:
+     * 旧的分配:  0 -> [0;43); 1 -> [43;87); 2 -> [87;128)
+     * 新的分配:  0 -> [0;64]; 1 -> [64;128)
+     *
+     * 子任务0从旧子任务0+1恢复数据，子任务1从旧子任务0+2恢复数据
+     *
+     * 对于从n到[n-1 .. n/2]，每个新的子任务正好分配了两个旧的子任务。
+     * 对于从n到[n+1 .. 2*n-1]，除最外层的两个子任务外，大多数子任务都分配了两个旧的子任务。
+     *
+     * 较大的比例因子（{@code<n/2}，{@code>2*n}）将相应地增加旧子任务的数量。
+     * 但是，它们还将创建更独特的分配，其中一个旧子任务只分配给新子任务。
+     * 因此，非唯一映射的数目是2*n的上界。
+     *
      * Remaps old ranges to new ranges. For minor rescaling that means that new subtasks are mostly
      * assigned 2 old subtasks.
      *
@@ -113,9 +156,11 @@ public enum SubtaskStateMapper {
      * except the two outermost.
      *
      * <p>Larger scale factors ({@code <n/2}, {@code >2*n}), will increase the number of old
-     * subtasks accordingly. However, they will also create more unique assignment, where an old
-     * subtask is exclusively assigned to a new subtask. Thus, the number of non-unique mappings is
-     * upper bound by 2*n.
+     * subtasks accordingly.
+     *
+     * However, they will also create more unique assignment, where an old subtask is exclusively assigned to a new subtask.
+     *
+     * Thus, the number of non-unique mappings is  upper bound by 2*n.
      */
     RANGE {
         @Override
@@ -137,12 +182,56 @@ public enum SubtaskStateMapper {
     },
 
     /**
-     * Redistributes subtask state in a round robin fashion. Returns a mapping of {@code newIndex ->
-     * oldIndexes}. The mapping is accessed by using {@code Bitset oldIndexes =
-     * mapping.get(newIndex)}.
+     * 以循环方式重新分配子任务状态。
+     * 返回{@code newIndex->oldIndex}的映射。
+     * 通过使用{@code Bitset oldIndexes = mapping.get(newIndex)}.
+     * 对于{@code oldParallelism < newParallelism} , 映射是琐碎的 .
+     * 比如 oldParallelism = 6 and newParallelism = 10.
      *
-     * <p>For {@code oldParallelism < newParallelism}, that mapping is trivial. For example if
-     * oldParallelism = 6 and newParallelism = 10.
+     *
+     *  ---------------------------
+     *  | New index | Old indexes |
+     *  ---------------------------
+     *  |    0     |      0       |
+     *  ---------------------------
+     *  |    1     |      1       |
+     *  ---------------------------
+     *          .......
+     *  ---------------------------
+     *  |    5     |      5       |
+     *  ---------------------------
+     *  |    6     |              |
+     *  ---------------------------
+     *          .......
+     *  ---------------------------
+     *  |    9     |              |
+     *  ---------------------------
+     *
+     *
+     * 对于{@code oldParallelism > newParallelism} ，新索引通过以循环方式环绕赋值来获得多个赋值。
+     *
+     * 比如 oldParallelism = 10 and  newParallelism = 4.
+     *
+     *  ---------------------------
+     *  | New index | Old indexes |
+     *  ---------------------------
+     *  |    0     |  0, 4, 8     |
+     *  ---------------------------
+     *  |    1     |  1, 5, 9     |
+     *  ---------------------------
+     *  |    2     |  2, 6        |
+     *  ---------------------------
+     *  |    3     |  3, 7        |
+     *  ---------------------------
+     *
+     * Redistributes subtask state in a round robin fashion.
+     *
+     * Returns a mapping of {@code newIndex -> oldIndexes}.
+     * The mapping is accessed by using {@code Bitset oldIndexes = mapping.get(newIndex)}.
+     *
+     * <p>For {@code oldParallelism < newParallelism}, that mapping is trivial.
+     * For example if oldParallelism = 6 and newParallelism = 10.
+     *
      *
      * <table>
      *     <thead><td>New index</td><td>Old indexes</td></thead>

@@ -27,6 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * 此转换表示多个输入{@link Transformation Transformations}的并集。
+ *
+ * 这不会创建物理操作，只会影响上游操作与下游操作的连接方式。
  * This transformation represents a union of several input {@link Transformation Transformations}.
  *
  * <p>This does not create a physical operation, it only affects how upstream operations are
@@ -39,6 +42,7 @@ public class UnionTransformation<T> extends Transformation<T> {
     private final List<Transformation<T>> inputs;
 
     /**
+     * 通过给定的Transformations 构建一个UnionTransformation
      * Creates a new {@code UnionTransformation} from the given input {@code Transformations}.
      *
      * <p>The input {@code Transformations} must all have the same type.
