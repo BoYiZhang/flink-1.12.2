@@ -608,6 +608,8 @@ public abstract class Transformation<T> {
     }
 
     /**
+     * 获取前置节点 ???
+     *
      * Returns all transitive predecessor {@code Transformation}s of this {@code Transformation}.
      * This is, for example, used when determining whether a feedback edge of an iteration actually
      * has the iteration head as a predecessor.
