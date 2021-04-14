@@ -29,8 +29,12 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * This transformation represents a selection of a side output of an upstream operation with a given
- * {@link OutputTag}.
+ *
+ * 此transformation表示对具有给定{@link OutputTag}的上游操作的边输出的选择。
+ *
+ * 这不会创建物理操作，它只影响上游操作与下游操作的连接方式。
+ *
+ * This transformation represents a selection of a side output of an upstream operation with a given {@link OutputTag}.
  *
  * <p>This does not create a physical operation, it only affects how upstream operations are
  * connected to downstream operations.
