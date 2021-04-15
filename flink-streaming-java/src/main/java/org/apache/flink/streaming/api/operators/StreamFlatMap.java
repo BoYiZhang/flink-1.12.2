@@ -44,6 +44,7 @@ public class StreamFlatMap<IN, OUT> extends AbstractUdfStreamOperator<OUT, FlatM
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
         collector.setTimestamp(element);
+        // 使用用户自定义的flatMap函数处理数据
         userFunction.flatMap(element.getValue(), collector);
     }
 }

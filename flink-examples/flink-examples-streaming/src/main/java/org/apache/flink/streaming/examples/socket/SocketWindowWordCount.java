@@ -80,6 +80,7 @@ public class SocketWindowWordCount {
                                         }
                                     }
                                 })
+                        .map(value->value)
                         .keyBy(value -> value.word)
                         .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
                         .reduce(

@@ -43,6 +43,7 @@ public class UnionTransformation<T> extends Transformation<T> {
 
     /**
      * 通过给定的Transformations 构建一个UnionTransformation
+     *
      * Creates a new {@code UnionTransformation} from the given input {@code Transformations}.
      *
      * <p>The input {@code Transformations} must all have the same type.
@@ -52,6 +53,7 @@ public class UnionTransformation<T> extends Transformation<T> {
     public UnionTransformation(List<Transformation<T>> inputs) {
         super("Union", inputs.get(0).getOutputType(), inputs.get(0).getParallelism());
 
+        // 对输入的 List<Transformation<T>> inputs 进行合并操作...
         for (Transformation<T> input : inputs) {
             if (!input.getOutputType().equals(getOutputType())) {
                 throw new UnsupportedOperationException("Type mismatch in input " + input);

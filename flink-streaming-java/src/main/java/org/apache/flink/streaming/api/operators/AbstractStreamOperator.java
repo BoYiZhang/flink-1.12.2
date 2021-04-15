@@ -96,19 +96,30 @@ public abstract class AbstractStreamOperator<OUT>
 
     // ----------- configuration properties -------------
 
+    // 定义operator的链接方案。
+    // ChainingStrategy.HEAD : 当前算子允许被后置算子Chain，但不会与前置算子进行Chain
     // A sane default for most operators
     protected ChainingStrategy chainingStrategy = ChainingStrategy.HEAD;
 
     // ---------------- runtime fields ------------------
 
-    /** The task that contains this operator (and other operators in the same chain). */
+    //
+    /**
+     * 包含此运算符（以及同一链中的其他运算符）的任务。
+     *
+     * The task that contains this operator
+     * (and other operators in the same chain).
+     * */
     private transient StreamTask<?, ?> container;
+
 
     protected transient StreamConfig config;
 
+    // 输出相关
     protected transient Output<StreamRecord<OUT>> output;
 
     /** The runtime context for UDFs. */
+
     private transient StreamingRuntimeContext runtimeContext;
 
     // ---------------- key/value state ------------------
@@ -588,8 +599,12 @@ public abstract class AbstractStreamOperator<OUT>
     // ------------------------------------------------------------------------
 
     /**
+     * 返回{@link InternalTimerService}用于查询当前处理时间和事件时间并设置计时器。
+     *
      * Returns a {@link InternalTimerService} that can be used to query current processing time and
-     * event time and to set timers. An operator can have several timer services, where each has its
+     * event time and to set timers.
+     *
+     * An operator can have several timer services, where each has its
      * own namespace serializer. Timer services are differentiated by the string key that is given
      * when requesting them, if you call this method with the same key multiple times you will get
      * the same timer service instance in subsequent requests.

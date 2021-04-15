@@ -38,6 +38,12 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /**
+ *
+ * {@code SingleOutputStreamOperator}表示应用于具有一个预定义输出类型的{@link DataStream}的用户定义的转换。
+ *
+ *
+ *
+ *
  * {@code SingleOutputStreamOperator} represents a user defined transformation applied on a {@link
  * DataStream} with one predefined output type.
  *
@@ -46,12 +52,22 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 @Public
 public class SingleOutputStreamOperator<T> extends DataStream<T> {
 
-    /** Indicate this is a non-parallel operator and cannot set a non-1 degree of parallelism. * */
+    /**
+     * 表示这是一个非并行运算符，不能设置非1度的并行度。
+     *
+     * Indicate this is a non-parallel operator and cannot set a non-1 degree of parallelism.
+     * * */
     protected boolean nonParallel = false;
 
     /**
-     * We keep track of the side outputs that were already requested and their types. With this, we
-     * can catch the case when a side output with a matching id is requested for a different type
+     * 我们跟踪已经请求的边输出及其类型。
+     *
+     * 通过这种方法，我们可以捕捉到为不同类型请求具有匹配id的side输出的情况，因为这将导致运行时出现问题。
+     *
+     *
+     * We keep track of the side outputs that were already requested and their types.
+     *
+     * With this, we can catch the case when a side output with a matching id is requested for a different type
      * because this would lead to problems at runtime.
      */
     private Map<OutputTag<?>, TypeInformation<?>> requestedSideOutputs = new HashMap<>();

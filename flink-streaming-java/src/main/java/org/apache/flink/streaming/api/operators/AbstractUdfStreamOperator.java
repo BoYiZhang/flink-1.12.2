@@ -37,9 +37,14 @@ import org.apache.flink.streaming.util.functions.StreamingFunctionUtils;
 import static java.util.Objects.requireNonNull;
 
 /**
- * This is used as the base class for operators that have a user-defined function. This class
- * handles the opening and closing of the user-defined functions, as part of the operator life
- * cycle.
+ *
+ *
+ * 具有用户定义function的 operators的基础类.
+ * 作为operator生命周期的一部分，此类处理用户定义函数的opening和closing。
+ *
+ * This is used as the base class for operators that have a user-defined function.
+ *
+ * This class handles the opening and closing of the user-defined functions, as part of the operator life cycle.
  *
  * @param <OUT> The output type of the operator
  * @param <F> The type of the user function
