@@ -114,8 +114,20 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * A DataStream represents a stream of elements of the same type. A DataStream can be transformed
- * into another DataStream by applying a transformation as for example:
+ *
+ * DataStream表示相同类型的元素流。
+ * 可以通过应用转换将DataStream转换为另一个DataStream，
+ *
+ * 例如：
+ * <ul>
+ *   <li>{@link DataStream#map}
+ *   <li>{@link DataStream#filter}
+ * </ul>
+ *
+ *
+ *
+ * A DataStream represents a stream of elements of the same type.
+ * A DataStream can be transformed into another DataStream by applying a transformation as for example:
  *
  * <ul>
  *   <li>{@link DataStream#map}
@@ -218,8 +230,15 @@ public class DataStream<T> {
     }
 
     /**
+     *
+     * 通过将相同类型的 {@link DataStream} 输出彼此合并，创建新的 {@link DataStream} .
+     *
+     * 使用此 operator 合并的DataStreams将同时进行转换。
+     *
      * Creates a new {@link DataStream} by merging {@link DataStream} outputs of the same type with
-     * each other. The DataStreams merged using this operator will be transformed simultaneously.
+     * each other.
+     *
+     * The DataStreams merged using this operator will be transformed simultaneously.
      *
      * @param streams The DataStreams to union output with.
      * @return The {@link DataStream}.
@@ -229,6 +248,7 @@ public class DataStream<T> {
         List<Transformation<T>> unionedTransforms = new ArrayList<>();
         unionedTransforms.add(this.transformation);
 
+        // 对输入的DataStream进行合并..
         for (DataStream<T> newStream : streams) {
             if (!getType().equals(newStream.getType())) {
                 throw new IllegalArgumentException(
@@ -240,12 +260,20 @@ public class DataStream<T> {
 
             unionedTransforms.add(newStream.getTransformation());
         }
+        //构建新的 DataStream
         return new DataStream<>(this.environment, new UnionTransformation<>(unionedTransforms));
     }
 
     /**
+     *
+     * 通过将（可能）不同类型的{@link DataStream}输出相互连接，创建一个新的{@link ConnectedStreams}。
+     *
+     * 使用此运算符连接的DataStreams可以与 CoFunctions 一起应用联合变换。
+     *
      * Creates a new {@link ConnectedStreams} by connecting {@link DataStream} outputs of (possible)
-     * different types with each other. The DataStreams connected using this operator can be used
+     * different types with each other.
+     *
+     * The DataStreams connected using this operator can be used
      * with CoFunctions to apply joint transformations.
      *
      * @param dataStream The DataStream with which this stream will be connected.
@@ -282,8 +310,7 @@ public class DataStream<T> {
     }
 
     /**
-     * It creates a new {@link KeyedStream} that uses the provided key for partitioning its operator
-     * states.
+     * It creates a new {@link KeyedStream} that uses the provided key for partitioning its operator states.
      *
      * @param key The KeySelector to be used for extracting the key for partitioning
      * @return The {@link DataStream} with partitioned state (i.e. KeyedStream)
@@ -383,8 +410,14 @@ public class DataStream<T> {
     }
 
     /**
-     * Partitions a DataStream on the key returned by the selector, using a custom partitioner. This
-     * method takes the key selector to get the key to partition on, and a partitioner that accepts
+     *
+     * 使用自定义分区器在selector返回的key上分区DataStream。
+     * 此方法使用 key selector 获取要分区的key，并使用接受该key type 的分区器。
+     * 此方法仅适用于单个字段key，即selector 不能返回 tuples 类型的字段  。
+     *
+     * Partitions a DataStream on the key returned by the selector, using a custom partitioner.
+     *
+     * This method takes the key selector to get the key to partition on, and a partitioner that accepts
      * the key type.
      *
      * <p>Note: This method works only on single field keys, i.e. the selector cannot return tuples
@@ -412,6 +445,8 @@ public class DataStream<T> {
     }
 
     /**
+     * 设置 {@link DataStream}  的分区，以便将输出元素广播到下一个操作的每个并行实例。
+     *
      * Sets the partitioning of the {@link DataStream} so that the output elements are broadcasted
      * to every parallel instance of the next operation.
      *
@@ -422,10 +457,24 @@ public class DataStream<T> {
     }
 
     /**
+     * 设置{@link DataStream}的分区，以便输出元素广播到下一个操作的每个并行实例。
+     *
+     * 此外，它隐式地提供了尽可能多的
+     * {@link org.apache.flink.api.common.state.BroadcastState broadcast states}
+     * 作为可用于存储流元素的指定描述符.
+     *
+     *
      * Sets the partitioning of the {@link DataStream} so that the output elements are broadcasted
-     * to every parallel instance of the next operation. In addition, it implicitly as many {@link
-     * org.apache.flink.api.common.state.BroadcastState broadcast states} as the specified
-     * descriptors which can be used to store the element of the stream.
+     * to every parallel instance of the next operation.
+     *
+     * 设置{@link DataStream}的分区，以便输出元素广播到下一个操作的每个并行实例。
+     *
+     * 此外，它隐式地提供了尽可能多的
+     * {@link org.apache.flink.api.common.state.BroadcastState broadcast states}
+     * 作为可用于存储流元素的指定描述符.
+     *
+     *
+     * In addition, it implicitly as many {@link org.apache.flink.api.common.state.BroadcastState broadcast states} as the specified descriptors which can be used to store the element of the stream.
      *
      * @param broadcastStateDescriptors the descriptors of the broadcast states to create.
      * @return A {@link BroadcastStream} which can be used in the {@link #connect(BroadcastStream)}
@@ -440,6 +489,8 @@ public class DataStream<T> {
     }
 
     /**
+     * 设置{@link DataStream}的分区，以便将输出元素均匀随机地洗牌到下一个操作。
+     *
      * Sets the partitioning of the {@link DataStream} so that the output elements are shuffled
      * uniformly randomly to the next operation.
      *
@@ -471,15 +522,29 @@ public class DataStream<T> {
     }
 
     /**
+     *
+     * 设置{@link DataStream}的分区，以便以 round-robin 方式将输出元素均匀地分布到下一个操作的实例子集。
+     *
+     * 上游操作向其发送元素的下游操作子集取决于上游和下游操作的并行度。
+     *
+     * 例如，如果上游操作的并行度为2，下游操作的并行度为4，
+     * 则一个上游操作会将元素分配给两个下游操作，而另一个操作会将元素分配给两个下游操作上游业务将分配给其他两个下游业务。
+     *
+     * 另一方面，如果下游操作具有并行度2，而上游操作具有并行度4，则两个上游操作将分配给一个下游操作，而其他两个上游操作将分配给其他下游操作。
+     *
+     * 如果不同的并行度不是彼此的倍数，则一个或多个下游操作将具有不同数量的上游操作输入。
+     *
      * Sets the partitioning of the {@link DataStream} so that the output elements are distributed
      * evenly to a subset of instances of the next operation in a round-robin fashion.
      *
      * <p>The subset of downstream operations to which the upstream operation sends elements depends
-     * on the degree of parallelism of both the upstream and downstream operation. For example, if
-     * the upstream operation has parallelism 2 and the downstream operation has parallelism 4, then
+     * on the degree of parallelism of both the upstream and downstream operation.
+     *
+     * For example, if the upstream operation has parallelism 2 and the downstream operation has parallelism 4, then
      * one upstream operation would distribute elements to two downstream operations while the other
-     * upstream operation would distribute to the other two downstream operations. If, on the other
-     * hand, the downstream operation has parallelism 2 while the upstream operation has parallelism
+     * upstream operation would distribute to the other two downstream operations.
+     *
+     * If, on the other hand, the downstream operation has parallelism 2 while the upstream operation has parallelism
      * 4 then two upstream operations will distribute to one downstream operation while the other
      * two upstream operations will distribute to the other downstream operations.
      *
@@ -494,8 +559,14 @@ public class DataStream<T> {
     }
 
     /**
+     *
+     * 设置{@link DataStream}的分区，以便输出值都转到下一个处理操作符的第一个实例。
+     * 请小心使用此设置，因为它可能会在应用程序中造成严重的性能瓶颈。
+     *
      * Sets the partitioning of the {@link DataStream} so that the output values all go to the first
-     * instance of the next processing operator. Use this setting with care since it might cause a
+     * instance of the next processing operator.
+     *
+     * Use this setting with care since it might cause a
      * serious performance bottleneck in the application.
      *
      * @return The DataStream with shuffle partitioning set.
@@ -505,14 +576,36 @@ public class DataStream<T> {
         return setConnectionType(new GlobalPartitioner<T>());
     }
 
+
+
     /**
-     * Initiates an iterative part of the program that feeds back data streams. The iterative part
-     * needs to be closed by calling {@link IterativeStream#closeWith(DataStream)}. The
-     * transformation of this IterativeStream will be the iteration head. The data stream given to
-     * the {@link IterativeStream#closeWith(DataStream)} method is the data stream that will be fed
-     * back and used as the input for the iteration head. The user can also use different feedback
-     * type than the input of the iteration and treat the input and feedback streams as a {@link
-     * ConnectedStreams} be calling {@link IterativeStream#withFeedbackType(TypeInformation)}
+     * 启动程序中反馈数据流的迭代部分。
+     * 迭代部分需要通过调用{@link IterativeStream#closeWith（DataStream）}来关闭。
+     * 这个IterativeStream的转换将是迭代头。
+     * 提供给{@link IterativeStream#closeWith（DataStream）}方法的数据流是将被反馈并用作迭代头的输入的数据流。
+     * 用户还可以使用不同于迭代输入的反馈类型，
+     * 并将输入流和反馈流视为{@link ConnectedStreams}调用{@link IterativeStream#withFeedbackType（TypeInformation）}
+     *
+     * 流式迭代的一种常见使用模式是使用输出分割将结束数据流的一部分发送到头部。
+     *
+     * 参考{@link  ProcessFunction.Context#output(OutputTag, Object)}了解更多信息。
+     *
+     * 迭代边将以与迭代头的第一个输入相同的方式进行分区，除非在{@link IterativeStream#closeWith（DataStream）}调用中更改它。
+     *
+     * 默认情况下，带有迭代的数据流永远不会终止，但是用户可以使用maxWaitTime参数设置迭代头的最大等待时间。如果在设置的时间内没有接收到数据，则流终止。
+     *
+     *
+     * Initiates an iterative part of the program that feeds back data streams.
+     *
+     *
+     * The iterative part  needs to be closed by calling {@link IterativeStream#closeWith(DataStream)}.
+     *
+     * The transformation of this IterativeStream will be the iteration head.
+     *
+     * The data stream given to the {@link IterativeStream#closeWith(DataStream)} method is the data stream that will be fedback and used as the input for the iteration head.
+     *
+     * The user can also use different feedback type than the input of the iteration and
+     * treat the input and feedback streams as a {@link ConnectedStreams} be calling {@link IterativeStream#withFeedbackType(TypeInformation)}
      *
      * <p>A common usage pattern for streaming iterations is to use output splitting to send a part
      * of the closing data stream to the head. Refer to {@link
@@ -580,9 +673,21 @@ public class DataStream<T> {
     }
 
     /**
-     * Applies a Map transformation on a {@link DataStream}. The transformation calls a {@link
-     * MapFunction} for each element of the DataStream. Each MapFunction call returns exactly one
-     * element. The user can also extend {@link RichMapFunction} to gain access to other features
+     * 在{@link DataStream}上应用 Map 转换
+     * transformation 为数据流的每个元素调用一个{@link MapFunction}。
+     * 每个MapFunction调用只返回一个元素。
+     *
+     * 用户还可以扩展{@link RichMapFunction}以访问
+     * {@link org.apache.flink.api.common.functions.RichFunction}接口 .
+     *
+     *
+     * Applies a Map transformation on a {@link DataStream}.
+     *
+     * The transformation calls a {@link MapFunction} for each element of the DataStream.
+     *
+     * Each MapFunction call returns exactly one element.
+     *
+     * The user can also extend {@link RichMapFunction} to gain access to other features
      * provided by the {@link org.apache.flink.api.common.functions.RichFunction} interface.
      *
      * @param mapper The MapFunction that is called for each element of the DataStream.
@@ -623,11 +728,19 @@ public class DataStream<T> {
     }
 
     /**
-     * Applies a FlatMap transformation on a {@link DataStream}. The transformation calls a {@link
-     * FlatMapFunction} for each element of the DataStream. Each FlatMapFunction call can return any
-     * number of elements including none. The user can also extend {@link RichFlatMapFunction} to
-     * gain access to other features provided by the {@link
-     * org.apache.flink.api.common.functions.RichFunction} interface.
+     * 在DataStream 使用各一个 FlatMap 转换操作.
+     * 转换为数据流的每个元素调用一个{@link FlatMapFunction}。
+     * 每个FlatMapFunction调用可以返回任意数量的元素，包括none。
+     * 用户还可以扩展{@link RichFlatMapFunction}，以访问{@link org.apache.flink.api.common.functions.RichFunction} 接口。
+     *
+     * Applies a FlatMap transformation on a {@link DataStream}.
+     *
+     * The transformation calls a {@link FlatMapFunction} for each element of the DataStream.
+     *
+     * Each FlatMapFunction call can return any number of elements including none.
+     *
+     * The user can also extend {@link RichFlatMapFunction} to gain access to other features provided by the
+     * {@link org.apache.flink.api.common.functions.RichFunction} interface.
      *
      * @param flatMapper The FlatMapFunction that is called for each element of the DataStream
      * @param outputType {@link TypeInformation} for the result type of the function.
@@ -643,6 +756,10 @@ public class DataStream<T> {
     }
 
     /**
+     *
+     * 在输入流上应用给定的{@link ProcessFunction}，从而创建转换后的输出流
+     * 该函数将为输入流中的每个元素调用，并且可以生成零个或多个输出元素。
+     *
      * Applies the given {@link ProcessFunction} on the input stream, thereby creating a transformed
      * output stream.
      *
@@ -672,6 +789,8 @@ public class DataStream<T> {
     }
 
     /**
+     * 在输入流上应用给定的{@link ProcessFunction}，从而创建转换后的输出流
+     * 该函数将为输入流中的每个元素调用，并且可以生成零个或多个输出元素。
      * Applies the given {@link ProcessFunction} on the input stream, thereby creating a transformed
      * output stream.
      *
@@ -708,6 +827,12 @@ public class DataStream<T> {
     }
 
     /**
+     *
+     * 在{@link Tuple}{@linkdatastream}上启动项目转换。
+     * 注意: 仅仅 Typle  DataStreams 可以构建成projected
+     * 转换将数据集的每个元组投影到一组（子）字段上。
+     *
+     *
      * Initiates a Project transformation on a {@link Tuple} {@link DataStream}.<br>
      * <b>Note: Only Tuple DataStreams can be projected.</b>
      *
@@ -725,8 +850,12 @@ public class DataStream<T> {
     }
 
     /**
-     * Creates a join operation. See {@link CoGroupedStreams} for an example of how the keys and
-     * window can be specified.
+     *
+     * 创建一个 join 操作
+     * Creates a join operation.
+     * 有关如何指定键和窗口的示例，请参见{@link CoGroupedStreams}。
+     *
+     * See {@link CoGroupedStreams} for an example of how the keys and window can be specified.
      */
     public <T2> CoGroupedStreams<T, T2> coGroup(DataStream<T2> otherStream) {
         return new CoGroupedStreams<>(this, otherStream);
@@ -820,14 +949,29 @@ public class DataStream<T> {
     }
 
     /**
-     * Windows this data stream to a {@code AllWindowedStream}, which evaluates windows over a non
-     * key grouped stream. Elements are put into windows by a {@link
-     * org.apache.flink.streaming.api.windowing.assigners.WindowAssigner}. The grouping of elements
-     * is done by window.
+     *
+     * Windows将此数据流转换为{@code AllWindowedStream}，它在非键分组流上计算Windows。
+     *
+     * 元素通过 {@link org.apache.flink.streaming.api.windowing.assigners.WindowAssigner}. 放入到windows中.
+     * 元素的分组是按窗口进行的。
+     *
+     * 一个 {@link org.apache.flink.streaming.api.windowing.triggers.Trigger} 可以定义以指定何时计算窗口。
+     *
+     * 但是，{@code WindowAssigners}有一个默认的{@code Trigger}，如果未指定{@code Trigger}，则使用它。
+     *
+     * 注意：此操作本质上是非并行的，因为所有元素都必须通过相同的操作符实例。
+     *
+     * Windows this data stream to a {@code AllWindowedStream}, which evaluates windows over a non key grouped stream.
+     *
+     *
+     * Elements are put into windows by a {@link org.apache.flink.streaming.api.windowing.assigners.WindowAssigner}.
+     *
+     * The grouping of elements  is done by window.
      *
      * <p>A {@link org.apache.flink.streaming.api.windowing.triggers.Trigger} can be defined to
-     * specify when windows are evaluated. However, {@code WindowAssigners} have a default {@code
-     * Trigger} that is used if a {@code Trigger} is not specified.
+     * specify when windows are evaluated.
+     *
+     * However, {@code WindowAssigners} have a default {@code Trigger} that is used if a {@code Trigger} is not specified.
      *
      * <p>Note: This operation is inherently non-parallel since all elements have to pass through
      * the same operator instance.
@@ -846,9 +990,20 @@ public class DataStream<T> {
     // ------------------------------------------------------------------------
 
     /**
+     *
+     * 为数据流中的元素分配时间戳，并生成watermarks来表示事件时间进度。
+     * 给定的{@link WatermarkStrategy}是通过{@link TimestampAssigner} and {@link WatermarkGenerator} 构建的
+     * 对于数据流中的每个事件，调用{@link TimestampAssigner#extractTimestamp（Object，long）}方法来分配事件时间戳。
+     *
+     * <p>定期地 (defined by the {@link ExecutionConfig#getAutoWatermarkInterval()}), the
+     * {@link WatermarkGenerator#onPeriodicEmit(WatermarkOutput)} method will be called.
+     *
+     * 通用的watermark生成静态方法在{@link org.apache.flink.api.common.eventtime.WatermarkStrategy} 中.
+     *
      * Assigns timestamps to the elements in the data stream and generates watermarks to signal
-     * event time progress. The given {@link WatermarkStrategy} is used to create a {@link
-     * TimestampAssigner} and {@link WatermarkGenerator}.
+     * event time progress.
+     *
+     * The given {@link WatermarkStrategy} is used to create a {@link TimestampAssigner} and {@link WatermarkGenerator}.
      *
      * <p>For each event in the data stream, the {@link TimestampAssigner#extractTimestamp(Object,
      * long)} method is called to assign an event timestamp.
@@ -867,17 +1022,24 @@ public class DataStream<T> {
      */
     public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(
             WatermarkStrategy<T> watermarkStrategy) {
+        // 清理WatermarkStrategy
         final WatermarkStrategy<T> cleanedStrategy = clean(watermarkStrategy);
-        // match parallelism to input, to have a 1:1 source -> timestamps/watermarks relationship
-        // and chain
+
+        // 匹配input的并行度, source -> timestamps/watermarks 的关系必须是 1:1
+        // match parallelism to input, to have a 1:1 source -> timestamps/watermarks relationship and chain
         final int inputParallelism = getTransformation().getParallelism();
+
+        //  生成 TimestampsAndWatermarksTransformation
         final TimestampsAndWatermarksTransformation<T> transformation =
                 new TimestampsAndWatermarksTransformation<>(
                         "Timestamps/Watermarks",
                         inputParallelism,
                         getTransformation(),
                         cleanedStrategy);
+        // 向env中加入TimestampsAndWatermarksTransformation
         getExecutionEnvironment().addOperator(transformation);
+
+        // 返回SingleOutputStreamOperator
         return new SingleOutputStreamOperator<>(getExecutionEnvironment(), transformation);
     }
 
@@ -1155,6 +1317,8 @@ public class DataStream<T> {
     }
 
     /**
+     * 方法传递用户定义的运算符以及将转换DataStreams的类型信息。
+     *
      * Method for passing user defined operators along with the type information that will transform
      * the DataStream.
      *

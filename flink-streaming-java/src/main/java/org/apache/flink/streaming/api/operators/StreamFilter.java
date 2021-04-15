@@ -30,11 +30,13 @@ public class StreamFilter<IN> extends AbstractUdfStreamOperator<IN, FilterFuncti
 
     public StreamFilter(FilterFunction<IN> filterFunction) {
         super(filterFunction);
+        // 设置连接策略
         chainingStrategy = ChainingStrategy.ALWAYS;
     }
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+        // 执行用户的过滤操作, 判断条件的满足情况
         if (userFunction.filter(element.getValue())) {
             output.collect(element);
         }
