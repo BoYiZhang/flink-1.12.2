@@ -697,6 +697,7 @@ public class DataStream<T> {
      */
     public <R> SingleOutputStreamOperator<R> map(
             MapFunction<T, R> mapper, TypeInformation<R> outputType) {
+        // 返回一个新的 DataStream， StreamMap 为 StreamOperator 的实现类
         return transform("Map", outputType, new StreamMap<>(clean(mapper)));
     }
 
@@ -1380,6 +1381,7 @@ public class DataStream<T> {
                         outTypeInfo,
                         environment.getParallelism());
 
+        // 新的 transformation 会连接上当前 DataStream 中的 transformation，从而构建成一棵树
         @SuppressWarnings({"unchecked", "rawtypes"})
         SingleOutputStreamOperator<R> returnStream =
                 new SingleOutputStreamOperator(environment, resultTransform);

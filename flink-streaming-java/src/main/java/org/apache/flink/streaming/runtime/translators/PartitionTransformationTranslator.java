@@ -48,12 +48,15 @@ public class PartitionTransformationTranslator<OUT>
         return translateInternal(transformation, context);
     }
 
+
+    //  逻辑转换（partition、 union 等）的处理
     @Override
     protected Collection<Integer> translateForStreamingInternal(
             final PartitionTransformation<OUT> transformation, final Context context) {
         return translateInternal(transformation, context);
     }
 
+    //  逻辑转换（partition、 union 等）的处理
     private Collection<Integer> translateInternal(
             final PartitionTransformation<OUT> transformation, final Context context) {
         checkNotNull(transformation);
@@ -71,7 +74,9 @@ public class PartitionTransformationTranslator<OUT>
         List<Integer> resultIds = new ArrayList<>();
 
         for (Integer inputId : context.getStreamNodeIds(input)) {
+            // 生成一个新的虚拟 id
             final int virtualId = Transformation.getNewNodeId();
+            // 添加一个虚拟分区节点，不会生成 StreamNode
             streamGraph.addVirtualPartitionNode(
                     inputId,
                     virtualId,

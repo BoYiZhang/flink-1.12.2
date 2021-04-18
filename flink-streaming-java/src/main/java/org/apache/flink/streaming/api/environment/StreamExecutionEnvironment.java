@@ -2520,7 +2520,16 @@ public class StreamExecutionEnvironment {
             String sourceName,
             Class<?> baseSourceClass,
             TypeInformation<OUT> typeInfo) {
+
+        //    source = {SocketTextStreamFunction@3247}
+        //    sourceName = "Socket Stream"
+        //    baseSourceClass = {Class@3244} "interface org.apache.flink.streaming.api.functions.source.SourceFunction"
+        //    typeInfo = null
+
+
         TypeInformation<OUT> resolvedTypeInfo = typeInfo;
+
+
         if (resolvedTypeInfo == null && source instanceof ResultTypeQueryable) {
             resolvedTypeInfo = ((ResultTypeQueryable<OUT>) source).getProducedType();
         }

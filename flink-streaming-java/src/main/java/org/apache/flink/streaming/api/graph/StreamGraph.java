@@ -343,6 +343,17 @@ public class StreamGraph implements Pipeline {
             String operatorName,
             Class<? extends AbstractInvokable> invokableClass) {
 
+        // 构建 StreamNode 并加入缓存  streamNodes
+        // vertexID: 2
+        // slotSharingGroup : default
+        // coLocationGroup : null
+        // StreamOperatorFactory : SimpleUdfStreamOperatorFactory
+        // inTypeInfo  : String
+        // outTypeInfo : PojoType<org.apache.flink.streaming.examples.socket.SocketWindowWordCount$WordWithCount, fields = [count: Long, word: String]>
+        // operatorName : Flat Map
+        // invokableClass : class org.apache.flink.streaming.runtime.tasks.OneInputStreamTask
+
+
         addNode(
                 vertexID,
                 slotSharingGroup,
@@ -350,6 +361,8 @@ public class StreamGraph implements Pipeline {
                 invokableClass,
                 operatorFactory,
                 operatorName);
+
+
         setSerializers(vertexID, createSerializer(inTypeInfo), null, createSerializer(outTypeInfo));
 
         if (operatorFactory.isOutputTypeConfigurable() && outTypeInfo != null) {
@@ -447,6 +460,15 @@ public class StreamGraph implements Pipeline {
             throw new RuntimeException("Duplicate vertexID " + vertexID);
         }
 
+
+        // vertexID: 2
+        // slotSharingGroup : default
+        // coLocationGroup : null
+        // vertexClass : class org.apache.flink.streaming.runtime.tasks.OneInputStreamTask
+        // StreamOperatorFactory : SimpleUdfStreamOperatorFactory
+        // operatorName : Flat Map
+
+
         StreamNode vertex =
                 new StreamNode(
                         vertexID,
@@ -456,6 +478,7 @@ public class StreamGraph implements Pipeline {
                         operatorName,
                         vertexClass);
 
+        // 加入缓存 : streamNodes
         streamNodes.put(vertexID, vertex);
 
         return vertex;
@@ -539,6 +562,7 @@ public class StreamGraph implements Pipeline {
     }
 
     public void addEdge(Integer upStreamVertexID, Integer downStreamVertexID, int typeNumber) {
+
         addEdgeInternal(
                 upStreamVertexID,
                 downStreamVertexID,
@@ -601,8 +625,7 @@ public class StreamGraph implements Pipeline {
             // 下游节点
             StreamNode downstreamNode = getStreamNode(downStreamVertexID);
 
-            // 如果没有指定分区器, 则使用ForwardPartitioner 或者 RebalancePartitioner 分区
-
+            // 如果并行度相同使用ForwardPartitioner , 如果分区器不同这是用RebalancePartitioner 分区器
             // If no partitioner was specified and the parallelism of upstream and downstream
             // operator matches use forward partitioning, use rebalance otherwise.
             if (partitioner == null
@@ -712,7 +735,41 @@ public class StreamGraph implements Pipeline {
 
     public void setSerializers(
             Integer vertexID, TypeSerializer<?> in1, TypeSerializer<?> in2, TypeSerializer<?> out) {
+
+        //    vertex = {StreamNode@3726} "Flat Map-2"
+        //    id = 2
+        //    parallelism = 0
+        //    maxParallelism = 0
+        //    minResources = {ResourceSpec@3449} "ResourceSpec{UNKNOWN}"
+        //    preferredResources = {ResourceSpec@3449} "ResourceSpec{UNKNOWN}"
+        //    managedMemoryOperatorScopeUseCaseWeights = {HashMap@3776}  size = 0
+        //    managedMemorySlotScopeUseCases = {HashSet@3777}  size = 0
+        //    bufferTimeout = 0
+        //    operatorName = "Flat Map"
+        //    slotSharingGroup = "default"
+        //    coLocationGroup = null
+        //    statePartitioners = {KeySelector[0]@3778}
+        //    stateKeySerializer = null
+        //    operatorFactory = {SimpleUdfStreamOperatorFactory@3466}
+        //    typeSerializersIn = {TypeSerializer[2]@3779}
+        //    typeSerializerOut = null
+        //    inEdges = {ArrayList@3780}  size = 0
+        //    outEdges = {ArrayList@3781}  size = 0
+        //    jobVertexClass = {Class@3714} "class org.apache.flink.streaming.runtime.tasks.OneInputStreamTask"
+        //    inputFormat = null
+        //    outputFormat = null
+        //    transformationUID = null
+        //    userHash = null
+        //    sortedInputs = false
         StreamNode vertex = getStreamNode(vertexID);
+
+
+
+        //    in1 = {StringSerializer@3753}
+        //    in2 = null
+        //    out = {PojoSerializer@3773}
+
+
         vertex.setSerializersIn(in1, in2);
         vertex.setSerializerOut(out);
     }
