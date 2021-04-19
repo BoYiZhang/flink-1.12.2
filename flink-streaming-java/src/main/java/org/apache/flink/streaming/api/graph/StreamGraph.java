@@ -84,30 +84,46 @@ public class StreamGraph implements Pipeline {
     public static final String ITERATION_SOURCE_NAME_PREFIX = "IterationSource";
 
     public static final String ITERATION_SINK_NAME_PREFIX = "IterationSink";
-
+    // job name
     private String jobName;
-
+    // 配置 相关
     private final ExecutionConfig executionConfig;
     private final CheckpointConfig checkpointConfig;
     private SavepointRestoreSettings savepointRestoreSettings = SavepointRestoreSettings.none();
 
+    // ScheduleMode : EAGER
     private ScheduleMode scheduleMode;
 
+    // true
     private boolean chaining;
 
+    // 上传的文件
     private Collection<Tuple2<String, DistributedCache.DistributedCacheEntry>> userArtifacts;
 
+    // {TimeCharacteristic@3582} "EventTime"
     private TimeCharacteristic timeCharacteristic;
 
+    // ALL_EDGES_PIPELINED
     private GlobalDataExchangeMode globalDataExchangeMode;
 
-    /** Flag to indicate whether to put all vertices into the same slot sharing group by default. */
+    /**
+     *  用于指示默认情况下是否将所有顶点放入同一插槽共享组的标志。
+     *
+     *  Flag to indicate whether to put all vertices into the same slot sharing group by default.
+     *  */
     private boolean allVerticesInSameSlotSharingGroupByDefault = true;
 
+    // StreamNode 集合
     private Map<Integer, StreamNode> streamNodes;
+
+    // Graph的起点 id
     private Set<Integer> sources;
+    // Graph的总店 id 5
     private Set<Integer> sinks;
+
     private Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes;
+
+    // {Integer@3683} 6 -> {Tuple3@3914} "(2,HASH,UNDEFINED)"
     private Map<Integer, Tuple3<Integer, StreamPartitioner<?>, ShuffleMode>> virtualPartitionNodes;
 
     protected Map<Integer, String> vertexIDtoBrokerID;
@@ -979,7 +995,7 @@ public class StreamGraph implements Pipeline {
     public JobGraph getJobGraph(@Nullable JobID jobID) {
 
 
-        //  开始构建JobGraph
+        //  开始构建JobGraph ,
         return StreamingJobGraphGenerator.createJobGraph(this, jobID);
     }
 

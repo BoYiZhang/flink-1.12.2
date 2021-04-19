@@ -120,6 +120,7 @@ public class StreamingJobGraphGenerator {
 
 
         // 构建一个 StreamingJobGraphGenerator 生成器构建 createJobGraph
+        // StreamingJobGraphGenerator 构造方法里面会创建一个JobGraph
         return new StreamingJobGraphGenerator(streamGraph, jobID).createJobGraph();
     }
 
@@ -188,10 +189,11 @@ public class StreamingJobGraphGenerator {
 
         // 确认所有的节点立即启动
         // streaming 模式下, 调度模式是所有节点(Vertices) 立即启动. :
+
         // ScheduleMode : EAGER(立即启动)
         jobGraph.setScheduleMode(streamGraph.getScheduleMode());
 
-
+        // false
         jobGraph.enableApproximateLocalRecovery(
                 streamGraph.getCheckpointConfig().isApproximateLocalRecoveryEnabled());
 
@@ -439,8 +441,9 @@ public class StreamingJobGraphGenerator {
             for (StreamEdge outEdge : currentNode.getOutEdges()) {
 
 
-
+                // 验证是否可以串联: (下游的输入edge是1 && 是可以串联的)
                 if (isChainable(outEdge, streamGraph)) {
+
                     // 如果可以 合并边
                     chainableOutputs.add(outEdge);
                 } else {
@@ -935,15 +938,27 @@ public class StreamingJobGraphGenerator {
     }
 
     public static boolean isChainable(StreamEdge edge, StreamGraph streamGraph) {
-        StreamNode downStreamVertex = streamGraph.getTargetVertex(edge);
 
+        // 获取下游的StreamNode
+        StreamNode downStreamVertex = streamGraph.getTargetVertex(edge);
+        // 下游的输入边的输入是1. 并且是可以 串联的.
         return downStreamVertex.getInEdges().size() == 1 && isChainableInput(edge, streamGraph);
     }
 
     private static boolean isChainableInput(StreamEdge edge, StreamGraph streamGraph) {
+        // 通过边edge 获取上游的节点
         StreamNode upStreamVertex = streamGraph.getSourceVertex(edge);
+        // 通过边edge 获取下游的节点...
         StreamNode downStreamVertex = streamGraph.getTargetVertex(edge);
 
+        // 验证两个StreamNode 是否可以合并的条件.
+
+        // 1. 有相同的SlotSharingGroup
+        // 2.
+        // 3. edge的分区器是ForwardPartitioner
+        // 4. 不是ShuffleMode.BATCH 模式
+        // 5. 上下游的并行度相同
+        // 6. streamGraph启用了 chaining (默认开启).
         if (!(upStreamVertex.isSameSlotSharingGroup(downStreamVertex)
                 && areOperatorsChainable(upStreamVertex, downStreamVertex, streamGraph)
                 && (edge.getPartitioner() instanceof ForwardPartitioner)
@@ -968,19 +983,27 @@ public class StreamingJobGraphGenerator {
     @VisibleForTesting
     static boolean areOperatorsChainable(
             StreamNode upStreamVertex, StreamNode downStreamVertex, StreamGraph streamGraph) {
+
+        // 获取上游的 StreamOperatorFactory
         StreamOperatorFactory<?> upStreamOperator = upStreamVertex.getOperatorFactory();
+
+        // 获取下游的 StreamOperatorFactory
         StreamOperatorFactory<?> downStreamOperator = downStreamVertex.getOperatorFactory();
+
+
         if (downStreamOperator == null || upStreamOperator == null) {
             return false;
         }
 
         // yielding operators cannot be chained to legacy sources
-        // unfortunately the information that vertices have been chained is not preserved at this
-        // point
+        // unfortunately the information that vertices have been chained is not preserved at this  point
         if (downStreamOperator instanceof YieldingOperatorFactory
                 && getHeadOperator(upStreamVertex, streamGraph).isLegacySource()) {
             return false;
         }
+
+
+        // 根据算子的ChainingStrategy 来判断是否上下游可以进行chain
 
         // we use switch/case here to make sure this is exhaustive if ever values are added to the
         // ChainingStrategy enum

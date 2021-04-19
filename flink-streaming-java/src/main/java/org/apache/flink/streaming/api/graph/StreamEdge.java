@@ -29,8 +29,10 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * An edge in the streaming topology. One edge like this does not necessarily gets converted to a
- * connection between two job vertices (due to chaining/optimization).
+ * An edge in the streaming topology.
+ *
+ * One edge like this does not necessarily gets converted to a connection between two job vertices
+ * (due to chaining/optimization).
  */
 @Internal
 public class StreamEdge implements Serializable {
@@ -39,9 +41,13 @@ public class StreamEdge implements Serializable {
 
     private static final long ALWAYS_FLUSH_BUFFER_TIMEOUT = 0L;
 
+    // id
     private final String edgeId;
 
+    // source StreamNode id
     private final int sourceId;
+
+    // target StreamNode id
     private final int targetId;
 
     /** The type number of the input for co-tasks. */
@@ -49,17 +55,34 @@ public class StreamEdge implements Serializable {
     /** The side-output tag (if any) of this {@link StreamEdge}. */
     private final OutputTag outputTag;
 
-    /** The {@link StreamPartitioner} on this {@link StreamEdge}. */
+    /**
+     * 分区相关.
+     *
+     * The {@link StreamPartitioner} on this {@link StreamEdge}.
+     * */
     private StreamPartitioner<?> outputPartitioner;
 
-    /** The name of the operator in the source vertex. */
+    /**
+     *  source StreamNode name
+     * The name of the operator in the source vertex.
+     * */
     private final String sourceOperatorName;
 
-    /** The name of the operator in the target vertex. */
+    /**
+     * target StreamNode name
+     * The name of the operator in the target vertex.
+     * */
     private final String targetOperatorName;
 
+
+    /**
+     * PIPELINED
+     */
     private final ShuffleMode shuffleMode;
 
+    /**
+     * 超时相关...
+     */
     private long bufferTimeout;
 
     public StreamEdge(
