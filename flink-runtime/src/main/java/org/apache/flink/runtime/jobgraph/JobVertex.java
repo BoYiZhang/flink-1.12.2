@@ -51,10 +51,37 @@ public class JobVertex implements java.io.Serializable {
     // Members that define the structure / topology of the graph
     // --------------------------------------------------------------------------------------------
 
-    /** The ID of the vertex. */
+    /**
+     * The ID of the vertex.
+     * */
     private final JobVertexID id;
 
     /**
+     *  名称
+     * The name of the vertex. This will be shown in runtime logs and will be in the runtime
+     * environment.
+     */
+    private String name;
+
+    /**
+     * Optional, the name of the operator, such as 'Flat Map' or 'Join', to be included in the JSON
+     * plan.
+     */
+    private String operatorName;
+
+    /**
+     * 并行度
+     * Number of subtasks to split this task into at runtime.
+     * */
+    private int parallelism = ExecutionConfig.PARALLELISM_DEFAULT;
+
+
+    /** The class of the invokable. */
+    private String invokableClassName;
+
+    /**
+     * 此顶点中包含的所有运算符的ID。
+     *
      * The IDs of all operators contained in this vertex.
      *
      * <p>The ID pairs are stored depth-first post-order; for the forking chain below the ID's would
@@ -63,18 +90,21 @@ public class JobVertex implements java.io.Serializable {
      */
     private final List<OperatorIDPair> operatorIDs;
 
-    /** List of produced data sets, one per writer. */
-    private final ArrayList<IntermediateDataSet> results = new ArrayList<>();
-
-    /** List of edges with incoming data. One per Reader. */
+    /**
+     * 传入数据的边列表。 每个Reader一份。
+     * List of edges with incoming data. One per Reader. */
     private final ArrayList<JobEdge> inputs = new ArrayList<>();
 
-    /** The list of factories for operator coordinators. */
-    private final ArrayList<SerializedValue<OperatorCoordinator.Provider>> operatorCoordinators =
-            new ArrayList<>();
+    /**
+     * 产生的数据集列表，每个writer一个
+     *
+     * List of produced data sets, one per writer.
+     * */
+    private final ArrayList<IntermediateDataSet> results = new ArrayList<>();
 
-    /** Number of subtasks to split this task into at runtime. */
-    private int parallelism = ExecutionConfig.PARALLELISM_DEFAULT;
+
+    /** The list of factories for operator coordinators. */
+    private final ArrayList<SerializedValue<OperatorCoordinator.Provider>> operatorCoordinators = new ArrayList<>();
 
     /** Maximum number of subtasks to split this task into a runtime. */
     private int maxParallelism = -1;
@@ -88,20 +118,14 @@ public class JobVertex implements java.io.Serializable {
     /** Custom configuration passed to the assigned task at runtime. */
     private Configuration configuration;
 
-    /** The class of the invokable. */
-    private String invokableClassName;
-
     /** Indicates of this job vertex is stoppable or not. */
     private boolean isStoppable = false;
 
-    /** Optionally, a source of input splits. */
+    /**
+     * Optionally, a source of input splits.
+     * */
     private InputSplitSource<?> inputSplitSource;
 
-    /**
-     * The name of the vertex. This will be shown in runtime logs and will be in the runtime
-     * environment.
-     */
-    private String name;
 
     /**
      * Optionally, a sharing group that allows subtasks from different job vertices to run
@@ -112,11 +136,7 @@ public class JobVertex implements java.io.Serializable {
     /** The group inside which the vertex subtasks share slots. */
     @Nullable private CoLocationGroup coLocationGroup;
 
-    /**
-     * Optional, the name of the operator, such as 'Flat Map' or 'Join', to be included in the JSON
-     * plan.
-     */
-    private String operatorName;
+
 
     /**
      * Optional, the description of the operator, like 'Hash Join', or 'Sorted Group Reduce', to be

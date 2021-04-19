@@ -135,19 +135,20 @@ public class StreamingJobGraphGenerator {
     // JobGraph 对象
     private final JobGraph jobGraph;
 
-    // 构建的 Vertices
+    // 已经构建的 JobVertex 的 id 集合
     private final Collection<Integer> builtVertices;
 
-    // 排序后的物理 Edges
+    // 物理边集合（排除了 chain 内部的边） , 按创建顺序排序
     private final List<StreamEdge> physicalEdgesInOrder;
 
-    // chainedConfigs 配置相关
+    // 保存 chain 信息，部署时用来构建 OperatorChain，
+    //  startNodeId -> (currentNodeId -> StreamConfig)
     private final Map<Integer, Map<Integer, StreamConfig>> chainedConfigs;
 
-    // vertex 配置相关
+    // 所有节点的配置信息， id -> StreamConfig
     private final Map<Integer, StreamConfig> vertexConfigs;
 
-    // chainedNames 结合
+    // 保存每个节点的名字， id -> chainedName
     private final Map<Integer, String> chainedNames;
 
     // chained 最小 资源
@@ -414,6 +415,8 @@ public class StreamingJobGraphGenerator {
         }
     }
 
+    // 构建 node chains，返回当前节点的物理出边
+    // startNodeId != currentNodeId 时,说明 currentNode 是 chain 中的子节点
     private List<StreamEdge> createChain(
             final Integer currentNodeId,
             final int chainIndex,
@@ -438,6 +441,7 @@ public class StreamingJobGraphGenerator {
             // 将当前节点的出边分成chainable和nonchainable两类
 
             // 获取当前节点的出边
+            // 将当前节点的出边分成 chainable 和 nonChainable 两类
             for (StreamEdge outEdge : currentNode.getOutEdges()) {
 
 
