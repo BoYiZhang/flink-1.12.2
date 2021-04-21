@@ -300,6 +300,11 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
         return newExecutionGraph;
     }
 
+
+
+
+
+
     private ExecutionGraph createExecutionGraph(
             JobManagerJobMetricGroup currentJobManagerJobMetricGroup,
             ShuffleMaster<?> shuffleMaster,
@@ -307,6 +312,11 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
             ExecutionDeploymentTracker executionDeploymentTracker,
             long initializationTimestamp)
             throws JobExecutionException, JobException {
+
+
+        // shuffleMaster:  INSTANCE
+
+
 
         ExecutionDeploymentListener executionDeploymentListener =
                 new ExecutionDeploymentTrackerDeploymentListenerAdapter(executionDeploymentTracker);

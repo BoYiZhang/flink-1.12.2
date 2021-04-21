@@ -153,11 +153,37 @@ public class ExecutionGraphBuilder {
             long initializationTimestamp)
             throws JobExecutionException, JobException {
 
+
+            //    @Nullable ExecutionGraph prior : mull
+            //    JobGraph jobGraph : JobGraph(jobId: 1aec85fe629f9f6787f0592497608304)
+            //    Configuration jobManagerConfig : {internal.jobgraph-path=job.graph, env.java.opts.jobmanager=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5006, jobmanager.execution.failover-strategy=region, high-availability.cluster-id=application_1617875095602_0012, jobmanager.rpc.address=henghe-030, jobmanager.memory.jvm-overhead.min=201326592b, security.kerberos.login.use-ticket-cache=true, sun.security.krb5.debug=true, execution.savepoint.ignore-unclaimed-state=false, io.tmp.dirs=/opt/tools/hadoop-3.1.3/data/local-dirs/usercache/yarn/appcache/application_1617875095602_0012, parallelism.default=4, taskmanager.numberOfTaskSlots=1, taskmanager.memory.process.size=1728m, web.port=0, jobmanager.memory.off-heap.size=134217728b, execution.target=yarn-per-job, jobmanager.memory.process.size=1600m, web.tmpdir=/tmp/flink-web-c09ab06f-14b4-4842-92e8-9bdcd1b4a26d, jobmanager.rpc.port=43728, security.kerberos.login.principal=yarn/henghe-030@HENGHE.COM, internal.io.tmpdirs.use-local-default=true, execution.attached=true, internal.cluster.execution-mode=NORMAL, execution.shutdown-on-attached-exit=false, pipeline.jars=file:/opt/tools/flink-1.12.0/examples/streaming/SocketWindowWordCount.jar, rest.address=henghe-030, jobmanager.memory.jvm-metaspace.size=268435456b, security.kerberos.login.keytab=/opt/tools/hadoop-3.1.3/data/local-dirs/usercache/yarn/appcache/application_1617875095602_0012/container_1617875095602_0012_01_000001/krb5.keytab, $internal.deployment.config-dir=/opt/tools/flink-1.12.0/conf, $internal.yarn.log-config-file=/opt/tools/flink-1.12.0/conf/log4j.properties, jobmanager.memory.heap.size=1073741824b, jobmanager.memory.jvm-overhead.max=201326592b}
+            //    ScheduledExecutorService futureExecutor : java.util.concurrent.ScheduledThreadPoolExecutor@2e9bf748[Running, pool size = 1, active threads = 0, queued tasks = 1, completed tasks = 0]
+            //    Executor ioExecutor : java.util.concurrent.ScheduledThreadPoolExecutor@2e9bf748[Running, pool size = 1, active threads = 0, queued tasks = 1, completed tasks = 0]
+            //    SlotProvider slotProvider :
+            //    ClassLoader classLoader :  org.apache.flink.runtime.execution.librarycache.FlinkUserCodeClassLoaders$SafetyNetWrapperClassLoader@747f7a53
+            //    CheckpointRecoveryFactory recoveryFactory : StandaloneCheckpointRecoveryFactory
+            //    Time rpcTimeout : 10000ms
+            //    RestartStrategy restartStrategy :
+            //    MetricGroup metrics :
+            //    BlobWriter blobWriter : Thread[BLOB Server listener at 42491,5,main]
+            //    Time allocationTimeout : 0 ms
+            //    Logger log :
+            //    ShuffleMaster<?> shuffleMaster :
+            //    JobMasterPartitionTracker partitionTracker :
+            //    FailoverStrategy.Factory failoverStrategyFactory :
+            //    ExecutionDeploymentListener executionDeploymentListener :
+            //    ExecutionStateUpdateListener executionStateUpdateListener :
+            //    long initializationTimestamp :
+
         checkNotNull(jobGraph, "job graph cannot be null");
 
+        // Socket Window WordCount
         final String jobName = jobGraph.getName();
+
+        // 1aec85fe629f9f6787f0592497608304
         final JobID jobId = jobGraph.getJobID();
 
+        // JobInformation for 'Socket Window WordCount' (1aec85fe629f9f6787f0592497608304)
         final JobInformation jobInformation =
                 new JobInformation(
                         jobId,
@@ -167,6 +193,7 @@ public class ExecutionGraphBuilder {
                         jobGraph.getUserJarBlobKeys(),
                         jobGraph.getClasspaths());
 
+        // maxPriorAttemptsHistoryLength : 16
         final int maxPriorAttemptsHistoryLength =
                 jobManagerConfig.getInteger(JobManagerOptions.MAX_ATTEMPTS_HISTORY_SIZE);
 
@@ -206,10 +233,85 @@ public class ExecutionGraphBuilder {
 
 
         // 设置基础属性 ...
-
+        //    {
+        //        "jid":"6f62d20b6ab55d63983db42b98be9e50",
+        //            "name":"Socket Window WordCount",
+        //            "nodes":[
+        //        {
+        //            "id":"6d2677a0ecc3fd8df0b72ec675edf8f4",
+        //                "parallelism":1,
+        //                "operator":"",
+        //                "operator_strategy":"",
+        //                "description":"Sink: Print to Std. Out",
+        //                "inputs":[
+        //            {
+        //                "num":0,
+        //                    "id":"ea632d67b7d595e5b851708ae9ad79d6",
+        //                    "ship_strategy":"REBALANCE",
+        //                    "exchange":"pipelined_bounded"
+        //            }
+        //        ],
+        //            "optimizer_properties":{
+        //
+        //        }
+        //        },
+        //        {
+        //            "id":"ea632d67b7d595e5b851708ae9ad79d6",
+        //                "parallelism":4,
+        //                "operator":"",
+        //                "operator_strategy":"",
+        //                "description":"Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)",
+        //                "inputs":[
+        //            {
+        //                "num":0,
+        //                    "id":"0a448493b4782967b150582570326227",
+        //                    "ship_strategy":"HASH",
+        //                    "exchange":"pipelined_bounded"
+        //            }
+        //        ],
+        //            "optimizer_properties":{
+        //
+        //        }
+        //        },
+        //        {
+        //            "id":"0a448493b4782967b150582570326227",
+        //                "parallelism":4,
+        //                "operator":"",
+        //                "operator_strategy":"",
+        //                "description":"Flat Map",
+        //                "inputs":[
+        //            {
+        //                "num":0,
+        //                    "id":"bc764cd8ddf7a0cff126f51c16239658",
+        //                    "ship_strategy":"REBALANCE",
+        //                    "exchange":"pipelined_bounded"
+        //            }
+        //        ],
+        //            "optimizer_properties":{
+        //
+        //        }
+        //        },
+        //        {
+        //            "id":"bc764cd8ddf7a0cff126f51c16239658",
+        //                "parallelism":1,
+        //                "operator":"",
+        //                "operator_strategy":"",
+        //                "description":"Source: Socket Stream",
+        //                "optimizer_properties":{
+        //
+        //        }
+        //        }
+        //]
+        //    }
         // set the basic properties
 
         try {
+
+
+
+
+
+            // {"jid":"6f62d20b6ab55d63983db42b98be9e50","name":"Socket Window WordCount","nodes":[{"id":"6d2677a0ecc3fd8df0b72ec675edf8f4","parallelism":1,"operator":"","operator_strategy":"","description":"Sink: Print to Std. Out","inputs":[{"num":0,"id":"ea632d67b7d595e5b851708ae9ad79d6","ship_strategy":"REBALANCE","exchange":"pipelined_bounded"}],"optimizer_properties":{}},{"id":"ea632d67b7d595e5b851708ae9ad79d6","parallelism":4,"operator":"","operator_strategy":"","description":"Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)","inputs":[{"num":0,"id":"0a448493b4782967b150582570326227","ship_strategy":"HASH","exchange":"pipelined_bounded"}],"optimizer_properties":{}},{"id":"0a448493b4782967b150582570326227","parallelism":4,"operator":"","operator_strategy":"","description":"Flat Map","inputs":[{"num":0,"id":"bc764cd8ddf7a0cff126f51c16239658","ship_strategy":"REBALANCE","exchange":"pipelined_bounded"}],"optimizer_properties":{}},{"id":"bc764cd8ddf7a0cff126f51c16239658","parallelism":1,"operator":"","operator_strategy":"","description":"Source: Socket Stream","optimizer_properties":{}}]}
             executionGraph.setJsonPlan(JsonPlanGenerator.generatePlan(jobGraph));
         } catch (Throwable t) {
             log.warn("Cannot create JSON plan for job", t);
@@ -223,7 +325,21 @@ public class ExecutionGraphBuilder {
         final long initMasterStart = System.nanoTime();
         log.info("Running initialization on master for job {} ({}).", jobName, jobId);
 
+
+        //
+        //    taskVertices = {LinkedHashMap@7348}  size = 4
+        //        {JobVertexID@7361} "6d2677a0ecc3fd8df0b72ec675edf8f4" -> {JobVertex@7313} "Sink: Print to Std. Out (org.apache.flink.streaming.runtime.tasks.OneInputStreamTask)"
+        //        {JobVertexID@7362} "ea632d67b7d595e5b851708ae9ad79d6" -> {JobVertex@7363} "Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction) (org.apache.flink.streaming.runtime.tasks.OneInputStreamTask)"
+        //        {JobVertexID@7364} "0a448493b4782967b150582570326227" -> {JobVertex@7365} "Flat Map (org.apache.flink.streaming.runtime.tasks.OneInputStreamTask)"
+        //        {JobVertexID@7366} "bc764cd8ddf7a0cff126f51c16239658" -> {JobVertex@7367} "Source: Socket Stream (org.apache.flink.streaming.runtime.tasks.SourceStreamTask)"
+
         for (JobVertex vertex : jobGraph.getVertices()) {
+
+            // org.apache.flink.streaming.runtime.tasks.OneInputStreamTask
+            // org.apache.flink.streaming.runtime.tasks.OneInputStreamTask
+            // org.apache.flink.streaming.runtime.tasks.OneInputStreamTask
+            // org.apache.flink.streaming.runtime.tasks.SourceStreamTask
+
             String executableClass = vertex.getInvokableClassName();
             if (executableClass == null || executableClass.isEmpty()) {
                 throw new JobSubmissionException(
@@ -236,6 +352,12 @@ public class ExecutionGraphBuilder {
             }
 
             try {
+                // org.apache.flink.runtime.execution.librarycache.FlinkUserCodeClassLoaders$SafetyNetWrapperClassLoader@3131d8fc
+
+
+
+
+
                 vertex.initializeOnMaster(classLoader);
             } catch (Throwable t) {
                 throw new JobExecutionException(
@@ -252,6 +374,11 @@ public class ExecutionGraphBuilder {
         // job vertices 拓扑排序
         // 对作业顶点进行拓扑排序，然后将图形附加到现有的顶点上 . 获取所有的JobVertex
         // topologically sort the job vertices and attach the graph to the existing one
+
+        //    0 = {JobVertex@7480} "Source: Socket Stream (org.apache.flink.streaming.runtime.tasks.SourceStreamTask)"
+        //    1 = {JobVertex@7459} "Flat Map (org.apache.flink.streaming.runtime.tasks.OneInputStreamTask)"
+        //    2 = {JobVertex@7448} "Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction) (org.apache.flink.streaming.runtime.tasks.OneInputStreamTask)"
+        //    3 = {JobVertex@7426} "Sink: Print to Std. Out (org.apache.flink.streaming.runtime.tasks.OneInputStreamTask)"
         List<JobVertex> sortedTopology = jobGraph.getVerticesSortedTopologicallyFromSources();
         if (log.isDebugEnabled()) {
             log.debug(

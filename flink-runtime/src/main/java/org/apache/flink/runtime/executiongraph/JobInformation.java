@@ -59,11 +59,18 @@ public class JobInformation implements Serializable {
             Configuration jobConfiguration,
             Collection<PermanentBlobKey> requiredJarFileBlobKeys,
             Collection<URL> requiredClasspathURLs) {
+
+        // 1aec85fe629f9f6787f0592497608304
         this.jobId = Preconditions.checkNotNull(jobId);
+        // Socket Window WordCount
         this.jobName = Preconditions.checkNotNull(jobName);
+        // SerializedValue
         this.serializedExecutionConfig = Preconditions.checkNotNull(serializedExecutionConfig);
+        // {}
         this.jobConfiguration = Preconditions.checkNotNull(jobConfiguration);
+        // 0
         this.requiredJarFileBlobKeys = Preconditions.checkNotNull(requiredJarFileBlobKeys);
+        // 0
         this.requiredClasspathURLs = Preconditions.checkNotNull(requiredClasspathURLs);
     }
 

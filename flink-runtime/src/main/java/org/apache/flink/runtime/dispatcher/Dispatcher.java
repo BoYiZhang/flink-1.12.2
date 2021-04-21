@@ -483,6 +483,7 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
         return CleanupJobState.LOCAL;
     }
 
+    // 核心
     CompletableFuture<JobManagerRunner> createJobManagerRunner(
             JobGraph jobGraph, long initializationTimestamp) {
         final RpcService rpcService = getRpcService();

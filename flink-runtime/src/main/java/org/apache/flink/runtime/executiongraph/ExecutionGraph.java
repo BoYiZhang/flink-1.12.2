@@ -169,24 +169,54 @@ public class ExecutionGraph implements AccessExecutionGraph {
     // --------------------------------------------------------------------------------------------
 
     /** Job specific information like the job id, job name, job configuration, etc. */
+
+    //    jobInformation  = {JobInformation@7350} "JobInformation for 'Socket Window WordCount' (a2bec17fde03465ecffc83019ef023f3)"
+    //        jobId = {JobID@7389} "a2bec17fde03465ecffc83019ef023f3"
+    //        jobName = "Socket Window WordCount"
+    //        serializedExecutionConfig = {SerializedValue@7391} "SerializedValue"
+    //        jobConfiguration = {Configuration@7392} "{}"
+    //        requiredJarFileBlobKeys = {ArrayList@7393}  size = 0
+    //        requiredClasspathURLs = {ArrayList@7394}  size = 0
+
     private final JobInformation jobInformation;
 
+
+    // jobInformationOrBlobKey = {Either$Left@7351} "Left(SerializedValue)"
     /** Serialized job information or a blob key pointing to the offloaded job information. */
     private final Either<SerializedValue<JobInformation>, PermanentBlobKey> jobInformationOrBlobKey;
 
-    /** The executor which is used to execute futures. */
+    /**
+     * futureExecutor = {ScheduledThreadPoolExecutor@7352}
+     * "java.util.concurrent.ScheduledThreadPoolExecutor@1bd5a9f5[
+     *      Running,
+     *      pool size = 1,
+     *      active threads = 0,
+     *      queued tasks = 1,
+     *      completed tasks = 0
+     * ]"
+     *
+     * The executor which is used to execute futures.
+     * */
     private final ScheduledExecutorService futureExecutor;
 
     /** The executor which is used to execute blocking io operations. */
     private final Executor ioExecutor;
 
-    /** Executor that runs tasks in the job manager's main thread. */
+    /**
+     * jobMasterMainThreadExecutor = {ComponentMainThreadExecutor$DummyComponentMainThreadExecutor@7353}
+     * Executor that runs tasks in the job manager's main thread.
+     * */
     @Nonnull private ComponentMainThreadExecutor jobMasterMainThreadExecutor;
 
-    /** {@code true} if all source tasks are stoppable. */
+    /**
+     * {@code true} if all source tasks are stoppable.
+     * */
     private boolean isStoppable = true;
 
-    /** All job vertices that are part of this graph. */
+    /**
+     *
+     * All job vertices that are part of this graph.
+     * */
     private final Map<JobVertexID, ExecutionJobVertex> tasks;
 
     /** All vertices, in the order in which they were created. * */
@@ -352,21 +382,30 @@ public class ExecutionGraph implements AccessExecutionGraph {
             long initializationTimestamp)
             throws IOException {
 
+        // JobInformation for 'Socket Window WordCount' (1aec85fe629f9f6787f0592497608304)
         this.jobInformation = Preconditions.checkNotNull(jobInformation);
-
+        // Thread[BLOB Server listener at 42491,5,main]
         this.blobWriter = Preconditions.checkNotNull(blobWriter);
-
+        // EAGER
         this.scheduleMode = checkNotNull(scheduleMode);
-
+        // Left(SerializedValue)
         this.jobInformationOrBlobKey =
                 BlobWriter.serializeAndTryOffload(
                         jobInformation, jobInformation.getJobId(), blobWriter);
 
+        // java.util.concurrent.ScheduledThreadPoolExecutor@2e9bf748[Running, pool size = 1, active threads = 0, queued tasks = 1, completed tasks = 0]
         this.futureExecutor = Preconditions.checkNotNull(futureExecutor);
+        // java.util.concurrent.ScheduledThreadPoolExecutor@2e9bf748[Running, pool size = 1, active threads = 0, queued tasks = 1, completed tasks = 0]
         this.ioExecutor = Preconditions.checkNotNull(ioExecutor);
 
+        // this.slotProviderStrategy = {SlotProviderStrategy$NormalSlotProviderStrategy@7432}
+        // allocationTimeout = {Time@7103} "0 ms"
+        // slotProvider = {ThrowingSlotProvider@7098}
         this.slotProviderStrategy =
                 SlotProviderStrategy.from(scheduleMode, slotProvider, allocationTimeout);
+
+
+        //  {FlinkUserCodeClassLoaders$SafetyNetWrapperClassLoader@7099}
         this.userClassLoader = Preconditions.checkNotNull(userClassLoader, "userClassLoader");
 
         this.tasks = new HashMap<>(16);
@@ -617,6 +656,80 @@ public class ExecutionGraph implements AccessExecutionGraph {
     //  Properties and Status of the Execution Graph
     // --------------------------------------------------------------------------------------------
 
+
+    //    {
+    //        "jid":"1aec85fe629f9f6787f0592497608304",
+    //            "name":"Socket Window WordCount",
+    //            "nodes":[
+    //        {
+    //            "id":"6d2677a0ecc3fd8df0b72ec675edf8f4",
+    //                "parallelism":1,
+    //                "operator":"",
+    //                "operator_strategy":"",
+    //                "description":"Sink: Print to Std. Out",
+    //                "inputs":[
+    //            {
+    //                "num":0,
+    //                    "id":"ea632d67b7d595e5b851708ae9ad79d6",
+    //                    "ship_strategy":"REBALANCE",
+    //                    "exchange":"pipelined_bounded"
+    //            }
+    //            ],
+    //            "optimizer_properties":{
+    //
+    //        }
+    //        },
+    //        {
+    //            "id":"ea632d67b7d595e5b851708ae9ad79d6",
+    //                "parallelism":4,
+    //                "operator":"",
+    //                "operator_strategy":"",
+    //                "description":"Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)",
+    //                "inputs":[
+    //            {
+    //                "num":0,
+    //                    "id":"0a448493b4782967b150582570326227",
+    //                    "ship_strategy":"HASH",
+    //                    "exchange":"pipelined_bounded"
+    //            }
+    //            ],
+    //            "optimizer_properties":{
+    //
+    //        }
+    //        },
+    //        {
+    //            "id":"0a448493b4782967b150582570326227",
+    //                "parallelism":4,
+    //                "operator":"",
+    //                "operator_strategy":"",
+    //                "description":"Flat Map",
+    //                "inputs":[
+    //            {
+    //                "num":0,
+    //                    "id":"bc764cd8ddf7a0cff126f51c16239658",
+    //                    "ship_strategy":"REBALANCE",
+    //                    "exchange":"pipelined_bounded"
+    //            }
+    //            ],
+    //            "optimizer_properties":{
+    //
+    //        }
+    //        },
+    //        {
+    //            "id":"bc764cd8ddf7a0cff126f51c16239658",
+    //                "parallelism":1,
+    //                "operator":"",
+    //                "operator_strategy":"",
+    //                "description":"Source: Socket Stream",
+    //                "optimizer_properties":{
+    //
+    //        }
+    //        }
+    //    ]
+    //    }
+
+
+    //完整计划 :  {"jid":"1aec85fe629f9f6787f0592497608304","name":"Socket Window WordCount","nodes":[{"id":"6d2677a0ecc3fd8df0b72ec675edf8f4","parallelism":1,"operator":"","operator_strategy":"","description":"Sink: Print to Std. Out","inputs":[{"num":0,"id":"ea632d67b7d595e5b851708ae9ad79d6","ship_strategy":"REBALANCE","exchange":"pipelined_bounded"}],"optimizer_properties":{}},{"id":"ea632d67b7d595e5b851708ae9ad79d6","parallelism":4,"operator":"","operator_strategy":"","description":"Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)","inputs":[{"num":0,"id":"0a448493b4782967b150582570326227","ship_strategy":"HASH","exchange":"pipelined_bounded"}],"optimizer_properties":{}},{"id":"0a448493b4782967b150582570326227","parallelism":4,"operator":"","operator_strategy":"","description":"Flat Map","inputs":[{"num":0,"id":"bc764cd8ddf7a0cff126f51c16239658","ship_strategy":"REBALANCE","exchange":"pipelined_bounded"}],"optimizer_properties":{}},{"id":"bc764cd8ddf7a0cff126f51c16239658","parallelism":1,"operator":"","operator_strategy":"","description":"Source: Socket Stream","optimizer_properties":{}}]}
     public void setJsonPlan(String jsonPlan) {
         this.jsonPlan = jsonPlan;
     }

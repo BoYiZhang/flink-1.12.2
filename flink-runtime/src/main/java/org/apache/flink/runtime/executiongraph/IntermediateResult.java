@@ -31,30 +31,43 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 public class IntermediateResult {
 
+    // 中间结果级的id
     private final IntermediateDataSetID id;
 
+    // 生产这 节点
     private final ExecutionJobVertex producer;
 
+    // 中间结果分区
     private final IntermediateResultPartition[] partitions;
 
     /**
-     * Maps intermediate result partition IDs to a partition index. This is used for ID lookups of
-     * intermediate results. I didn't dare to change the partition connect logic in other places
+     * 将中间结果分区ID映射到分区索引。
+     * 这用于中间结果的ID查找。
+     * 我不敢在其他地方更改分区连接逻辑，因为它与作为数组保存的分区紧密耦合。
+     *
+     * Maps intermediate result partition IDs to a partition index.
+     * This is used for ID lookups of intermediate results.
+     * I didn't dare to change the partition connect logic in other places
      * that is tightly coupled to the partitions being held as an array.
      */
-    private final HashMap<IntermediateResultPartitionID, Integer> partitionLookupHelper =
-            new HashMap<>();
+    private final HashMap<IntermediateResultPartitionID, Integer> partitionLookupHelper =  new HashMap<>();
 
+    //并行生产者数量
     private final int numParallelProducers;
 
+    // 生产者的数量
     private final AtomicInteger numberOfRunningProducers;
 
+    // 分配的分区 ?
     private int partitionsAssigned;
 
+    // 消费者的数量
     private int numConsumers;
 
+    // 连接索引 : 随机数...
     private final int connectionIndex;
 
+    // 结果分区的类型
     private final ResultPartitionType resultType;
 
     public IntermediateResult(

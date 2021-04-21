@@ -63,8 +63,13 @@ import java.util.concurrent.CompletableFuture;
 import static org.apache.flink.runtime.execution.ExecutionState.FINISHED;
 
 /**
- * The ExecutionVertex is a parallel subtask of the execution. It may be executed once, or several
- * times, each of which time it spawns an {@link Execution}.
+ *
+ * ExecutionVertex是执行的并行子任务。
+ * 它可以执行一次或几次，每次都会产生一个{@link Execution}.
+ *
+ * The ExecutionVertex is a parallel subtask of the execution.
+ *
+ * It may be executed once, or several times, each of which time it spawns an {@link Execution}.
  */
 public class ExecutionVertex
         implements AccessExecutionVertex, Archiveable<ArchivedExecutionVertex> {
@@ -77,8 +82,10 @@ public class ExecutionVertex
 
     private final ExecutionJobVertex jobVertex;
 
+    // resultPartitions ...
     private final Map<IntermediateResultPartitionID, IntermediateResultPartition> resultPartitions;
 
+    // 输入边
     private final ExecutionEdge[][] inputEdges;
 
     private final int subTaskIndex;
@@ -388,6 +395,8 @@ public class ExecutionVertex
 
     private ExecutionEdge[] connectAllToAll(
             IntermediateResultPartition[] sourcePartitions, int inputNumber) {
+
+        // 构造边
         ExecutionEdge[] edges = new ExecutionEdge[sourcePartitions.length];
 
         for (int i = 0; i < sourcePartitions.length; i++) {

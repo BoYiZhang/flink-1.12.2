@@ -73,11 +73,17 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ *
+ * ExecutionJobVertex 是 {@link ExecutionGraph} 中的一部分, 对等于 JobGraph中的 {@link  JobVertex}
+ * {@code ExecutionJobVertex}对应于并行化操作。
+ * 它为该操作的每个并行实例包含一个{@link ExecutionVertex}。
+ *
  * An {@code ExecutionJobVertex} is part of the {@link ExecutionGraph}, and the peer to the {@link
  * JobVertex}.
  *
- * <p>The {@code ExecutionJobVertex} corresponds to a parallelized operation. It contains an {@link
- * ExecutionVertex} for each parallel instance of that operation.
+ * <p>The {@code ExecutionJobVertex} corresponds to a parallelized operation.
+ *
+ * It contains an {@link ExecutionVertex} for each parallel instance of that operation.
  */
 public class ExecutionJobVertex
         implements AccessExecutionJobVertex, Archiveable<ArchivedExecutionJobVertex> {
@@ -87,23 +93,32 @@ public class ExecutionJobVertex
 
     public static final int VALUE_NOT_SET = -1;
 
+    // 监控
     private final Object stateMonitor = new Object();
 
+    // ExecutionGraph
     private final ExecutionGraph graph;
 
+    // JobVertex
     private final JobVertex jobVertex;
 
+    //xecutionVertex是执行的并行子任务。
     private final ExecutionVertex[] taskVertices;
 
+    // 输出
     private final IntermediateResult[] producedDataSets;
 
+    // 输入
     private final List<IntermediateResult> inputs;
 
+    // 并行度
     private final int parallelism;
 
+    // slot 分组
     private final SlotSharingGroup slotSharingGroup;
 
     @Nullable private final CoLocationGroup coLocationGroup;
+
 
     private final InputSplit[] inputSplits;
 
@@ -113,13 +128,15 @@ public class ExecutionJobVertex
 
     private final ResourceProfile resourceProfile;
 
+
     /**
+     * 存储序列化的任务信息（对于所有子任务都是相同的），或者存储卸载的“包含序列化任务的任务信息blob”信息的永久blob键。
+     *
      * Either store a serialized task information, which is for all sub tasks the same, or the
      * permanent blob key of the offloaded task information BLOB containing the serialized task
      * information.
      */
-    private Either<SerializedValue<TaskInformation>, PermanentBlobKey> taskInformationOrBlobKey =
-            null;
+    private Either<SerializedValue<TaskInformation>, PermanentBlobKey> taskInformationOrBlobKey =  null;
 
     private final Collection<OperatorCoordinatorHolder> operatorCoordinators;
 
@@ -541,7 +558,7 @@ public class ExecutionJobVertex
     // --------------------------------------------------------------------------------------------
     //  Accumulators / Metrics
     // --------------------------------------------------------------------------------------------
-
+    @Override
     public StringifiedAccumulatorResult[] getAggregatedUserAccumulatorsStringified() {
         Map<String, OptionalFailure<Accumulator<?, ?>>> userAccumulators = new HashMap<>();
 

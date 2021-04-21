@@ -431,6 +431,9 @@ public class JobGraph implements Serializable {
         List<JobVertex> sorted = new ArrayList<JobVertex>(this.taskVertices.size());
         Set<JobVertex> remaining = new LinkedHashSet<JobVertex>(this.taskVertices.values());
 
+        // 首先，找到没有输入边的顶点和具有断开输入的顶点（这指一些独立数据集)
+
+
         // start by finding the vertices with no input edges
         // and the ones with disconnected inputs (that refer to some standalone data set)
         {
@@ -439,6 +442,8 @@ public class JobGraph implements Serializable {
                 JobVertex vertex = iter.next();
 
                 if (vertex.hasNoConnectedInputs()) {
+                    // sorted
+                    // 0 = Source: Socket Stream (org.apache.flink.streaming.runtime.tasks.SourceStreamTask)
                     sorted.add(vertex);
                     iter.remove();
                 }
@@ -456,7 +461,10 @@ public class JobGraph implements Serializable {
                 throw new InvalidProgramException("The job graph is cyclic.");
             }
 
+            // Source: Socket Stream (org.apache.flink.streaming.runtime.tasks.SourceStreamTask)
             JobVertex current = sorted.get(startNodePos++);
+
+
             addNodesThatHaveNoNewPredecessors(current, sorted, remaining);
         }
 
