@@ -100,8 +100,6 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
                 IterableUtils.toStream(schedulingTopology.getAllPipelinedRegions())
                         .filter(region -> !region.getConsumedResults().iterator().hasNext())
                         .collect(Collectors.toSet());
-
-
         // 这里...
         maybeScheduleRegions(sourceRegions);
     }

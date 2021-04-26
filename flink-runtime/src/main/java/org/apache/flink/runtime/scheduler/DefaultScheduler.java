@@ -201,9 +201,6 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         log.info(
                 "Starting scheduling with scheduling strategy [{}]",
                 schedulingStrategy.getClass().getName());
-
-
-
         prepareExecutionGraphForNgScheduling();
 
         // 默认调度策略 : PipelinedRegion   SchedulingStrategy
@@ -360,23 +357,92 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
             final List<ExecutionVertexDeploymentOption> executionVertexDeploymentOptions) {
         validateDeploymentOptions(executionVertexDeploymentOptions);
 
+
+        //    {ExecutionVertexID@7434} "bc764cd8ddf7a0cff126f51c16239658_0" -> {ExecutionVertexDeploymentOption@7484}
+        //    {ExecutionVertexID@7453} "ea632d67b7d595e5b851708ae9ad79d6_1" -> {ExecutionVertexDeploymentOption@7485}
+        //    {ExecutionVertexID@7445} "0a448493b4782967b150582570326227_2" -> {ExecutionVertexDeploymentOption@7486}
+        //    {ExecutionVertexID@7451} "ea632d67b7d595e5b851708ae9ad79d6_0" -> {ExecutionVertexDeploymentOption@7487}
+        //    {ExecutionVertexID@7448} "0a448493b4782967b150582570326227_3" -> {ExecutionVertexDeploymentOption@7488}
+        //    {ExecutionVertexID@7460} "6d2677a0ecc3fd8df0b72ec675edf8f4_0" -> {ExecutionVertexDeploymentOption@7489}
+        //    {ExecutionVertexID@7457} "ea632d67b7d595e5b851708ae9ad79d6_3" -> {ExecutionVertexDeploymentOption@7490}
+        //    {ExecutionVertexID@7441} "0a448493b4782967b150582570326227_0" -> {ExecutionVertexDeploymentOption@7491}
+        //    {ExecutionVertexID@7455} "ea632d67b7d595e5b851708ae9ad79d6_2" -> {ExecutionVertexDeploymentOption@7492}
+        //    {ExecutionVertexID@7443} "0a448493b4782967b150582570326227_1" -> {ExecutionVertexDeploymentOption@7493}
         final Map<ExecutionVertexID, ExecutionVertexDeploymentOption> deploymentOptionsByVertex =
                 groupDeploymentOptionsByVertexId(executionVertexDeploymentOptions);
 
+        //    0 = {ExecutionVertexID@7434} "bc764cd8ddf7a0cff126f51c16239658_0"
+        //    1 = {ExecutionVertexID@7441} "0a448493b4782967b150582570326227_0"
+        //    2 = {ExecutionVertexID@7443} "0a448493b4782967b150582570326227_1"
+        //    3 = {ExecutionVertexID@7445} "0a448493b4782967b150582570326227_2"
+        //    4 = {ExecutionVertexID@7448} "0a448493b4782967b150582570326227_3"
+        //    5 = {ExecutionVertexID@7451} "ea632d67b7d595e5b851708ae9ad79d6_0"
+        //    6 = {ExecutionVertexID@7453} "ea632d67b7d595e5b851708ae9ad79d6_1"
+        //    7 = {ExecutionVertexID@7455} "ea632d67b7d595e5b851708ae9ad79d6_2"
+        //    8 = {ExecutionVertexID@7457} "ea632d67b7d595e5b851708ae9ad79d6_3"
+        //    9 = {ExecutionVertexID@7460} "6d2677a0ecc3fd8df0b72ec675edf8f4_0"
         final List<ExecutionVertexID> verticesToDeploy =
                 executionVertexDeploymentOptions.stream()
                         .map(ExecutionVertexDeploymentOption::getExecutionVertexId)
                         .collect(Collectors.toList());
 
+
+        //    {ExecutionVertexID@7434} "bc764cd8ddf7a0cff126f51c16239658_0" -> {ExecutionVertexVersion@7566}
+        //          key = {ExecutionVertexID@7434} "bc764cd8ddf7a0cff126f51c16239658_0"
+        //          value = {ExecutionVertexVersion@7566}
+        //              executionVertexId = {ExecutionVertexID@7434} "bc764cd8ddf7a0cff126f51c16239658_0"
+        //              version = 1
+        //    {ExecutionVertexID@7453} "ea632d67b7d595e5b851708ae9ad79d6_1" -> {ExecutionVertexVersion@7567}
+        //          key = {ExecutionVertexID@7453} "ea632d67b7d595e5b851708ae9ad79d6_1"
+        //          value = {ExecutionVertexVersion@7567}
+        //                executionVertexId = {ExecutionVertexID@7453} "ea632d67b7d595e5b851708ae9ad79d6_1"
+        //                version = 1
+        //    {ExecutionVertexID@7445} "0a448493b4782967b150582570326227_2" -> {ExecutionVertexVersion@7568}
+        //    {ExecutionVertexID@7451} "ea632d67b7d595e5b851708ae9ad79d6_0" -> {ExecutionVertexVersion@7569}
+        //    {ExecutionVertexID@7448} "0a448493b4782967b150582570326227_3" -> {ExecutionVertexVersion@7570}
+        //    {ExecutionVertexID@7460} "6d2677a0ecc3fd8df0b72ec675edf8f4_0" -> {ExecutionVertexVersion@7571}
+        //    {ExecutionVertexID@7457} "ea632d67b7d595e5b851708ae9ad79d6_3" -> {ExecutionVertexVersion@7572}
+        //    {ExecutionVertexID@7441} "0a448493b4782967b150582570326227_0" -> {ExecutionVertexVersion@7573}
+        //    {ExecutionVertexID@7455} "ea632d67b7d595e5b851708ae9ad79d6_2" -> {ExecutionVertexVersion@7574}
+        //    {ExecutionVertexID@7443} "0a448493b4782967b150582570326227_1" -> {ExecutionVertexVersion@7575}
         final Map<ExecutionVertexID, ExecutionVertexVersion> requiredVersionByVertex =
                 executionVertexVersioner.recordVertexModifications(verticesToDeploy);
 
         transitionToScheduled(verticesToDeploy);
 
         // allocateSlots ??
+        //    slotExecutionVertexAssignments = {ArrayList@8148}  size = 10
+        //        0 = {SlotExecutionVertexAssignment@8064}
+        //        1 = {SlotExecutionVertexAssignment@8070}
+        //        2 = {SlotExecutionVertexAssignment@8072}
+        //        3 = {SlotExecutionVertexAssignment@8066}
+        //        4 = {SlotExecutionVertexAssignment@8068}
+        //        5 = {SlotExecutionVertexAssignment@8067}
+        //        6 = {SlotExecutionVertexAssignment@8065}
+        //        7 = {SlotExecutionVertexAssignment@8073}
+        //        8 = {SlotExecutionVertexAssignment@8071}
+        //        9 = {SlotExecutionVertexAssignment@8069}
         final List<SlotExecutionVertexAssignment> slotExecutionVertexAssignments =
                 allocateSlots(executionVertexDeploymentOptions);
 
+        // DeploymentHandle包含 : 版本, 参数 , slot分配信息
+        //    deploymentHandles = {ArrayList@8194}  size = 10
+        //        0 = {DeploymentHandle@8212}
+        //            requiredVertexVersion = {ExecutionVertexVersion@7566}
+        //            executionVertexDeploymentOption = {ExecutionVertexDeploymentOption@7484}
+        //            slotExecutionVertexAssignment = {SlotExecutionVertexAssignment@8064}
+        //        1 = {DeploymentHandle@8213}
+        //            requiredVertexVersion = {ExecutionVertexVersion@7573}
+        //            executionVertexDeploymentOption = {ExecutionVertexDeploymentOption@7491}
+        //            slotExecutionVertexAssignment = {SlotExecutionVertexAssignment@8070}
+        //        2 = {DeploymentHandle@8214}
+        //        3 = {DeploymentHandle@8215}
+        //        4 = {DeploymentHandle@8216}
+        //        5 = {DeploymentHandle@8217}
+        //        6 = {DeploymentHandle@8218}
+        //        7 = {DeploymentHandle@8219}
+        //        8 = {DeploymentHandle@8220}
+        //        9 = {DeploymentHandle@8221}
         final List<DeploymentHandle> deploymentHandles =
                 createDeploymentHandles(
                         requiredVersionByVertex,
@@ -419,6 +485,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
                 executionVertexDeploymentOptions.stream()
                         .map(ExecutionVertexDeploymentOption::getExecutionVertexId)
                         .map(this::getExecutionVertex)
+                        // 分配...
                         .map(ExecutionVertexSchedulingRequirementsMapper::from)
                         .collect(Collectors.toList()));
     }

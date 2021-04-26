@@ -31,10 +31,14 @@ import java.util.Set;
  */
 public interface SchedulingStrategy {
 
-    /** Called when the scheduling is started (initial scheduling operation). */
+    /**
+     * 调度入口，触发调度器的调度行为
+     * Called when the scheduling is started (initial scheduling operation).
+     * */
     void startScheduling();
 
     /**
+     * 重启执行失败的 Task，一般是 Task 执行异常导致
      * Called whenever vertices need to be restarted (due to task failure).
      *
      * @param verticesToRestart The tasks need to be restarted
@@ -42,6 +46,7 @@ public interface SchedulingStrategy {
     void restartTasks(Set<ExecutionVertexID> verticesToRestart);
 
     /**
+     * 当 Execution 改变状态时调用
      * Called whenever an {@link Execution} changes its state.
      *
      * @param executionVertexId The id of the task
@@ -50,6 +55,7 @@ public interface SchedulingStrategy {
     void onExecutionStateChange(ExecutionVertexID executionVertexId, ExecutionState executionState);
 
     /**
+     * 当 IntermediateResultPartition 中的数据可以消费时调用
      * Called whenever an {@link IntermediateResultPartition} becomes consumable.
      *
      * @param resultPartitionId The id of the result partition

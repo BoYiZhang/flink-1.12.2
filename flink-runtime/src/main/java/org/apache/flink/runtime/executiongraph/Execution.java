@@ -734,6 +734,16 @@ public class Execution
         assertRunningInJobMasterMainThread();
 
         // 获取slot
+
+        //    slotRequestId = {SlotRequestId@8931} "SlotRequestId{7d3611a3599a124ed703d75c55561420}"
+        //    slotContext = {AllocatedSlot@8932} "AllocatedSlot e5eeb5d0e767c407ea81ab345a14ebd8 @ container_1619273419318_0017_01_000002 @ henghe-030 (dataPort=39722) - 0"
+        //    slotSharingGroupId = null
+        //    locality = {Locality@8933} "UNKNOWN"
+        //    slotOwner = {SharedSlot@8934}
+        //    releaseFuture = {CompletableFuture@8935} "java.util.concurrent.CompletableFuture@7ea60a0f[Not completed]"
+        //    state = {SingleLogicalSlot$State@8936} "ALIVE"
+        //    payload = {Execution@8899} "Attempt #0 (Source: Socket Stream (1/1)) @ org.apache.flink.runtime.jobmaster.slotpool.SingleLogicalSlot@7f697d27 - [SCHEDULED]"
+        //    willBeOccupiedIndefinitely = true
         final LogicalSlot slot = assignedResource;
 
         checkNotNull(

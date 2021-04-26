@@ -34,7 +34,7 @@ public class IntermediateResult {
     // 中间结果级的id
     private final IntermediateDataSetID id;
 
-    // 生产这 节点
+    // 生产者 节点
     private final ExecutionJobVertex producer;
 
     // 中间结果分区

@@ -127,6 +127,35 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
 
         SharedSlotProfileRetriever sharedSlotProfileRetriever =
                 sharedSlotProfileRetrieverFactory.createFromBulk(new HashSet<>(executionVertexIds));
+
+
+
+
+        //    executionsByGroup = {HashMap@7976}  size = 4
+
+        //    {ExecutionSlotSharingGroup@7984}  -> {ArrayList@7985}  size = 4
+        //            key = {ExecutionSlotSharingGroup@7984}
+        //            value = {ArrayList@7985}  size = 4
+        //            0 = {ExecutionVertexID@7434} "bc764cd8ddf7a0cff126f51c16239658_0"
+        //            1 = {ExecutionVertexID@7441} "0a448493b4782967b150582570326227_0"
+        //            2 = {ExecutionVertexID@7451} "ea632d67b7d595e5b851708ae9ad79d6_0"
+        //            3 = {ExecutionVertexID@7460} "6d2677a0ecc3fd8df0b72ec675edf8f4_0"
+        //    {ExecutionSlotSharingGroup@7986}  -> {ArrayList@7987}  size = 2
+        //        key = {ExecutionSlotSharingGroup@7986}
+        //        value = {ArrayList@7987}  size = 2
+        //            0 = {ExecutionVertexID@7443} "0a448493b4782967b150582570326227_1"
+        //            1 = {ExecutionVertexID@7453} "ea632d67b7d595e5b851708ae9ad79d6_1"
+        //    {ExecutionSlotSharingGroup@7988}  -> {ArrayList@7989}  size = 2
+        //        key = {ExecutionSlotSharingGroup@7988}
+        //        value = {ArrayList@7989}  size = 2
+        //            0 = {ExecutionVertexID@7445} "0a448493b4782967b150582570326227_2"
+        //            1 = {ExecutionVertexID@7455} "ea632d67b7d595e5b851708ae9ad79d6_2"
+        //    {ExecutionSlotSharingGroup@7990}  -> {ArrayList@7991}  size = 2
+        //        key = {ExecutionSlotSharingGroup@7990}
+        //        value = {ArrayList@7991}  size = 2
+        //            0 = {ExecutionVertexID@7448} "0a448493b4782967b150582570326227_3"
+        //            1 = {ExecutionVertexID@7457} "ea632d67b7d595e5b851708ae9ad79d6_3"
+
         Map<ExecutionSlotSharingGroup, List<ExecutionVertexID>> executionsByGroup =
                 executionVertexIds.stream()
                         .collect(
@@ -139,6 +168,8 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
                                 Collectors.toMap(
                                         SharedSlot::getExecutionSlotSharingGroup,
                                         Function.identity()));
+
+
         Map<ExecutionVertexID, SlotExecutionVertexAssignment> assignments =
                 allocateLogicalSlotsFromSharedSlots(slots, executionsByGroup);
 
@@ -266,6 +297,29 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
                 new SharingPhysicalSlotRequestBulk(
                         executions, pendingRequests, this::cancelLogicalSlotRequest);
         registerPhysicalSlotRequestBulkCallbacks(slots, executions.keySet(), bulk);
+
+        //    {ExecutionSlotSharingGroup@7984}  -> {ArrayList@7985}  size = 4
+        //        key = {ExecutionSlotSharingGroup@7984}
+        //        value = {ArrayList@7985}  size = 4
+        //            0 = {ExecutionVertexID@7434} "bc764cd8ddf7a0cff126f51c16239658_0"
+        //            1 = {ExecutionVertexID@7441} "0a448493b4782967b150582570326227_0"
+        //            2 = {ExecutionVertexID@7451} "ea632d67b7d595e5b851708ae9ad79d6_0"
+        //            3 = {ExecutionVertexID@7460} "6d2677a0ecc3fd8df0b72ec675edf8f4_0"
+        //    {ExecutionSlotSharingGroup@7986}  -> {ArrayList@7987}  size = 2
+        //        key = {ExecutionSlotSharingGroup@7986}
+        //        value = {ArrayList@7987}  size = 2
+        //            0 = {ExecutionVertexID@7443} "0a448493b4782967b150582570326227_1"
+        //            1 = {ExecutionVertexID@7453} "ea632d67b7d595e5b851708ae9ad79d6_1"
+        //    {ExecutionSlotSharingGroup@7988}  -> {ArrayList@7989}  size = 2
+        //        key = {ExecutionSlotSharingGroup@7988}
+        //        value = {ArrayList@7989}  size = 2
+        //            0 = {ExecutionVertexID@7445} "0a448493b4782967b150582570326227_2"
+        //            1 = {ExecutionVertexID@7455} "ea632d67b7d595e5b851708ae9ad79d6_2"
+        //    {ExecutionSlotSharingGroup@7990}  -> {ArrayList@7991}  size = 2
+        //        key = {ExecutionSlotSharingGroup@7990}
+        //        value = {ArrayList@7991}  size = 2
+        //            0 = {ExecutionVertexID@7448} "0a448493b4782967b150582570326227_3"
+        //            1 = {ExecutionVertexID@7457} "ea632d67b7d595e5b851708ae9ad79d6_3"
         return bulk;
     }
 
