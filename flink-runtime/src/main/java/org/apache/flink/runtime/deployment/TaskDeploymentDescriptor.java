@@ -38,6 +38,8 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
+ * 任务部署描述符 包含在任务管理器上 部署 任务 所需的  所有信息。
+ *
  * A task deployment descriptor contains all the information necessary to deploy a task on a task
  * manager.
  */
