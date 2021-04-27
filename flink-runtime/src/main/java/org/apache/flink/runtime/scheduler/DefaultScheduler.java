@@ -408,6 +408,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         final Map<ExecutionVertexID, ExecutionVertexVersion> requiredVersionByVertex =
                 executionVertexVersioner.recordVertexModifications(verticesToDeploy);
 
+        // 修改ExecutionVertex 状态为SCHEDULED
         transitionToScheduled(verticesToDeploy);
 
         // allocateSlots ??

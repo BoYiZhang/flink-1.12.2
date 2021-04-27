@@ -513,7 +513,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
 
         return result;
     }
-
+    //修改ExecutionVertex 状态为SCHEDULED
     protected void transitionToScheduled(final List<ExecutionVertexID> verticesToDeploy) {
         verticesToDeploy.forEach(
                 executionVertexId ->
