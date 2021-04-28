@@ -146,8 +146,14 @@ public interface SlotPool extends AllocatedSlotActions, AutoCloseable {
     Collection<SlotInfo> getAllocatedSlotsInformation();
 
     /**
-     * Allocates the available slot with the given allocation id under the given request id. This
-     * method returns {@code null} if no slot with the given allocation id is available.
+     *
+     * 在给定的 request id 下使用给定的 allocation id  分配可用的slot。
+     * 如果没有具有给定分配id的slot可用，则此方法返回{@code null}。
+     *
+     *
+     * Allocates the available slot with the given allocation id under the given request id.
+     *
+     * This method returns {@code null} if no slot with the given allocation id is available.
      *
      * @param slotRequestId identifying the requested slot
      * @param allocationID the allocation id of the requested available slot
@@ -158,8 +164,13 @@ public interface SlotPool extends AllocatedSlotActions, AutoCloseable {
             @Nonnull SlotRequestId slotRequestId, @Nonnull AllocationID allocationID);
 
     /**
-     * Request the allocation of a new slot from the resource manager. This method will not return a
-     * slot from the already available slots from the pool, but instead will add a new slot to that
+     * 从resource manager 请求分配新slot。
+     *
+     * 此方法不会从池中已经可用的slot返回slot，而是将向该池添加一个新slot，该slot将立即分配并返回。
+     * 
+     * Request the allocation of a new slot from the resource manager.
+     *
+     * This method will not return a slot from the already available slots from the pool, but instead will add a new slot to that
      * pool that is immediately allocated and returned.
      *
      * @param slotRequestId identifying the requested slot
@@ -175,8 +186,15 @@ public interface SlotPool extends AllocatedSlotActions, AutoCloseable {
             @Nullable Time timeout);
 
     /**
-     * Requests the allocation of a new batch slot from the resource manager. Unlike the normal
-     * slot, a batch slot will only time out if the slot pool does not contain a suitable slot.
+     *
+     * 从 resource manager 请求分配新的批处理slot。
+     * 与普通slot不同，批处理slot只有在slot池不包含合适的slot时才会超时。
+     *
+     * 此外，它不会对来自资源管理器的故障信号做出反应。
+     *
+     * Requests the allocation of a new batch slot from the resource manager.
+     *
+     * Unlike the normal slot, a batch slot will only time out if the slot pool does not contain a suitable slot.
      * Moreover, it won't react to failure signals from the resource manager.
      *
      * @param slotRequestId identifying the requested slot
@@ -189,12 +207,17 @@ public interface SlotPool extends AllocatedSlotActions, AutoCloseable {
             @Nonnull SlotRequestId slotRequestId, @Nonnull ResourceProfile resourceProfile);
 
     /**
-     * Disables batch slot request timeout check. Invoked when someone else wants to take over the
-     * timeout check responsibility.
+     * 
+     * 禁用批处理slot请求超时检查。
+     * 当其他人要接管超时检查职责时调用。
+     * 
+     * Disables batch slot request timeout check.
+     * Invoked when someone else wants to take over the timeout check responsibility.
      */
     void disableBatchSlotRequestTimeoutCheck();
 
     /**
+     * 创建有关属于指定 task manager 的已分配slot的报告。
      * Create report about the allocated slots belonging to the specified task manager.
      *
      * @param taskManagerId identifies the task manager

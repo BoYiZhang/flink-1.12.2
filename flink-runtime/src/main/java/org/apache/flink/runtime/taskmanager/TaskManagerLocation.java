@@ -35,9 +35,16 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * This class encapsulates the connection information of a TaskManager. It describes the host where
- * the TaskManager operates and its server port for data exchange. This class also contains
- * utilities to work with the TaskManager's host name, which is used to localize work assignments.
+ *
+ * 此类封装TaskManager的连接信息。
+ * 它描述了TaskManager操作的主机及其用于数据交换的服务器端口。
+ * 此类还包含用于处理TaskManager主机名的实用程序，该主机名用于本地化工作分配。
+ *
+ * This class encapsulates the connection information of a TaskManager.
+ *
+ * It describes the host where the TaskManager operates and its server port for data exchange.
+ *
+ * This class also contains utilities to work with the TaskManager's host name, which is used to localize work assignments.
  */
 public class TaskManagerLocation implements Comparable<TaskManagerLocation>, java.io.Serializable {
 

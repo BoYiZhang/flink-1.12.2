@@ -375,6 +375,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
      * @return Future acknowledge if the job could be started. Otherwise the future contains an
      *     exception
      */
+    @Override
     public CompletableFuture<Acknowledge> start(final JobMasterId newJobMasterId) throws Exception {
         // make sure we receive RPC and async calls
         start();
@@ -397,6 +398,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
      * @return Future acknowledge indicating that the job has been suspended. Otherwise the future
      *     contains an exception
      */
+    @Override
     public CompletableFuture<Acknowledge> suspend(final Exception cause) {
         CompletableFuture<Acknowledge> suspendFuture =
                 callAsyncWithoutFencing(() -> suspendExecution(cause), RpcUtils.INF_TIMEOUT);
