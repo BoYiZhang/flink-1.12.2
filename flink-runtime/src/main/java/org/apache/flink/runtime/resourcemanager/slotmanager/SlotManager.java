@@ -34,10 +34,18 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 /**
- * The slot manager is responsible for maintaining a view on all registered task manager slots,
- * their allocation and all pending slot requests. Whenever a new slot is registered or an allocated
- * slot is freed, then it tries to fulfill another pending slot request. Whenever there are not
- * enough slots available the slot manager will notify the resource manager about it via {@link
+ * slot manager 负责维护所有已注册的任务管理器slot、它们的分配和所有挂起的slot请求的视图。
+ * 无论何时注册新slot或释放分配的slot，它都会尝试执行另一个挂起的slot请求。
+ *  每当没有足够的可用slot时，slot管理器将通过{@link ResourceActions#allocateResource（WorkerResourceSpec）}通知资源管理器。
+ * 
+ * 为了释放资源并避免资源泄漏，空闲任务管理器（其slot当前未使用的任务管理器）和挂起的slot请求分别超时，从而触发其释放和失败。
+ * 
+ * 
+ * The slot manager is responsible for maintaining a view on all registered task manager slots, their allocation and all pending slot requests.
+ * 
+ * Whenever a new slot is registered or an allocated  slot is freed, then it tries to fulfill another pending slot request.
+ *
+ * Whenever there are not  enough slots available the slot manager will notify the resource manager about it via {@link
  * ResourceActions#allocateResource(WorkerResourceSpec)}.
  *
  * <p>In order to free resources and avoid resource leaks, idling task managers (task managers whose
@@ -54,6 +62,8 @@ public interface SlotManager extends AutoCloseable {
     int getNumberFreeSlotsOf(InstanceID instanceId);
 
     /**
+     * 获取从{@link ResourceActions}请求的尚未完成的workers SlotManager的数量。
+     *
      * Get number of workers SlotManager requested from {@link ResourceActions} that are not yet
      * fulfilled.
      *

@@ -85,19 +85,28 @@ public class SlotManagerImpl implements SlotManager {
     /** Timeout after which an unused TaskManager is released. */
     private final Time taskManagerTimeout;
 
-    /** Map for all registered slots. */
+    /** 
+     * 所有当前可用slot的索引。
+     * Map for all registered slots. */
     private final HashMap<SlotID, TaskManagerSlot> slots;
 
     /** Index of all currently free slots. */
     private final LinkedHashMap<SlotID, TaskManagerSlot> freeSlots;
 
-    /** All currently registered task managers. */
+    /**
+     * 所有当前注册的任务管理器。
+     * All currently registered task managers. */
     private final HashMap<InstanceID, TaskManagerRegistration> taskManagerRegistrations;
 
-    /** Map of fulfilled and active allocations for request deduplication purposes. */
+    /**
+     * 用于请求重复数据消除的已完成和活动分配的映射。
+     * Map of fulfilled and active allocations for request deduplication purposes.
+     * */
     private final HashMap<AllocationID, SlotID> fulfilledSlotRequests;
 
-    /** Map of pending/unfulfilled slot allocation requests. */
+    /**
+     * 挂起/未完成的slot分配请求的映射
+     * Map of pending/unfulfilled slot allocation requests. */
     private final HashMap<AllocationID, PendingSlotRequest> pendingSlotRequests;
 
     private final HashMap<TaskManagerSlotId, PendingTaskManagerSlot> pendingSlots;
@@ -701,9 +710,16 @@ public class SlotManagerImpl implements SlotManager {
     }
 
     /**
-     * Finds a matching slot for a given resource profile. A matching slot has at least as many
-     * resources available as the given resource profile. If there is no such slot available, then
-     * the method returns null.
+     *
+     * 为给定的资源配置文件查找匹配的slot。
+     * 匹配的slot至少具有与给定资源配置文件相同的可用资源。
+     * 如果没有此类slot可用，则该方法返回null。
+     *
+     * Finds a matching slot for a given resource profile.
+     *
+     * A matching slot has at least as many resources available as the given resource profile.
+     *
+     * If there is no such slot available, then the method returns null.
      *
      * <p>Note: If you want to change the behaviour of the slot manager wrt slot allocation and
      * request fulfillment, then you should override this method.
@@ -736,7 +752,7 @@ public class SlotManagerImpl implements SlotManager {
 
     // ---------------------------------------------------------------------------------------------
     // Internal slot operations
-    // 内部插槽操作
+    // 内部slot操作
     // ---------------------------------------------------------------------------------------------
 
     /**
@@ -979,7 +995,7 @@ public class SlotManagerImpl implements SlotManager {
                     handleFreeSlot(slot);
                     break;
                 case PENDING:
-                    // 不要做任何事情，因为我们还有一个挂起的插槽请求
+                    // 不要做任何事情，因为我们还有一个挂起的slot请求
                     // don't do anything because we still have a pending slot request
                     break;
                 case ALLOCATED:
