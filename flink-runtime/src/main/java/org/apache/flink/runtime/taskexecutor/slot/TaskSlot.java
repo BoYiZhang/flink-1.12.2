@@ -39,8 +39,26 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /**
- * Container for multiple {@link TaskSlotPayload tasks} belonging to the same slot. A {@link
- * TaskSlot} can be in one of the following states:
+ * 
+ * 属于同一slot的多个{@link TaskSlotPayload tasks}的容器。
+ * {@link TaskSlot}可以处于以下状态之一：
+ * 1. 空闲[Free]-slot为空，未分配给作业
+ * 2. 释放中[Releasing]-slot变空后即将释放。
+ * 3. 已分配[Allocated]-已为作业分配slot。
+ * 4. 活动[Active]-slot正由job manager使用， job manager 是分配job 的负责人
+ *
+ * 只有在task slot处于空闲状态时才能分配它。
+ * 分配的task slot可以转换为活动状态。
+ * 
+ * 活动slot允许从相应作业添加具有正确分配id的任务。
+ * 活动slot可以标记为非活动，从而将状态设置回已分配状态。
+ *
+ * 分配的或活动的slot只有在为空时才能释放。
+ * 如果它不是空的，那么它的状态可以设置为releasing，表示一旦它变空就可以被释放。
+ * 
+ * 
+ * Container for multiple {@link TaskSlotPayload tasks} belonging to the same slot. 
+ * A {@link TaskSlot} can be in one of the following states:
  *
  * <ul>
  *   <li>Free - The slot is empty and not allocated to a job
@@ -64,30 +82,60 @@ import java.util.stream.Collectors;
 public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
     private static final Logger LOG = LoggerFactory.getLogger(TaskSlot.class);
 
-    /** Index of the task slot. */
+    /**
+     *  task slot的下标索引
+     * Index of the task slot.
+     * */
     private final int index;
 
-    /** Resource characteristics for this slot. */
+    /**
+     * 此插槽的资源特征。
+     * Resource characteristics for this slot.
+     * */
     private final ResourceProfile resourceProfile;
 
-    /** Tasks running in this slot. */
+    /**
+     * 在这个slot中运行的task
+     * Tasks running in this slot.
+     * */
     private final Map<ExecutionAttemptID, T> tasks;
 
+    /**
+     * 内存管理
+     */
     private final MemoryManager memoryManager;
 
-    /** State of this slot. */
+    /**
+     * slot的状态:
+     * 1. ACTIVE : Slot 已经被 job manager 使用
+     * 2. ALLOCATED : Slot 已经被分配,但是尚未分配Job manager使用.
+     * 3. RELEASING : slot不为空，但任务失败。在移除所有任务后，它将被释放
+     *
+     * State of this slot. */
     private TaskSlotState state;
 
-    /** Job id to which the slot has been allocated. */
+    /**
+     * 已分配插槽的 job id。
+     * Job id to which the slot has been allocated.
+     * */
     private final JobID jobId;
 
-    /** Allocation id of this slot. */
+    /**
+     * 此插槽的Allocation id。
+     * Allocation id of this slot.
+     * */
     private final AllocationID allocationId;
 
-    /** The closing future is completed when the slot is freed and closed. */
+    /**
+     * 当插槽被释放和关闭时，关闭操作完成。
+     * The closing future is completed when the slot is freed and closed.
+     * */
     private final CompletableFuture<Void> closingFuture;
 
-    /** {@link Executor} for background actions, e.g. verify all managed memory released. */
+    /**
+     * {@link Executor}用于后台操作，例如验证所有已释放的托管内存
+     * {@link Executor} for background actions, e.g. verify all managed memory released.
+     * */
     private final Executor asyncExecutor;
 
     public TaskSlot(
@@ -181,6 +229,15 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
     // ----------------------------------------------------------------------------------
 
     /**
+     * 将给定任务添加到任务slot。
+     * 仅当还没有另一个具有相同执行尝试ID的任务添加到任务slot时，才有可能。
+     * 在这种情况下，该方法返回true。
+     * 否则，任务slot将保持不变，并返回false。
+     *
+     * 如果任务slot状态未激活，则会抛出{@link IllegalStateException}。
+     *
+     * 如果任务的作业ID和分配ID与为其分配了任务slot的作业ID和分配ID不匹配，则会抛出{@link IllegalArgumentException}。
+     *
      * Add the given task to the task slot. This is only possible if there is not already another
      * task with the same execution attempt id added to the task slot. In this case, the method
      * returns true. Otherwise the task slot is left unchanged and false is returned.
@@ -217,6 +274,8 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
     }
 
     /**
+     * 删除由给定的execution  attempt id标识的任务。
+     *
      * Remove the task identified by the given execution attempt id.
      *
      * @param executionAttemptId identifying the task to be removed
