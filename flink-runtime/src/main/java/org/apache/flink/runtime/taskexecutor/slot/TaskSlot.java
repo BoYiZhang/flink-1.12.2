@@ -77,6 +77,7 @@ import java.util.stream.Collectors;
  * <p>An allocated or active slot can only be freed if it is empty. If it is not empty, then it's
  * state can be set to releasing indicating that it can be freed once it becomes empty.
  *
+ * @author sysadmin
  * @param <T> type of the {@link TaskSlotPayload} stored in this slot
  */
 public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
