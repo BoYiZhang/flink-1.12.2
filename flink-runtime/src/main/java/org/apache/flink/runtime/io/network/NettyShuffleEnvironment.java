@@ -277,18 +277,26 @@ public class NettyShuffleEnvironment
     @Override
     public boolean updatePartitionInfo(ExecutionAttemptID consumerID, PartitionInfo partitionInfo)
             throws IOException, InterruptedException {
+
+        // 获取分区信息
         IntermediateDataSetID intermediateResultPartitionID =
                 partitionInfo.getIntermediateDataSetID();
+
+        //构建InputGateID
         InputGateID id = new InputGateID(intermediateResultPartitionID, consumerID);
         SingleInputGate inputGate = inputGatesById.get(id);
         if (inputGate == null) {
             return false;
         }
+
+        // 获取 ShuffleDescriptor
         ShuffleDescriptor shuffleDescriptor = partitionInfo.getShuffleDescriptor();
         checkArgument(
                 shuffleDescriptor instanceof NettyShuffleDescriptor,
                 "Tried to update unknown channel with unknown ShuffleDescriptor %s.",
                 shuffleDescriptor.getClass().getName());
+
+        // 更改InputChannel
         inputGate.updateInputChannel(
                 taskExecutorResourceId, (NettyShuffleDescriptor) shuffleDescriptor);
         return true;

@@ -524,6 +524,13 @@ public class SlotManagerImpl implements SlotManager {
 
 
             // next register the new slots
+
+            //    initialSlotReport = {SlotReport@8859} "SlotReport{\n\tSlotStatus{slotID=container_1619273419318_0032_01_000002_0, allocationID=null, jobID=null, resourceProfile=ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}}\n\tSlotStatus{slotID=container_1619273419318_0032_01_000002_1, allocationID=null, jobID=null, resourceProfile=ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}}\n\tSlotStatus{slotID=container_1619273419318_0032_01_000002_2, allocationID=null, jobID=null, resourceProfile=ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}}\n\tSlotStatus{slotID=container_1619273419318_0032_01_000002_3, all"
+            //        slotsStatus = {ArrayList@8870}  size = 4
+            //            0 = {SlotStatus@8872} "SlotStatus{slotID=container_1619273419318_0032_01_000002_0, allocationID=null, jobID=null, resourceProfile=ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}}"
+            //            1 = {SlotStatus@8866} "SlotStatus{slotID=container_1619273419318_0032_01_000002_1, allocationID=null, jobID=null, resourceProfile=ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}}"
+            //            2 = {SlotStatus@8873} "SlotStatus{slotID=container_1619273419318_0032_01_000002_2, allocationID=null, jobID=null, resourceProfile=ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}}"
+            //            3 = {SlotStatus@8874} "SlotStatus{slotID=container_1619273419318_0032_01_000002_3, allocationID=null, jobID=null, resourceProfile=ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}}"
             for (SlotStatus slotStatus : initialSlotReport) {
 
                 // 开始注册slots
@@ -793,6 +800,19 @@ public class SlotManagerImpl implements SlotManager {
 
 
         // 构建 slot 信息
+
+        //    slot = {TaskManagerSlot@8917}
+        //        slotId = {SlotID@8911} "container_1619273419318_0032_01_000002_1"
+        //        resourceProfile = {ResourceProfile@8852} "ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}"
+        //        taskManagerConnection = {WorkerRegistration@8801}
+        //        allocationId = null
+        //        jobId = null
+        //        assignedSlotRequest = null
+        //        state = {SlotState@8920} "FREE"
+
+
+
+
         final TaskManagerSlot slot =
                 createAndRegisterTaskManagerSlot(slotId, resourceProfile, taskManagerConnection);
 
@@ -801,6 +821,8 @@ public class SlotManagerImpl implements SlotManager {
 
         // 获取队列中挂起的slot请求...
         if (allocationId == null) {
+
+            // 查找完全匹配的待处理TaskManagerSlot
             pendingTaskManagerSlot = findExactlyMatchingPendingTaskManagerSlot(resourceProfile);
         } else {
             pendingTaskManagerSlot = null;
@@ -845,9 +867,13 @@ public class SlotManagerImpl implements SlotManager {
     @Nullable
     private PendingTaskManagerSlot findExactlyMatchingPendingTaskManagerSlot(
             ResourceProfile resourceProfile) {
+
+        // 迭代阻塞/挂起的请求.
         for (PendingTaskManagerSlot pendingTaskManagerSlot : pendingSlots.values()) {
-            if (isPendingSlotExactlyMatchingResourceProfile(
-                    pendingTaskManagerSlot, resourceProfile)) {
+
+
+            // 如果需求的资源相同的话, 则直接返回该PendingTaskManagerSlot
+            if (isPendingSlotExactlyMatchingResourceProfile(  pendingTaskManagerSlot, resourceProfile)) {
                 return pendingTaskManagerSlot;
             }
         }

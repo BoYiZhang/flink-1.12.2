@@ -54,8 +54,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
+ *
+ * TaskExecutor 相关的服务比如: MemoryManager , IOManager ,ShuffleEnvironment 等等
  * Container for {@link TaskExecutor} services such as the {@link MemoryManager}, {@link IOManager},
- * {@link ShuffleEnvironment}. All services are exclusive to a single {@link TaskExecutor}.
+ * {@link ShuffleEnvironment}.
+ *
+ * All services are exclusive to a single {@link TaskExecutor}.
  * Consequently, the respective {@link TaskExecutor} is responsible for closing them.
  */
 public class TaskManagerServices {

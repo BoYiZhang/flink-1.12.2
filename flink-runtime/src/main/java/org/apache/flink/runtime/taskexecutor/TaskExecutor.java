@@ -176,17 +176,22 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     public static final String TASK_MANAGER_NAME = "taskmanager";
 
+    // HA
     /** The access to the leader election and retrieval services. */
     private final HighAvailabilityServices haServices;
 
+    // TaskExecutor 相关的服务比如: MemoryManager , IOManager ,ShuffleEnvironment 等等
     private final TaskManagerServices taskExecutorServices;
 
-    /** The task manager configuration. */
+    /**
+     * The task manager configuration.
+     * */
     private final TaskManagerConfiguration taskManagerConfiguration;
 
     /** The fatal error handler to use in case of a fatal error. */
     private final FatalErrorHandler fatalErrorHandler;
 
+    // BLOB缓存提供对永久和临时BLOB的BLOB服务的访问。
     private final BlobCacheService blobCacheService;
 
     private final LibraryCacheManager libraryCacheManager;
@@ -196,12 +201,16 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     // --------- TaskManager services --------
 
-    /** The connection information of this task manager. */
+    /**
+     * 此任务管理器的连接信息。
+     * The connection information of this task manager. */
     private final UnresolvedTaskManagerLocation unresolvedTaskManagerLocation;
 
     private final TaskManagerMetricGroup taskManagerMetricGroup;
 
-    /** The state manager for this task, providing state managers per slot. */
+    /**
+     * 此任务的状态管理器，为每个插槽提供状态管理器。
+     * The state manager for this task, providing state managers per slot. */
     private final TaskExecutorLocalStateStoresManager localStateStoresManager;
 
     /** Information provider for external resources. */
@@ -227,26 +236,34 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     // ------------------------------------------------------------------------
 
+    // 硬件描述信息
     private final HardwareDescription hardwareDescription;
 
+    // 内存配置信息
     private final TaskExecutorMemoryConfiguration memoryConfiguration;
 
+    // 文件缓存
     private FileCache fileCache;
 
+    // jobManager 心跳相关
     /** The heartbeat manager for job manager in the task manager. */
     private final HeartbeatManager<AllocatedSlotReport, TaskExecutorToJobManagerHeartbeatPayload>
             jobManagerHeartbeatManager;
 
+    // resource manager 心跳相关
     /** The heartbeat manager for resource manager in the task manager. */
     private final HeartbeatManager<Void, TaskExecutorHeartbeatPayload>
             resourceManagerHeartbeatManager;
 
+    // 分区相关
     private final TaskExecutorPartitionTracker partitionTracker;
 
+    // 背压相关
     private final BackPressureSampleService backPressureSampleService;
 
     // --------- resource manager --------
 
+    // resource manager 相关
     @Nullable private ResourceManagerAddress resourceManagerAddress;
 
     @Nullable private EstablishedResourceManagerConnection establishedResourceManagerConnection;
@@ -532,7 +549,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
     // ----------------------------------------------------------------------
     // Task lifecycle RPCs
-    // 提交 任务 ???
+    // 提交 任务 !!!
     // ----------------------------------------------------------------------
 
     @Override
@@ -828,17 +845,20 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             final ExecutionAttemptID executionAttemptID,
             Iterable<PartitionInfo> partitionInfos,
             Time timeout) {
+        // 获取任务
         final Task task = taskSlotTable.getTask(executionAttemptID);
 
         if (task != null) {
+
+            // 迭代分区信息
             for (final PartitionInfo partitionInfo : partitionInfos) {
                 // Run asynchronously because it might be blocking
                 FutureUtils.assertNoException(
                         CompletableFuture.runAsync(
                                 () -> {
                                     try {
-                                        if (!shuffleEnvironment.updatePartitionInfo(
-                                                executionAttemptID, partitionInfo)) {
+                                        // 更改分区信息
+                                        if (!shuffleEnvironment.updatePartitionInfo( executionAttemptID, partitionInfo)) {
                                             log.debug(
                                                     "Discard update for input gate partition {} of result {} in task {}. "
                                                             + "The partition is no longer available.",
@@ -924,16 +944,21 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
                 checkpointTimestamp,
                 executionAttemptID);
 
+        // 获取CheckpointType
         final CheckpointType checkpointType = checkpointOptions.getCheckpointType();
+
+
         if (checkpointType.getPostCheckpointAction() == PostCheckpointAction.TERMINATE
                 && !(checkpointType.isSynchronous() && checkpointType.isSavepoint())) {
             throw new IllegalArgumentException(
                     "Only synchronous savepoints are allowed to advance the watermark to MAX.");
         }
 
+        // 获取任务
         final Task task = taskSlotTable.getTask(executionAttemptID);
 
         if (task != null) {
+            // 调用task的triggerCheckpointBarrier方法, 触发chckpoint
             task.triggerCheckpointBarrier(checkpointId, checkpointTimestamp, checkpointOptions);
 
             return CompletableFuture.completedFuture(Acknowledge.get());
@@ -962,6 +987,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         final Task task = taskSlotTable.getTask(executionAttemptID);
 
         if (task != null) {
+            // 通过task的 notifyCheckpointComplete 方法 . Checkpoint完成
             task.notifyCheckpointComplete(checkpointId);
 
             return CompletableFuture.completedFuture(Acknowledge.get());
@@ -991,6 +1017,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         final Task task = taskSlotTable.getTask(executionAttemptID);
 
         if (task != null) {
+            // abortCheckpoint
             task.notifyCheckpointAborted(checkpointId);
 
             return CompletableFuture.completedFuture(Acknowledge.get());
@@ -1024,6 +1051,22 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             final Time timeout) {
         // TODO: Filter invalid requests from the resource manager by using the
         // instance/registration Id
+
+        //    slotId = {SlotID@6055} "container_1619273419318_0032_01_000002_0"
+        //          resourceId = {ResourceID@6114} "container_1619273419318_0032_01_000002"
+        //          slotNumber = 0
+        //    jobId = {JobID@6056} "05fdf1bc744b274be1525c918c1ad378"
+        //    allocationId = {AllocationID@6057} "a9ce7abc6f1d6f264dbdce5564efcb76"
+        //    resourceProfile = {ResourceProfile@6058} "ResourceProfile{UNKNOWN}"
+        //          cpuCores = null
+        //          taskHeapMemory = null
+        //          taskOffHeapMemory = null
+        //          managedMemory = null
+        //          networkMemory = null
+        //    extendedResources = {HashMap@6116}  size = 0
+        //    targetAddress = "akka.tcp://flink@master01:36345/user/rpc/jobmanager_2"
+        //    resourceManagerId = {ResourceManagerId@6060} "00000000000000000000000000000000"
+        //    timeout = {Time@6061} "1000000000 ms"
 
 
 
@@ -1117,6 +1160,44 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             SlotID slotId, JobID jobId, AllocationID allocationId, ResourceProfile resourceProfile)
             throws SlotAllocationException {
 
+        //    slotId = {SlotID@6055} "container_1619273419318_0032_01_000002_0"
+        //        resourceId = {ResourceID@6114} "container_1619273419318_0032_01_000002"
+        //        slotNumber = 0
+        //    jobId = {JobID@6056} "05fdf1bc744b274be1525c918c1ad378"
+        //    allocationId = {AllocationID@6057} "a9ce7abc6f1d6f264dbdce5564efcb76"
+        //    resourceProfile = {ResourceProfile@6058} "ResourceProfile{UNKNOWN}"
+        //        cpuCores = null
+        //        taskHeapMemory = null
+        //        taskOffHeapMemory = null
+        //        managedMemory = null
+        //        networkMemory = null
+        //    extendedResources = {HashMap@6116}  size = 0
+
+
+
+        //    taskSlotTable = {TaskSlotTableImpl@6077}
+        //    numberSlots = 4
+        //        defaultSlotResourceProfile = {ResourceProfile@6124} "ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}"
+        //        cpuCores = {CPUResource@6139} "Resource(CPU: 1.0000000000000000)"
+        //        taskHeapMemory = {MemorySize@6140} "100663293 bytes"
+        //        taskOffHeapMemory = {MemorySize@6141} "0 bytes"
+        //        managedMemory = {MemorySize@6142} "134217730 bytes"
+        //        networkMemory = {MemorySize@6143} "32 mb"
+        //        extendedResources = {HashMap@6144}  size = 0
+        //    memoryPageSize = 32768
+        //    timerService = {TimerService@6125}
+        //    taskSlots = {HashMap@6126}  size = 0
+        //    allocatedSlots = {HashMap@6127}  size = 0
+        //    taskSlotMappings = {HashMap@6128}  size = 0
+        //    slotsPerJob = {HashMap@6129}  size = 0
+        //    slotActions = {TaskExecutor$SlotActionsImpl@6130}
+        //    state = {TaskSlotTableImpl$State@6131} "RUNNING"
+        //    budgetManager = {ResourceBudgetManager@6132}
+        //    closingFuture = {CompletableFuture@6133} "java.util.concurrent.CompletableFuture@9a6e076[Not completed]"
+        //    mainThreadExecutor = {RpcEndpoint$MainThreadExecutor@6096}
+        //    memoryVerificationExecutor = {ThreadPoolExecutor@6076} "java.util.concurrent.ThreadPoolExecutor@da5c1a9[Running, pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0]"
+        //    if (taskSlotTable.isSlotFree(slotId.getSlotNumber())) {
+
 
         if (taskSlotTable.isSlotFree(slotId.getSlotNumber())) {
 
@@ -1180,10 +1261,12 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             String fileName, Time timeout) {
         final String filePath;
         final String logDir = taskManagerConfiguration.getTaskManagerLogDir();
+
         if (StringUtils.isNullOrWhitespaceOnly(logDir)
                 || StringUtils.isNullOrWhitespaceOnly(fileName)) {
             filePath = null;
         } else {
+            //  根据 taskManagerLogDir + 文件的名字 获取路径
             filePath = new File(logDir, new File(fileName).getName()).getPath();
         }
         return requestFileUploadByFilePath(filePath, fileName);
@@ -1233,6 +1316,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
         log.debug("Operator event for {} - {}", executionAttemptID, operatorId);
 
+        // 获取Task
         final Task task = taskSlotTable.getTask(executionAttemptID);
         if (task == null) {
             return FutureUtils.completedExceptionally(
@@ -1241,7 +1325,9 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         }
 
         try {
+            // 发送 OperatorEvent 给 task
             task.deliverOperatorEvent(operatorId, evt);
+
             return CompletableFuture.completedFuture(Acknowledge.get());
         } catch (Throwable t) {
             ExceptionUtils.rethrowIfFatalError(t);
@@ -1525,13 +1611,16 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             }
 
             // offerSlots
+            // Offers the given slots to the job manager.
+            // The response contains the set of accepted slots.
+
             // JobMaster#offerSlots
             CompletableFuture<Collection<SlotOffer>> acceptedSlotsFuture =
                     jobMasterGateway.offerSlots(
                             getResourceID(), reservedSlots, taskManagerConfiguration.getTimeout());
 
 
-            // 异步操作.
+            // 异步操作.  处理响应请求,处理异常 || 标记为 slot 状态为active
             acceptedSlotsFuture.whenCompleteAsync(
                     handleAcceptedSlotOffers(jobId, jobMasterGateway, jobMasterId, reservedSlots),
                     getMainThreadExecutor());
@@ -1549,6 +1638,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         return (Iterable<SlotOffer> acceptedSlots, Throwable throwable) -> {
             if (throwable != null) {
                 if (throwable instanceof TimeoutException) {
+
+                    // 如果是超时[ TimeoutException ],进行重试操作.
                     log.info(
                             "Slot offering to JobManager did not finish in time. Retrying the slot offering.");
                     // We ran into a timeout. Try again.
@@ -1561,13 +1652,16 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
                     // We encountered an exception. Free the slots and return them to the RM.
                     for (SlotOffer reservedSlot : offeredSlots) {
+                        // 释放slot
                         freeSlotInternal(reservedSlot.getAllocationId(), throwable);
                     }
                 }
             } else {
                 // check if the response is still valid
+                // 检测响应是否有效.
                 if (isJobManagerConnectionValid(jobId, jobMasterId)) {
                     // mark accepted slots active
+                    // 标记slots状态为active
                     for (SlotOffer acceptedSlot : acceptedSlots) {
                         try {
                             // 激活Slot
@@ -1888,15 +1982,17 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
         try {
             final JobID jobId = taskSlotTable.getOwningJob(allocationId);
 
+            // 获取slot 索引的下标.
             final int slotIndex = taskSlotTable.freeSlot(allocationId, cause);
 
             if (slotIndex != -1) {
 
                 if (isConnectedToResourceManager()) {
+                    // 获取ResourceManager
                     // the slot was freed. Tell the RM about it
                     ResourceManagerGateway resourceManagerGateway =
                             establishedResourceManagerConnection.getResourceManagerGateway();
-
+                    // 通知RM slot释放.
                     resourceManagerGateway.notifySlotAvailable(
                             establishedResourceManagerConnection.getTaskExecutorRegistrationId(),
                             new SlotID(getResourceID(), slotIndex),
@@ -1911,6 +2007,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
             log.debug("Could not free slot for allocation id {}.", allocationId, e);
         }
 
+        // 本地存储清空
         localStateStoresManager.releaseLocalStateForAllocationId(allocationId);
     }
 
