@@ -114,17 +114,36 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * The Task represents one execution of a parallel subtask on a TaskManager. A Task wraps a Flink
- * operator (which may be a user function) and runs it, providing all services necessary for example
- * to consume input data, produce its results (intermediate result partitions) and communicate with
- * the JobManager.
+ *
+ * Task 表示TaskManager上并行 subtask 的一次执行。
+ *
+ * 任务封装了一个Flink operator（也可能是一个用户function ）并运行它，
+ * 提供使用输入数据、生成结果（中间结果分区）和与JobManager通信所需的所有服务。
+ *
+ * Flink操作符（实现为{@link AbstractInvokable}的子类）只有数据读取器、编写器和某些事件回调。
+ * 该任务将它们连接到网络堆栈和actor消息，并跟踪执行状态和处理异常。
+ *
+ * 任务不知道它们与其他任务的关系，也不知道它们是第一次尝试执行任务还是重复执行任务。
+ *
+ * 所有这些只有JobManager知道。
+ * 任务只知道自己的可运行代码、任务的配置以及要使用和生成的 intermediate results  的id（如果有的话）。
+ *
+ * 每个任务由一个专用线程运行。
+ *
+ * The Task represents one execution of a parallel subtask on a TaskManager.
+ *
+ * A Task wraps a Flink operator (which may be a user function) and runs it,
+ * providing all services necessary for example  to consume input data, produce its results (intermediate result partitions) and communicate with  the JobManager.
  *
  * <p>The Flink operators (implemented as subclasses of {@link AbstractInvokable} have only data
- * readers, writers, and certain event callbacks. The task connects those to the network stack and
- * actor messages, and tracks the state of the execution and handles exceptions.
+ * readers, writers, and certain event callbacks.
+ *
+ * The task connects those to the network stack and actor messages, and tracks the state of the execution and handles exceptions.
  *
  * <p>Tasks have no knowledge about how they relate to other tasks, or whether they are the first
- * attempt to execute the task, or a repeated attempt. All of that is only known to the JobManager.
+ * attempt to execute the task, or a repeated attempt.
+ * All of that is only known to the JobManager.
+ *
  * All the task knows are its own runnable code, the task's configuration, and the IDs of the
  * intermediate results to consume and produce (if any).
  *
@@ -141,152 +160,279 @@ public class Task
     /** The class logger. */
     private static final Logger LOG = LoggerFactory.getLogger(Task.class);
 
-    /** The thread group that contains all task threads. */
+    /**
+     * 线程组 包含所有 task thread ..
+     * The thread group that contains all task threads.
+     * */
     private static final ThreadGroup TASK_THREADS_GROUP = new ThreadGroup("Flink Task Threads");
 
-    /** For atomic state updates. */
+    /**
+     * 任务状态标识
+     * For atomic state updates.
+     * */
     private static final AtomicReferenceFieldUpdater<Task, ExecutionState> STATE_UPDATER =
-            AtomicReferenceFieldUpdater.newUpdater(
-                    Task.class, ExecutionState.class, "executionState");
+            AtomicReferenceFieldUpdater.newUpdater(  Task.class, ExecutionState.class, "executionState");
 
     // ------------------------------------------------------------------------
+    // 属性字段 : Task构造方法初始化中的一部分属性.
     //  Constant fields that are part of the initial Task construction
     // ------------------------------------------------------------------------
 
-    /** The job that the task belongs to. */
+    /**
+     *  JobID
+     * The job that the task belongs to. */
     private final JobID jobId;
 
-    /** The vertex in the JobGraph whose code the task executes. */
+    /**
+     * 当前任务在JobGraph所属的  job vertex id
+     * The vertex in the JobGraph whose code the task executes. */
     private final JobVertexID vertexId;
 
-    /** The execution attempt of the parallel subtask. */
+    /**
+     * 在ExecutionGraph中 子任务所属的 ExecutionAttemptID
+     * The execution attempt of the parallel subtask.
+     * */
     private final ExecutionAttemptID executionId;
 
-    /** ID which identifies the slot in which the task is supposed to run. */
+    /**
+     * 在同一个slot中运行锁分配的AllocationID
+     * ID which identifies the slot in which the task is supposed to run.
+     * */
     private final AllocationID allocationId;
 
-    /** TaskInfo object for this task. */
+    /**
+     * 任务的相关信息.
+     * TaskInfo object for this task. */
     private final TaskInfo taskInfo;
 
-    /** The name of the task, including subtask indexes. */
+    /**
+     * 任务名称,包含子任务的索引.
+     *  The name of the task, including subtask indexes.
+     *  */
     private final String taskNameWithSubtask;
 
-    /** The job-wide configuration object. */
+    /**
+     * job的配置相关信息
+     * The job-wide configuration object.
+     * */
     private final Configuration jobConfiguration;
 
-    /** The task-specific configuration. */
+    /**
+     * task指定的配置信息.
+     * The task-specific configuration.
+     * */
     private final Configuration taskConfiguration;
 
-    /** The jar files used by this task. */
+    /**
+     * task任务需所需要的jar文件
+     * The jar files used by this task.
+     * */
     private final Collection<PermanentBlobKey> requiredJarFiles;
 
-    /** The classpaths used by this task. */
+    /**
+     * classpaths相关
+     * The classpaths used by this task.
+     * */
     private final Collection<URL> requiredClasspaths;
 
-    /** The name of the class that holds the invokable code. */
+    /**
+     * 该任务的实例化类型
+     * 1. org.apache.flink.streaming.runtime.tasks.SourceStreamTask
+     * 2. org.apache.flink.streaming.runtime.tasks.OneInputStreamTask
+     *
+     * The name of the class that holds the invokable code.
+     * */
     private final String nameOfInvokableClass;
 
-    /** Access to task manager configuration and host names. */
+    /**
+     * 访问 task manager 配置/host name 相关信息
+     * Access to task manager configuration and host names.
+     * */
     private final TaskManagerRuntimeInfo taskManagerConfig;
 
-    /** The memory manager to be used by this task. */
+    /**
+     * 内存管理相关.
+     * The memory manager to be used by this task.
+     * */
     private final MemoryManager memoryManager;
 
-    /** The I/O manager to be used by this task. */
+    /**
+     * I/O相关
+     *
+     * The I/O manager to be used by this task. */
     private final IOManager ioManager;
 
-    /** The BroadcastVariableManager to be used by this task. */
+    /**
+     * 广播变量 BroadcastVariableManager
+     * The BroadcastVariableManager to be used by this task. */
     private final BroadcastVariableManager broadcastVariableManager;
 
+    /**
+     * 任务事件的Dispatcher
+     */
     private final TaskEventDispatcher taskEventDispatcher;
 
-    /** Information provider for external resources. */
+    /**
+     * 外部resources 信息
+     * Information provider for external resources.
+     * */
     private final ExternalResourceInfoProvider externalResourceInfoProvider;
 
-    /** The manager for state of operators running in this task/slot. */
+    /**
+     * task/slot 的状态信息
+     * The manager for state of operators running in this task/slot.
+     * */
     private final TaskStateManager taskStateManager;
 
     /**
-     * Serialized version of the job specific execution configuration (see {@link ExecutionConfig}).
+     *
+     * job指定execution配置的序列化相关
+     * Serialized version of the job specific execution configuration
+     * (see {@link ExecutionConfig}).
      */
     private final SerializedValue<ExecutionConfig> serializedExecutionConfig;
 
+    /**
+     * A record-oriented runtime result writer API for producing results.
+     *
+     * ResultPartitionWriter
+     */
     private final ResultPartitionWriter[] consumableNotifyingPartitionWriters;
 
+    /**
+     * An {@link InputGate} with a specific index.
+     */
     private final IndexedInputGate[] inputGates;
 
-    /** Connection to the task manager. */
+    /**
+     * task manager的 Connection
+     * Connection to the task manager.
+     * */
     private final TaskManagerActions taskManagerActions;
 
-    /** Input split provider for the task. */
+    /**
+     *
+     * Input split provider for the task.
+     * */
     private final InputSplitProvider inputSplitProvider;
 
-    /** Checkpoint notifier used to communicate with the CheckpointCoordinator. */
+    /**
+     * Checkpoint 相关...
+     * Checkpoint notifier used to communicate with the CheckpointCoordinator.
+     * */
     private final CheckpointResponder checkpointResponder;
 
     /**
+     * 发送信息给 Job Manager 的Gateway
      * The gateway for operators to send messages to the operator coordinators on the Job Manager.
      */
     private final TaskOperatorEventGateway operatorCoordinatorEventGateway;
 
-    /** GlobalAggregateManager used to update aggregates on the JobMaster. */
+    /**
+     *
+     * GlobalAggregateManager用于JobMaster的更新和聚合
+     * GlobalAggregateManager used to update aggregates on the JobMaster.
+     * */
     private final GlobalAggregateManager aggregateManager;
 
-    /** The library cache, from which the task can request its class loader. */
+    /**
+     * task请求class loader的时候,加载的library 缓存
+     * The library cache, from which the task can request its class loader. */
     private final LibraryCacheManager.ClassLoaderHandle classLoaderHandle;
 
-    /** The cache for user-defined files that the invokable requires. */
+    /**
+     * 用户定义的文件的缓存.
+     * The cache for user-defined files that the invokable requires. */
     private final FileCache fileCache;
 
-    /** The service for kvState registration of this task. */
+    /**
+     * task的 kv 状态服务相关.
+     * The service for kvState registration of this task. */
     private final KvStateService kvStateService;
 
-    /** The registry of this task which enables live reporting of accumulators. */
+    /**
+     * task启用live reporting of accumulators的注册相关...
+     * The registry of this task which enables live reporting of accumulators. */
     private final AccumulatorRegistry accumulatorRegistry;
 
-    /** The thread that executes the task. */
+    /**
+     * 当前执行task的Thread 线程.
+     * The thread that executes the task. */
     private final Thread executingThread;
 
-    /** Parent group for all metrics of this task. */
+    /**
+     * task metrics相关
+     * Parent group for all metrics of this task. */
     private final TaskMetricGroup metrics;
 
-    /** Partition producer state checker to request partition states from. */
+
+    /**
+     * 分区相关...
+     * Partition producer state checker to request partition states from.
+     * */
     private final PartitionProducerStateChecker partitionProducerStateChecker;
 
-    /** Executor to run future callbacks. */
+    /**
+     * Executor ????
+     * Executor to run future callbacks. */
     private final Executor executor;
 
-    /** Future that is completed once {@link #run()} exits. */
+    /**
+     *
+     * 当执行一次run方法的Future 索引...
+     * Future that is completed once {@link #run()} exits.
+     *
+     * */
     private final CompletableFuture<ExecutionState> terminationFuture = new CompletableFuture<>();
 
     // ------------------------------------------------------------------------
+    // 属性控制task的执行. 所有的字段是volatile .
     //  Fields that control the task execution. All these fields are volatile
     //  (which means that they introduce memory barriers), to establish
     //  proper happens-before semantics on parallel modification
     // ------------------------------------------------------------------------
 
-    /** atomic flag that makes sure the invokable is canceled exactly once upon error. */
+    /**
+     * 是否取消 : 默认false
+     * atomic flag that makes sure the invokable is canceled exactly once upon error. */
     private final AtomicBoolean invokableHasBeenCanceled;
 
     /**
-     * The invokable of this task, if initialized. All accesses must copy the reference and check
-     * for null, as this field is cleared as part of the disposal logic.
+     * task 的 invokable
+     * 所有的请求必须复制其引用,并检查是否为null
+     * 因为作为逻辑处理中的一部分,该字段可能会被清理...
+     * ???????
+     *
+     * The invokable of this task, if initialized.
+     *
+     * All accesses must copy the reference and check for null,
+     * as this field is cleared as part of the disposal logic.
+     *
      */
     @Nullable private volatile AbstractInvokable invokable;
 
-    /** The current execution state of the task. */
+    /**
+     * 任务的状态
+     * The current execution state of the task. */
     private volatile ExecutionState executionState = ExecutionState.CREATED;
 
     /** The observed exception, in case the task execution failed. */
     private volatile Throwable failureCause;
 
-    /** Initialized from the Flink configuration. May also be set at the ExecutionConfig */
+    /**
+     * 默认值 : 30000 ???
+     * Initialized from the Flink configuration. May also be set at the ExecutionConfig */
     private long taskCancellationInterval;
 
-    /** Initialized from the Flink configuration. May also be set at the ExecutionConfig */
+
+    /**
+     * 根据Flink 配置进行初始化, 也可在ExecutionConfig中设置.
+     * Initialized from the Flink configuration.
+     * May also be set at the ExecutionConfig */
     private long taskCancellationTimeout;
 
     /**
+     * 用户代码类加载器
      * This class loader should be set as the context class loader for threads that may dynamically
      * load user code.
      */
@@ -1295,6 +1441,7 @@ public class Task
     // ------------------------------------------------------------------------
 
     /**
+     * 触发checkpoint操作
      * Calls the invokable to trigger a checkpoint.
      *
      * @param checkpointID The ID identifying the checkpoint.
@@ -1309,9 +1456,10 @@ public class Task
         final AbstractInvokable invokable = this.invokable;
         final CheckpointMetaData checkpointMetaData =
                 new CheckpointMetaData(checkpointID, checkpointTimestamp);
-
+        // 只有状态为RUNNING才可以触发Checkpoint操作
         if (executionState == ExecutionState.RUNNING && invokable != null) {
             try {
+                // [核心] 触发Checkpoint操作.
                 invokable.triggerCheckpointAsync(checkpointMetaData, checkpointOptions);
             } catch (RejectedExecutionException ex) {
                 // This may happen if the mailbox is closed. It means that the task is shutting
@@ -1346,6 +1494,7 @@ public class Task
                     taskNameWithSubtask,
                     executionId);
 
+            // 发回消息说我们没有做检查点
             // send back a message that we did not do the checkpoint
             checkpointResponder.declineCheckpoint(
                     jobId,
@@ -1363,6 +1512,7 @@ public class Task
 
         if (executionState == ExecutionState.RUNNING && invokable != null) {
             try {
+                // 通过invokable 的 notifyCheckpointCompleteAsync 方法 . Checkpoint完成
                 invokable.notifyCheckpointCompleteAsync(checkpointID);
             } catch (RejectedExecutionException ex) {
                 // This may happen if the mailbox is closed. It means that the task is shutting
@@ -1391,6 +1541,7 @@ public class Task
 
         if (executionState == ExecutionState.RUNNING && invokable != null) {
             try {
+                // 调用算子实例invokable的notifyCheckpointAbortAsync方法实现放弃Checkpoint 操作.
                 invokable.notifyCheckpointAbortAsync(checkpointID);
             } catch (RejectedExecutionException ex) {
                 // This may happen if the mailbox is closed. It means that the task is shutting
@@ -1414,6 +1565,10 @@ public class Task
     }
 
     /**
+     *
+     * 将操作符事件分派给可调用的任务。
+     * 如果事件传递没有成功，此方法将抛出异常。
+     * 调用者可以使用该异常来报告错误，但不需要对任务失败作出反应(此方法负责这一点)。
      * Dispatches an operator event to the invokable task.
      *
      * <p>If the event delivery did not succeed, this method throws an exception. Callers can use
@@ -1432,6 +1587,7 @@ public class Task
         }
 
         try {
+            // 调用算子实例invokable的dispatchOperatorEvent方法实现 事件分发操作..
             invokable.dispatchOperatorEvent(operator, evt);
         } catch (Throwable t) {
             ExceptionUtils.rethrowIfFatalErrorOrOOM(t);
