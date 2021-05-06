@@ -29,6 +29,7 @@ public class DummyCheckpointInvokable extends DummyInvokable {
         super();
     }
 
+    @Override
     public void triggerCheckpointOnBarrier(
             CheckpointMetaData checkpointMetaData,
             CheckpointOptions checkpointOptions,

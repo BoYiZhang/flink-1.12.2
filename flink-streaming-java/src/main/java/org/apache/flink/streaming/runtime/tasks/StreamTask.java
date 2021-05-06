@@ -104,19 +104,66 @@ import java.util.concurrent.ThreadFactory;
 import static org.apache.flink.runtime.concurrent.FutureUtils.assertNoException;
 
 /**
- * Base class for all streaming tasks. A task is the unit of local processing that is deployed and
- * executed by the TaskManagers. Each task runs one or more {@link StreamOperator}s which form the
- * Task's operator chain. Operators that are chained together execute synchronously in the same
- * thread and hence on the same stream partition. A common case for these chains are successive
- * map/flatmap/filter tasks.
+ * 所有流式处理任务的基类。
+ * task是由TaskManager部署和执行的本地处理单元。
+ * 每个任务运行一个或多个{@link StreamOperator}，这些{@link StreamOperator}构成任务的操作符 chained 。
+ *  chained 接在一起的运算符在同一线程中同步执行，因此在同一流分区上执行。
+ * 这些chained的常见情况是连续的map/flatmap/filter任务。
  *
- * <p>The task chain contains one "head" operator and multiple chained operators. The StreamTask is
- * specialized for the type of the head operator: one-input and two-input tasks, as well as for
- * sources, iteration heads and iteration tails.
+ * 任务 chained 包含一个“head”operator和多个 chained operator。
+ *
+ * StreamTask专门用于 head operator 的类型：
+ * 1. one-input : OneInputStreamTask
+ * 2. two-input tasks : TwoInputStreamTask
+ * 3. sources : SourceStreamTask
+ * 4. iteration heads : StreamIterationHead
+ * 5. iteration tails : StreamIterationTail
+ *
+ * Task类处理由head操作符读取的流的设置，以及操作符在操作符 chained 的末端生成的流。
+ *
+ * 注意， chained 可能分叉，因此有多个端部。
+ * 
+ * 任务的生命周期设置如下：
+ * <pre>{@code
+ * -- setInitialState -> 提供chain中所有operators的状态
+ *
+ * -- invoke()
+ *       |
+ *       +----> Create basic utils (config, etc) and load the chain of operators
+ *       +----> operators.setup()
+ *       +----> task specific init()
+ *       +----> initialize-operator-states()
+ *       +----> open-operators()
+ *       +----> run()
+ *       +----> close-operators()
+ *       +----> dispose-operators()
+ *       +----> common cleanup
+ *       +----> task specific cleanup()
+ * }</pre>
+ *
+ * {@code StreamTask}有一个名为{@code lock}的锁对象。
+ * 必须在此锁对象上同步对{@code StreamOperator}上方法的所有调用，以确保没有方法被并发调用。
+ *
+ * 
+ * Base class for all streaming tasks.
+ *
+ * A task is the unit of local processing that is deployed and executed by the TaskManagers.
+ *
+ * Each task runs one or more {@link StreamOperator}s which form the Task's operator chain.
+ *
+ * Operators that are chained together execute synchronously in the same thread and hence on the same stream partition.
+ *
+ * A common case for these chains are successive map/flatmap/filter tasks.
+ *
+ * <p>The task chain contains one "head" operator and multiple chained operators.
+ *
+ * The StreamTask is specialized for the type of the head operator:
+ *  one-input and two-input tasks, as well as for sources, iteration heads and iteration tails.
  *
  * <p>The Task class deals with the setup of the streams read by the head operator, and the streams
- * produced by the operators at the ends of the operator chain. Note that the chain may fork and
- * thus have multiple ends.
+ * produced by the operators at the ends of the operator chain.
+ *
+ * Note that the chain may fork and thus have multiple ends.
  *
  * <p>The life cycle of the task is set up as follows:
  *
@@ -137,9 +184,8 @@ import static org.apache.flink.runtime.concurrent.FutureUtils.assertNoException;
  *       +----> task specific cleanup()
  * }</pre>
  *
- * <p>The {@code StreamTask} has a lock object called {@code lock}. All calls to methods on a {@code
- * StreamOperator} must be synchronized on this lock object to ensure that no methods are called
- * concurrently.
+ * <p>The {@code StreamTask} has a lock object called {@code lock}.
+ * All calls to methods on a {@code  StreamOperator} must be synchronized on this lock object to ensure that no methods are called concurrently.
  *
  * @param <OUT>
  * @param <OP>
@@ -157,8 +203,14 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
     // ------------------------------------------------------------------------
 
     /**
-     * All actions outside of the task {@link #mailboxProcessor mailbox} (i.e. performed by another
-     * thread) must be executed through this executor to ensure that we don't have concurrent method
+     * 任务之外的所有操作{@link #mailboxProcessor mailbox} , 比如 （i.e. 另一个线程执行）
+     * 必须通过此执行器执行，以确保没有使一致检查点无效的并发方法调用。
+     *
+     *
+     *
+     * All actions outside of the task {@link #mailboxProcessor mailbox}
+     * (i.e. performed by another thread)
+     * must be executed through this executor to ensure that we don't have concurrent method
      * calls that void consistent checkpoints.
      *
      * <p>CheckpointLock is superseded by {@link MailboxExecutor}, with {@link
@@ -167,50 +219,85 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
      */
     private final StreamTaskActionExecutor actionExecutor;
 
-    /** The input processor. Initialized in {@link #init()} method. */
+    /**
+     *  输入处理器。在{@link #init()}方法中初始化。
+     *  The input processor. Initialized in {@link #init()} method. */
     @Nullable protected StreamInputProcessor inputProcessor;
 
-    /** the main operator that consumes the input streams of this task. */
+    /**
+     * [重要] 使用此任务的输入流的主运算符。
+     * the main operator that consumes the input streams of this task.
+     * */
     protected OP mainOperator;
 
-    /** The chain of operators executed by this task. */
+    /**
+     * task执行的 OperatorChain
+     * The chain of operators executed by this task. */
     protected OperatorChain<OUT, OP> operatorChain;
 
-    /** The configuration of this streaming task. */
+    /**
+     * streaming task的配置信息.
+     * The configuration of this streaming task. */
     protected final StreamConfig configuration;
 
-    /** Our state backend. We use this to create checkpoint streams and a keyed state backend. */
+    /**
+     * 我们的状态后端。
+     *
+     * 我们使用它来创建检查点流和 keyed 状态后端。
+     * Our state backend. We use this to create checkpoint streams and a keyed state backend. */
     protected final StateBackend stateBackend;
 
+    /**
+     * 子任务 Checkpoint 协调器
+     */
     private final SubtaskCheckpointCoordinator subtaskCheckpointCoordinator;
 
     /**
+     * 内部{@link TimerService}用于定义当前处理时间（默认值={@code System.currentTimeMillis（）}）
+     * 并为将来要执行的任务注册计时器。
+     *
      * The internal {@link TimerService} used to define the current processing time (default =
      * {@code System.currentTimeMillis()}) and register timers for tasks to be executed in the
      * future.
      */
     protected final TimerService timerService;
 
-    /** The currently active background materialization threads. */
+    /**
+     * 当前活动的后台具体线程
+     * The currently active background materialization threads.
+     * */
     private final CloseableRegistry cancelables = new CloseableRegistry();
 
+    /**
+     * 异常处理相关
+     */
     private final StreamTaskAsyncExceptionHandler asyncExceptionHandler;
 
     /**
+     * 将任务标记为“操作中”的标志，在这种情况下，需要将check初始化为true，
+     * 以便invoke（）之前的early cancel（）正常工作。
+     *
      * Flag to mark the task "in operation", in which case check needs to be initialized to true, so
      * that early cancel() before invoke() behaves correctly.
      */
     private volatile boolean isRunning;
 
-    /** Flag to mark this task as canceled. */
+    /**
+     * 标识任务被取消.
+     * Flag to mark this task as canceled. */
     private volatile boolean canceled;
 
     /**
+     * 标识任务失败, 比如在invoke方法中发生异常...
+     *
      * Flag to mark this task as failing, i.e. if an exception has occurred inside {@link
      * #invoke()}.
      */
     private volatile boolean failing;
 
+    /**
+     * ???? 干啥的
+     */
     private boolean disposedOperators;
 
     /** Thread pool for async snapshot workers. */
@@ -304,7 +391,11 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         this.configuration = new StreamConfig(getTaskConfiguration());
         this.recordWriter = createRecordWriterDelegate(configuration, environment);
         this.actionExecutor = Preconditions.checkNotNull(actionExecutor);
+
+        // 重要~!!
         this.mailboxProcessor = new MailboxProcessor(this::processInput, mailbox, actionExecutor);
+
+
         this.mailboxProcessor.initMetric(environment.getMetricGroup());
         this.mainMailboxExecutor = mailboxProcessor.getMainMailboxExecutor();
         this.asyncExceptionHandler = new StreamTaskAsyncExceptionHandler(environment);
@@ -314,6 +405,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
 
         this.stateBackend = createStateBackend();
 
+        // ????????????
         this.subtaskCheckpointCoordinator =
                 new SubtaskCheckpointCoordinatorImpl(
                         stateBackend.createCheckpointStorage(getEnvironment().getJobID()),
@@ -528,8 +620,35 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         LOG.debug("Initializing {}.", getName());
 
         operatorChain = new OperatorChain<>(this, recordWriter);
+
+        //    mainOperator = {StreamSource@6752}
+        //        ctx = null
+        //        canceledOrStopped = false
+        //        hasSentMaxWatermark = false
+        //        userFunction = {SocketTextStreamFunction@6754}
+        //        functionsClosed = false
+        //        chainingStrategy = {ChainingStrategy@6755} "HEAD"
+        //        container = {SourceStreamTask@6554} "Source: Socket Stream -> Flat Map (1/1)#0"
+        //        config = {StreamConfig@6756} "\n=======================Stream Config=======================\nNumber of non-chained inputs: 0\nNumber of non-chained outputs: 0\nOutput names: []\nPartitioning:\nChained subtasks: [(Source: Socket Stream-1 -> Flat Map-2, typeNumber=0, outputPartitioner=FORWARD, bufferTimeout=-1, outputTag=null)]\nOperator: SimpleUdfStreamOperatorFactory\nState Monitoring: false\n\n\n---------------------\nChained task configs\n---------------------\n{2=\n=======================Stream Config=======================\nNumber of non-chained inputs: 0\nNumber of non-chained outputs: 1\nOutput names: [(Flat Map-2 -> Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)-4, typeNumber=0, outputPartitioner=HASH, bufferTimeout=-1, outputTag=null)]\nPartitioning:\n\t4: HASH\nChained subtasks: []\nOperator: SimpleUdfStreamOperatorFactory\nState Monitoring: false}"
+        //        output = {CountingOutput@6757}
+        //        runtimeContext = {StreamingRuntimeContext@6758}
+        //        stateKeySelector1 = null
+        //        stateKeySelector2 = null
+        //        stateHandler = null
+        //        timeServiceManager = null
+        //        metrics = {OperatorMetricGroup@6759}
+        //        latencyStats = {LatencyStats@6760}
+        //        processingTimeService = {ProcessingTimeServiceImpl@6761}
+        //        combinedWatermark = -9223372036854775808
+        //        input1Watermark = -9223372036854775808
+        //        input2Watermark = -9223372036854775808
+
+
+
+
         mainOperator = operatorChain.getMainOperator();
 
+        // 执行任务初始化操作.
         // task specific initialization
         init();
 
@@ -542,10 +661,12 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         // Invoking Source: Socket Stream -> Flat Map (1/1)#0
         LOG.debug("Invoking {}", getName());
 
+        // 我们需要确保open（）中安排的所有触发器在所有操作符打开之前都不能执行
         // we need to make sure that any triggers scheduled in open() cannot be
         // executed before all operators are opened
         actionExecutor.runThrowing(
                 () -> {
+
                     SequentialChannelStateReader reader =
                             getEnvironment()
                                     .getTaskStateManager()
@@ -586,7 +707,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
     public final void invoke() throws Exception {
         try {
 
-            // 初始化行管...
+            // Invoke之前操作...
             beforeInvoke();
 
             // final check to exit early before starting to run
@@ -643,35 +764,46 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
 
         final CompletableFuture<Void> timersFinishedFuture = new CompletableFuture<>();
 
+        // 以 chain effect 方式关闭所有运算符
         // close all operators in a chain effect way
         operatorChain.closeOperators(actionExecutor);
+
+        // 确保没有进一步的检查点和通知操作发生。
+        //同时，这可以确保在任何“常规”出口时
 
         // make sure no further checkpoint and notification actions happen.
         // at the same time, this makes sure that during any "regular" exit where still
         actionExecutor.runThrowing(
                 () -> {
 
+                    // 确保没有新的计时器
                     // make sure no new timers can come
                     FutureUtils.forward(timerService.quiesce(), timersFinishedFuture);
 
+                    // 让邮箱执行拒绝从这一点开始的所有新信件
                     // let mailbox execution reject all new letters from this point
                     mailboxProcessor.prepareClose();
 
+                    // 仅在关闭所有运算符后将StreamTask设置为not running！
                     // only set the StreamTask to not running after all operators have been closed!
                     // See FLINK-7430
                     isRunning = false;
                 });
+        // 处理剩余邮件；无法排队发送新邮件
         // processes the remaining mails; no new mails can be enqueued
         mailboxProcessor.drain();
 
+        // 确保所有计时器都完成
         // make sure all timers finish
         timersFinishedFuture.get();
 
         LOG.debug("Closed operators for task {}", getName());
 
+        // 确保刷新了所有缓冲数据
         // make sure all buffered data is flushed
         operatorChain.flushOutputs();
 
+        // 尝试释放操作符，使dispose调用中的失败仍然会导致计算失败
         // make an attempt to dispose the operators such that failures in the dispose call
         // still let the computation fail
         disposeAllOperators();
@@ -902,6 +1034,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
                                             System.currentTimeMillis()
                                                     - checkpointMetaData.getTimestamp());
                     try {
+                        // 触发Checkpoint操作
                         result.complete(triggerCheckpoint(checkpointMetaData, checkpointOptions));
                     } catch (Exception ex) {
                         // Report the failure both via the Future result but also to the mailbox
@@ -919,15 +1052,18 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
             CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions)
             throws Exception {
         try {
+            // 如果我们注入检查点，则不对齐
             // No alignment if we inject a checkpoint
             CheckpointMetricsBuilder checkpointMetrics =
                     new CheckpointMetricsBuilder()
                             .setAlignmentDurationNanos(0L)
                             .setBytesProcessedDuringAlignment(0L);
 
+            // 初始化Checkpoint
             subtaskCheckpointCoordinator.initCheckpoint(
                     checkpointMetaData.getCheckpointId(), checkpointOptions);
 
+            // 执行 Checkpoint操作...
             boolean success =
                     performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics);
             if (!success) {
@@ -964,6 +1100,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
             throws IOException {
 
         try {
+            // 执行Checkpoint
             if (performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics)) {
                 if (isSynchronousSavepointId(checkpointMetaData.getCheckpointId())) {
                     runSynchronousSavepointMailboxLoop();
@@ -1020,7 +1157,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
                             activeSyncSavepointId = null;
                             operatorChain.setIgnoreEndOfInput(false);
                         }
-
+                        // 交由subtaskCheckpointCoordinator 进行checkpointState 操作...
                         subtaskCheckpointCoordinator.checkpointState(
                                 checkpointMetaData,
                                 checkpointOptions,

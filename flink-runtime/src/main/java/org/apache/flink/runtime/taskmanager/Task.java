@@ -868,6 +868,7 @@ public class Task
             TaskKvStateRegistry kvStateRegistry =
                     kvStateService.createKvStateTaskRegistry(jobId, getJobVertexId());
 
+            // 构建代码执行所需要的环境变量
             Environment env =
                     new RuntimeEnvironment(
                             jobId,

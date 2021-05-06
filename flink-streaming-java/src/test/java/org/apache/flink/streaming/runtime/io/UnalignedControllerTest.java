@@ -1034,6 +1034,7 @@ public class UnalignedControllerTest {
             abortedCheckpointId = checkpointId;
         }
 
+        @Override
         public void triggerCheckpointOnBarrier(
                 CheckpointMetaData checkpointMetaData,
                 CheckpointOptions checkpointOptions,

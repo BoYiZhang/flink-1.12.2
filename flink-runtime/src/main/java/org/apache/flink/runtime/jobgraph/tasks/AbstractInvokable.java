@@ -35,23 +35,47 @@ import java.util.concurrent.Future;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * This is the abstract base class for every task that can be executed by a TaskManager. Concrete
- * tasks extend this class, for example the streaming and batch tasks.
  *
- * <p>The TaskManager invokes the {@link #invoke()} method when executing a task. All operations of
- * the task happen in this method (setting up input output stream readers and writers as well as the
- * task's core operation).
+ * 这是TaskManager可以执行的每个任务的抽象基类。
+ * 具体的任务扩展了这个类，例如流式处理和批处理任务。
+ * TaskManager在执行任务时调用{@link#invoke（）}方法。
+ * 任务的所有操作都在此方法中发生（设置输入输出流读写器以及任务的核心操作）。
+ * 所有扩展的类都必须提供构造函数{@code MyTask(Environment,TaskStateSnapshot)}.
+ * 为了方便起见，总是无状态的任务也只能实现构造函数{@code MyTask(Environment)}.
+ *
+ * 开发说明：
+ * 虽然构造函数不能在编译时强制执行，但我们还没有冒险引入工厂（毕竟它只是一个内部API，对于java8，可以像工厂lambda一样使用 {@code Class::new} ）。
+ *
+ * 注意:
+ * 没有接受初始任务状态快照并将其存储在变量中的构造函数。
+ * 这是出于目的，因为抽象调用本身不需要状态快照（只有StreamTask等子类需要状态），我们不希望无限期地存储引用，从而防止垃圾收集器清理初始状态结构。
+ *
+ * 任何支持可恢复状态并参与检查点设置的子类都需要重写
+ * `{@link #triggerCheckpointAsync(CheckpointMetaData, CheckpointOptions, boolean)}, `
+ * `{@link  #triggerCheckpointOnBarrier(CheckpointMetaData, CheckpointOptions, CheckpointMetricsBuilder)}`,
+ * `{@link #abortCheckpointOnBarrier(long, Throwable)} `and `{@link  #notifyCheckpointCompleteAsync(long)}`.
+ *
+ *
+ * This is the abstract base class for every task that can be executed by a TaskManager.
+ * Concrete tasks extend this class, for example the streaming and batch tasks.
+ *
+ * <p>The TaskManager invokes the {@link #invoke()} method when executing a task.
+ * All operations of the task happen in this method (setting up input output stream readers and writers as well as the  task's core operation).
  *
  * <p>All classes that extend must offer a constructor {@code MyTask(Environment,
- * TaskStateSnapshot)}. Tasks that are always stateless can, for convenience, also only implement
+ * TaskStateSnapshot)}.
+ *
+ * Tasks that are always stateless can, for convenience, also only implement
  * the constructor {@code MyTask(Environment)}.
  *
  * <p><i>Developer note: While constructors cannot be enforced at compile time, we did not yet
  * venture on the endeavor of introducing factories (it is only an internal API after all, and with
  * Java 8, one can use {@code Class::new} almost like a factory lambda.</i>
  *
- * <p><b>NOTE:</b> There is no constructor that accepts and initial task state snapshot and stores
- * it in a variable. That is on purpose, because the AbstractInvokable itself does not need the
+ * <p><b>NOTE:</b>
+ * There is no constructor that accepts and initial task state snapshot and stores it in a variable.
+ *
+ * That is on purpose, because the AbstractInvokable itself does not need the
  * state snapshot (only subclasses such as StreamTask do need the state) and we do not want to store
  * a reference indefinitely, thus preventing cleanup of the initial state structure by the Garbage
  * Collector.
@@ -64,10 +88,16 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public abstract class AbstractInvokable {
 
-    /** The environment assigned to this invokable. */
+    /**
+     * 分配给此可调用对象的环境。
+     * The environment assigned to this invokable.
+     * */
     private final Environment environment;
 
-    /** Flag whether cancellation should interrupt the executing thread. */
+    /**
+     * 标记取消是否应中断正在执行的线程。
+     * Flag whether cancellation should interrupt the executing thread.
+     * */
     private volatile boolean shouldInterruptOnCancel = true;
 
     /**
@@ -84,13 +114,25 @@ public abstract class AbstractInvokable {
     // ------------------------------------------------------------------------
 
     /**
+     * 开始执行
+     *
+     * 必须被具体的任务实现所覆盖。当任务的实际执行开始时，task manager 将调用此方法。
+     *
+     * 当方法返回时，应该清理所有资源。
+     *
+     * 确保在必要时用<code>try-finally</code> 保护代码。
+     *
+     * @throws Exception :
+     *      任务可以将其异常转发给TaskManager，以便在故障/恢复期间进行处理。
+     *
+     *
      * Starts the execution.
      *
      * <p>Must be overwritten by the concrete task implementation. This method is called by the task
      * manager when the actual execution of the task starts.
      *
-     * <p>All resources should be cleaned up when the method returns. Make sure to guard the code
-     * with <code>try-finally</code> blocks where necessary.
+     * <p>All resources should be cleaned up when the method returns.
+     * Make sure to guard the code with <code>try-finally</code> blocks where necessary.
      *
      * @throws Exception Tasks may forward their exceptions for the TaskManager to handle through
      *     failure/recovery.
@@ -99,7 +141,8 @@ public abstract class AbstractInvokable {
 
     /**
      * This method is called when a task is canceled either as a result of a user abort or an
-     * execution failure. It can be overwritten to respond to shut down the user code properly.
+     * execution failure.
+     * It can be overwritten to respond to shut down the user code properly.
      *
      * @throws Exception thrown if any exception occurs during the execution of the user code
      */
@@ -108,9 +151,17 @@ public abstract class AbstractInvokable {
     }
 
     /**
+     *
+     * 设置执行{@link #invoke()}方法的线程是否应在取消过程中中断。
+     * 此方法为 initial interrupt 和 repeated interrupt 设置标志。
+     *
      * Sets whether the thread that executes the {@link #invoke()} method should be interrupted
-     * during cancellation. This method sets the flag for both the initial interrupt, as well as for
-     * the repeated interrupt. Setting the interruption to false at some point during the
+     * during cancellation.
+     *
+     * This method sets the flag for both the initial interrupt, as well as for
+     * the repeated interrupt.
+     *
+     * Setting the interruption to false at some point during the
      * cancellation procedure is a way to stop further interrupts from happening.
      */
     public void setShouldInterruptOnCancel(boolean shouldInterruptOnCancel) {
@@ -199,10 +250,21 @@ public abstract class AbstractInvokable {
     // ------------------------------------------------------------------------
 
     /**
+     * 此方法由检查点协调器异步调用以触发检查点。
+     *
+     * 对于通过注入 initial barriers （source tasks）来启动检查点的任务，将调用此方法。
+     *
+     * 相反，下游操作符上的检查点（接收检查点屏障的结果）
+     * 调用{@link#triggerCheckpointOnBarrier（CheckpointMetaData，CheckpointOptions，CheckpointMetricsBuilder）}
+     * 方法。
+     *
+     *
      * This method is called to trigger a checkpoint, asynchronously by the checkpoint coordinator.
      *
      * <p>This method is called for tasks that start the checkpoints by injecting the initial
-     * barriers, i.e., the source tasks. In contrast, checkpoints on downstream operators, which are
+     * barriers, i.e., the source tasks.
+     *
+     * In contrast, checkpoints on downstream operators, which are
      * the result of receiving checkpoint barriers, invoke the {@link
      * #triggerCheckpointOnBarrier(CheckpointMetaData, CheckpointOptions, CheckpointMetricsBuilder)}
      * method.
@@ -220,6 +282,8 @@ public abstract class AbstractInvokable {
     }
 
     /**
+     * 在所有 input streams 上接收到检查点屏障而触发检查点时，将调用此方法。
+     *
      * This method is called when a checkpoint is triggered as a result of receiving checkpoint
      * barriers on all input streams.
      *
@@ -240,6 +304,8 @@ public abstract class AbstractInvokable {
     }
 
     /**
+     *
+     * 在接收一些checkpoint barriers 的结果时, 放弃checkpoint ...
      * Aborts a checkpoint as the result of receiving possibly some checkpoint barriers, but at
      * least one {@link org.apache.flink.runtime.io.network.api.CancelCheckpointMarker}.
      *
