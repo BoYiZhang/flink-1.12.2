@@ -87,6 +87,8 @@ public interface AvailabilityProvider {
     }
 
     /**
+     * 提供重置可用/不可用状态的有用功能的可用性实现。
+     *
      * A availability implementation for providing the helpful functions of resetting the
      * available/unavailable states.
      */

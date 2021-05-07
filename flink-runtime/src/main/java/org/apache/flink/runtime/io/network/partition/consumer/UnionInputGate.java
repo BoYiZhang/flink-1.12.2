@@ -39,10 +39,18 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
+ *
+ * Input gate wrapper合并来自多个  input gates 的输入。
+ * 
+ * 每个  input gates 都连接有输入通道，从中读取数据。
+ *
+ * 在每个  input gates 处，输入通道具有从0（包含）到输入通道数（排除）的唯一ID。
+ *
+ *
  * Input gate wrapper to union the input from multiple input gates.
  *
- * <p>Each input gate has input channels attached from which it reads data. At each input gate, the
- * input channels have unique IDs from 0 (inclusive) to the number of input channels (exclusive).
+ * <p>Each input gate has input channels attached from which it reads data.
+ * At each input gate, the input channels have unique IDs from 0 (inclusive) to the number of input channels (exclusive).
  *
  * <pre>
  * +---+---+      +---+---+---+
