@@ -31,6 +31,14 @@ import java.util.concurrent.CompletableFuture;
 /**
  * logical slot 表示TaskManager上的资源，可以将单个任务部署到其中。
  *
+ *
+ * PhysicalSlot 和 LogicalSlot 这两个概念：
+ *      PhysicalSlot 表征的是物理意义上 TaskExecutor 上的一个 slot，
+ *      而 LogicalSlot 表征逻辑上的一个 slot，
+ *
+ *      一个 task 可以部署到一个 LogicalSlot 上，但它和物理上一个具体的 slot 并不是一一对应的。
+ *      由于资源共享等机制的存在，多个 LogicalSlot 可能被映射到同一个 PhysicalSlot 上。
+ *
  * A logical slot represents a resource on a TaskManager into which a single task can be deployed.
  */
 public interface LogicalSlot {

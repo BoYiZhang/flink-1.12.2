@@ -56,8 +56,37 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Manager which is responsible for slot sharing. Slot sharing allows to run different tasks in the
- * same slot and to realize co-location constraints.
+ *
+ * 负责slot共享的管理器。
+ * slot共享允许在同一个slot中运行不同的任务，并实现同一位置约束。
+ *
+ * SlotSharingManager允许创建{@link TaskSlot}的层次结构，
+ * 这样每个{@link TaskSlot}都由一个{@link SlotRequestId}唯一标识，
+ * 该{@link SlotRequestId}标识task slot的请求，而{@link AbstractID}标识在该 slot中运行的任务或co-location  约束。
+ *
+ * {@link TaskSlot}层次结构由{@link MultiTaskSlot}和{@link SingleTaskSlot}实现。
+ *
+ * 前一个类表示内部节点，其中可以包含许多其他{@link TaskSlot}，后一个类表示叶节点。
+ *
+ *
+ * 层次结构以根{@link MultiTaskSlot}开始，它是未来分配的{@link SlotContext}。
+ *
+ * {@link SlotContext}表示TaskExecutor上分配的插 slot，此层次结构的所有插 slot都在其中运行。
+ *
+ * 一个{@link MultiTaskSlot}可以被分配多个{@link singletasklot}或{@link MultiTaskSlot}，当且仅当该任务 slot还不包含另一个具有相同{@link AbstractID}标识实际任务或同一位置约束的子任务时。
+ *
+ * 通过向root节点添加一个{@link MultiTaskSlot}来对同一位置约束进行建模。
+ *
+ *
+ *
+ * 同一位置约束由{@link AbstractID}唯一标识，因此我们不能将第二个同一位置的{@link MultiTaskSlot}添加到同一根节点。
+ *
+ * 现在，所有同一位置的任务都将添加到同一位置的多任务 slot中。
+ *
+ *
+ * Manager which is responsible for slot sharing.
+ *
+ * Slot sharing allows to run different tasks in the same slot and to realize co-location constraints.
  *
  * <p>The SlotSharingManager allows to create a hierarchy of {@link TaskSlot} such that every {@link
  * TaskSlot} is uniquely identified by a {@link SlotRequestId} identifying the request for the
@@ -65,11 +94,18 @@ import java.util.stream.Stream;
  * this slot.
  *
  * <p>The {@link TaskSlot} hierarchy is implemented by {@link MultiTaskSlot} and {@link
- * SingleTaskSlot}. The former class represents inner nodes which can contain a number of other
- * {@link TaskSlot} and the latter class represents the leaf nodes. The hierarchy starts with a root
- * {@link MultiTaskSlot} which is a future {@link SlotContext} assigned. The {@link SlotContext}
- * represents the allocated slot on the TaskExecutor in which all slots of this hierarchy run. A
- * {@link MultiTaskSlot} can be assigned multiple {@link SingleTaskSlot} or {@link MultiTaskSlot} if
+ * SingleTaskSlot}.
+ *
+ * The former class represents inner nodes which can contain a number of other
+ * {@link TaskSlot} and the latter class represents the leaf nodes.
+ *
+ * The hierarchy starts with a root
+ * {@link MultiTaskSlot} which is a future {@link SlotContext} assigned.
+ *
+ * The {@link SlotContext}
+ * represents the allocated slot on the TaskExecutor in which all slots of this hierarchy run.
+ *
+ * A {@link MultiTaskSlot} can be assigned multiple {@link SingleTaskSlot} or {@link MultiTaskSlot} if
  * and only if the task slot does not yet contain another child with the same {@link AbstractID}
  * identifying the actual task or the co-location constraint.
  *
@@ -77,8 +113,9 @@ import java.util.stream.Stream;
  * {@link SingleTaskSlot} on the second layer. Each {@link SingleTaskSlot} represents a different
  * task.
  *
- * <p>Co-location constraints are modeled by adding a {@link MultiTaskSlot} to the root node. The
- * co-location constraint is uniquely identified by a {@link AbstractID} such that we cannot add a
+ * <p>Co-location constraints are modeled by adding a {@link MultiTaskSlot} to the root node.
+ *
+ * The co-location constraint is uniquely identified by a {@link AbstractID} such that we cannot add a
  * second co-located {@link MultiTaskSlot} to the same root node. Now all co-located tasks will be
  * added to co-located multi task slot.
  */

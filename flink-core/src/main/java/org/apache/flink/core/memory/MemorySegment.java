@@ -102,7 +102,10 @@ public abstract class MemorySegment {
     @SuppressWarnings("restriction")
     protected static final sun.misc.Unsafe UNSAFE = MemoryUtils.UNSAFE;
 
-    /** The beginning of the byte array contents, relative to the byte array object. */
+    /**
+     *
+     * The beginning of the byte array contents, relative to the byte array object.
+     * */
     @SuppressWarnings("restriction")
     protected static final long BYTE_ARRAY_BASE_OFFSET = UNSAFE.arrayBaseOffset(byte[].class);
 
@@ -116,6 +119,8 @@ public abstract class MemorySegment {
     // ------------------------------------------------------------------------
 
     /**
+     * 堆内存引用
+     *
      * The heap byte array object relative to which we access the memory.
      *
      * <p>Is non-<tt>null</tt> if the memory is on the heap, and is <tt>null</tt>, if the memory is
@@ -126,6 +131,8 @@ public abstract class MemorySegment {
     protected final byte[] heapMemory;
 
     /**
+     * 堆外内存地址
+     *
      * The address to the data, relative to the heap memory byte array. If the heap memory byte
      * array is <tt>null</tt>, this becomes an absolute memory address outside the heap.
      */
@@ -144,6 +151,8 @@ public abstract class MemorySegment {
     private final Object owner;
 
     /**
+     * 基于堆内存创建MemorySegment
+     *
      * Creates a new memory segment that represents the memory of the byte array.
      *
      * <p>Since the byte array is backed by on-heap memory, this memory segment holds its data on
@@ -164,6 +173,8 @@ public abstract class MemorySegment {
     }
 
     /**
+     * 基于堆外内存创建MemorySegment
+     *
      * Creates a new memory segment that represents the memory at the absolute address given by the
      * pointer.
      *
@@ -795,6 +806,20 @@ public abstract class MemorySegment {
     public final long getLong(int index) {
         final long pos = address + index;
         if (index >= 0 && pos <= addressLimit - 8) {
+            // 这是能够在一个实现中同时操作对内存和堆外内存的关键
+            //  sun.misc.Unsafe 的一些方法会根据对象引用表现出不同的行为
+            // 在 reference 不为 null 的情况下，则会取该对象的地址，加上后面的 offset，从相对地址处取出 8 字节；
+            // 而在 reference 为 null 的情况下，则 offset 就是要操作的绝对地址。
+            // 所以，通过控制对象引用的值，就可以灵活地管理堆外内存和堆内存。
+            //
+            //既然 HybridMemorySegment 可以同时管理堆内存和堆外内存，为什么还需要 HeapMemorySegment 呢？
+            //      这是因为假如所有的 MemorySegment 都是在堆上分配的，
+            //      使用 HeapMemorySegment 相比于 HybridMemorySegment 会有更好的性能。
+            //      但实际上，由于 Flink 中 Network buffer 使用的 MemorySegment 一定是在堆外分配的，
+            //      HeapMemorySegment 在 Flink 中已经不会再使用了，
+            //      具体可以参考 FLINK-7310 always use the HybridMemorySegment。
+            //
+            //MemorySegment 通常不直接构造，而是通过 MemorySegmentFactory 来创建
             return UNSAFE.getLong(heapMemory, pos);
         } else if (address > addressLimit) {
             throw new IllegalStateException("segment has been freed");

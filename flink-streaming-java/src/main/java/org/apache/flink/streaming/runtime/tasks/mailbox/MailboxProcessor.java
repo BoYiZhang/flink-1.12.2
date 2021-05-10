@@ -185,6 +185,7 @@ public class MailboxProcessor implements Closeable {
 
         final MailboxController defaultActionContext = new MailboxController(this);
 
+        // 循环执行....
         // 邮箱里有邮件,就进行处理. 邮件就是类似map之类的任务...
         while (isMailboxLoopRunning()) {
             // 在默认操作可用之前，阻塞的`processMail`调用将不会返回。

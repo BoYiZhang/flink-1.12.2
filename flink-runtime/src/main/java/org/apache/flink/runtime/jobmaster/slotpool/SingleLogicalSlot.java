@@ -35,7 +35,17 @@ import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-/** Implementation of the {@link LogicalSlot} which is used by the {@link SlotPoolImpl}. */
+/**
+ * SingleLogicalSlot 实现了 PhysicalSlot.Payload 接口，
+ * 就是说说 SingleLogicalSlot 可以作为 payload 被分配给 PhysicalSlot。
+ * 类似地， LogicalSlot 同样规定了其所能承载的 payload ,
+ * LogicalSlot.Payload 接口的实现类是 Execution，也就是需要被调度执行的一个 task。
+ *
+ * 同样需要关注一下 AllocationID 和 SlotRequestID 的区别：
+ * AllocationID 是用来区分物理内存的分配，它总是和 AllocatedSlot 向关联的；
+ * 而 SlotRequestID 是任务调度执行的时候请求 LogicalSlot，是和 LogicalSlot 关联的。
+ *
+ * Implementation of the {@link LogicalSlot} which is used by the {@link SlotPoolImpl}. */
 public class SingleLogicalSlot implements LogicalSlot, PhysicalSlot.Payload {
 
     private static final AtomicReferenceFieldUpdater<SingleLogicalSlot, Payload> PAYLOAD_UPDATER =

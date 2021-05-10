@@ -801,6 +801,7 @@ public class Task
 
 
             // 获取用户类加载器 : UserCodeClassLoader
+            // 避免不同的Job在相同的JVM中执行的时候jar版本冲突.
             // Getting user code class loader for task 141dd597dc560a831b2b4bc195943f0b at library cache manager took 10 milliseconds
             userCodeClassLoader = createUserCodeClassloader();
 
@@ -833,6 +834,9 @@ public class Task
             //Registering task at network: Source: Socket Stream -> Flat Map (1/1)#0 (fc2db808f4399d580c05db4fd3c2d2df) [DEPLOYING].
             LOG.info("Registering task at network: {}.", this);
 
+            // [   重要!!!!!  ]初始化Partition/InputGate , 并注册Partition
+            // jianli ResultPartion zhuce dao ResultPartitionManager,
+            // InputGate与上还有Task建立物理上的数据传输通道.
             setupPartitionsAndGates(consumableNotifyingPartitionWriters, inputGates);
 
             for (ResultPartitionWriter partitionWriter : consumableNotifyingPartitionWriters) {
@@ -914,6 +918,7 @@ public class Task
             //  actual task core work
             // ----------------------------------------------------------------
 
+            // [核心逻辑] 启动StreamTask执行.
             // we must make strictly sure that the invokable is accessible to the cancel() call
             // by the time we switched to running.
             this.invokable = invokable;
@@ -941,8 +946,11 @@ public class Task
             // sink : DataSinkTask / IterationSynchronizationSinkTask
             //
 
-            // 批任务: BatchTask
+
+            // 启动业务逻辑的执行. 执行线程中循环执行
             invokable.invoke();
+
+
 
             // make sure, we enter the catch block if the task leaves the invoke() method due
             // to the fact that it has been canceled
@@ -1104,9 +1112,11 @@ public class Task
     public static void setupPartitionsAndGates(
             ResultPartitionWriter[] producedPartitions, InputGate[] inputGates) throws IOException {
 
+        // 初始化结果分区
         for (ResultPartitionWriter partition : producedPartitions) {
             partition.setup();
         }
+        // 初始化InputGate, 并请求结果分区.
 
         // InputGates must be initialized after the partitions, since during InputGate#setup
         // we are requesting partitions

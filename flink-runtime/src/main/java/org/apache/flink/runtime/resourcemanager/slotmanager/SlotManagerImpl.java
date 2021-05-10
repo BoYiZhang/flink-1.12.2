@@ -306,6 +306,7 @@ public class SlotManagerImpl implements SlotManager {
 
         started = true;
 
+        // slot 空闲超时检测
         taskManagerTimeoutsAndRedundancyCheck =
                 scheduledExecutor.scheduleWithFixedDelay(
                         () ->
@@ -315,6 +316,7 @@ public class SlotManagerImpl implements SlotManager {
                         taskManagerTimeout.toMilliseconds(),
                         TimeUnit.MILLISECONDS);
 
+        // 请求超时检测
         slotRequestTimeoutCheck =
                 scheduledExecutor.scheduleWithFixedDelay(
                         () -> mainThreadExecutor.execute(() -> checkSlotRequestTimeouts()),

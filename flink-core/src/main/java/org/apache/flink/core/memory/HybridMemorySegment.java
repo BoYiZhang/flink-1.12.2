@@ -73,6 +73,10 @@ public final class HybridMemorySegment extends MemorySegment {
     private final boolean allowWrap;
 
     /**
+     *
+     * 堆外内存初始化
+     *
+     *
      * Creates a new memory segment that represents the memory backing the given direct byte buffer.
      * Note that the given ByteBuffer must be direct {@link
      * java.nio.ByteBuffer#allocateDirect(int)}, otherwise this method with throw an
@@ -114,6 +118,8 @@ public final class HybridMemorySegment extends MemorySegment {
     }
 
     /**
+     * 堆内内存初始化
+     *
      * Creates a new memory segment that represents the memory of the byte array.
      *
      * <p>The memory segment references the given owner.
