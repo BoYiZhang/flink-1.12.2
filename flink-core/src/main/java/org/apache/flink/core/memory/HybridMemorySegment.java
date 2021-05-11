@@ -40,6 +40,13 @@ import static org.apache.flink.core.memory.MemoryUtils.getByteBufferAddress;
  *
  * 默认采用该方式进行内存管理
  *
+ * 内存可以是on-heap, off-heap direct or off-heap unsafe ，这是由此类处理的。
+ *
+ * 这个类专门处理 堆内存的字节访问和字节复制调用，同时重用MemorySegment中的the  multi-byte type accesses 和cross-segment 操作。
+ *
+ * 注意:
+ *  MemorySegment通常不手动分配, 而是使用 MemorySegmentFactory进行管理
+ *
  * This class represents a piece of memory managed by Flink.
  *
  * <p>The memory can be on-heap, off-heap direct or off-heap unsafe, this is transparently handled
@@ -58,7 +65,13 @@ import static org.apache.flink.core.memory.MemoryUtils.getByteBufferAddress;
 @Internal
 public final class HybridMemorySegment extends MemorySegment {
     /**
-     * The direct byte buffer that wraps the off-heap memory. This memory segment holds a reference
+     * 堆外内存的封装
+     *
+     * 包装堆外内存的直接字节缓冲区。
+     * 此内存段保存对该缓冲区的引用，因此只要此内存段存在，内存就不会被释放。
+     *
+     * The direct byte buffer that wraps the off-heap memory.
+     * This memory segment holds a reference
      * to that buffer, so as long as this memory segment lives, the memory will not be released.
      */
     @Nullable private ByteBuffer offHeapBuffer;
@@ -66,9 +79,18 @@ public final class HybridMemorySegment extends MemorySegment {
     @Nullable private final Runnable cleaner;
 
     /**
-     * Wrapping is not allowed when the underlying memory is unsafe. Unsafe memory can be actively
-     * released, without reference counting. Therefore, access from wrapped buffers, which may not
-     * be aware of the releasing of memory, could be risky.
+     * 当underlying memory 为 unsafe 时，不允许包装。
+     *
+     * 可以主动释放不安全的内存，而不进行引用计数。
+     * 因此，从包装好的缓冲区进行访问（可能没有意识到内存的释放）可能是有风险的。
+     *
+     *
+     * Wrapping is not allowed when the underlying memory is unsafe.
+     *
+     * Unsafe memory can be actively released, without reference counting.
+     *
+     * Therefore, access from wrapped buffers,
+     * which may not be aware of the releasing of memory, could be risky.
      */
     private final boolean allowWrap;
 
@@ -94,6 +116,7 @@ public final class HybridMemorySegment extends MemorySegment {
 
     /**
      * Creates a new memory segment that represents the memory backing the given direct byte buffer.
+     *
      * Note that the given ByteBuffer must be direct {@link
      * java.nio.ByteBuffer#allocateDirect(int)}, otherwise this method with throw an
      * IllegalArgumentException.
@@ -158,10 +181,13 @@ public final class HybridMemorySegment extends MemorySegment {
 
     private ByteBuffer wrapInternal(int offset, int length) {
         if (address <= addressLimit) {
+
             if (heapMemory != null) {
+                // 代表是堆上 内存
                 return ByteBuffer.wrap(heapMemory, offset, length);
             } else {
                 try {
+                    //包装 堆外内存...
                     ByteBuffer wrapper = offHeapBuffer.duplicate();
                     wrapper.limit(offset + length);
                     wrapper.position(offset);

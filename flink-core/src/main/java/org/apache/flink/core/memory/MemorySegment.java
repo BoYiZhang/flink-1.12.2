@@ -26,22 +26,49 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ReadOnlyBufferException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * This class represents a piece of memory managed by Flink. The segment may be backed by heap
- * memory (byte array) or by off-heap memory.
+ * 这个类表示由Flink管理的一块内存。
+ * segment可以由堆内存（字节数组）或堆外内存支持。
+ *
+ * 有两个实现类:
+ *  {@link org.apache.flink.core.memory.HeapMemorySegment }
+ *  {@link org.apache.flink.core.memory.HybridMemorySegment }
+ *
+ * 在这个类中实现了跨两个内存segment的所有操作方法，以透明地处理内存segment类型的混合。
+ * 这个类在概念上实现了与Java的 {@link java.nio.ByteBuffer} 类似的目的。
+ *
+ * 由于各种原因，我们添加了这个专门的类：
+ *
+ *    它提供了额外的二进制比较、交换和复制方法。
+ *    它使用collapsed checks进行范围检查和内存segment处理。
+ *    它为批量put/get方法提供绝对定位方法，以保证线程安全使用。
+ *    它提供显式的big-endian/little-endian访问方法，而不是在内部跟踪字节顺序。
+ *    它透明高效地在堆内和堆外变量之间移动数据。
+ *
+ *
+ * 我们大量使用本机指令支持的操作，以实现高效率。
+ * 多字节类型（int、long、float、double…）是用“unsafe”的本机命令读写的。
+ *
+ *
+ *
+ * This class represents a piece of memory managed by Flink.
+ * The segment may be backed by heap  memory (byte array) or by off-heap memory.
  *
  * <p>The methods for individual memory access are specialized in the classes {@link
  * org.apache.flink.core.memory.HeapMemorySegment} and {@link
- * org.apache.flink.core.memory.HybridMemorySegment}. All methods that operate across two memory
- * segments are implemented in this class, to transparently handle the mixing of memory segment
- * types.
+ * org.apache.flink.core.memory.HybridMemorySegment}.
+ *
+ * All methods that operate across two memory segments are implemented in this class,
+ * to transparently handle the mixing of memory segment types.
  *
  * <p>This class fulfills conceptually a similar purpose as Java's {@link java.nio.ByteBuffer}. We
  * add this specialized class for various reasons:
  *
+
  * <ul>
  *   <li>It offers additional binary compare, swap, and copy methods.
  *   <li>It uses collapsed checks for range check and memory segment disposal.
@@ -52,15 +79,19 @@ import java.util.function.Function;
  *   <li>It transparently and efficiently moves data between on-heap and off-heap variants.
  * </ul>
  *
- * <p><i>Comments on the implementation</i>: We make heavy use of operations that are supported by
- * native instructions, to achieve a high efficiency. Multi byte types (int, long, float, double,
- * ...) are read and written with "unsafe" native commands.
+ * <p><i>Comments on the implementation</i>:
+ * We make heavy use of operations that are supported by native instructions, to achieve a high efficiency.
+ * Multi byte types (int, long, float, double,  ...) are read and written with "unsafe" native commands.
  *
  * <p>Below is an example of the code generated for the {@link
- * HeapMemorySegment#putLongBigEndian(int, long)} function by the just-in-time compiler. The code is
+ * HeapMemorySegment#putLongBigEndian(int, long)} function by the just-in-time compiler.
+ *
+ * The code is
  * grabbed from an Oracle JVM 7 using the hotspot disassembler library (hsdis32.dll) and the jvm
  * command <i>-XX:+UnlockDiagnosticVMOptions
- * -XX:CompileCommand=print,*MemorySegment.putLongBigEndian</i>. Note that this code realizes both
+ * -XX:CompileCommand=print,*MemorySegment.putLongBigEndian</i>.
+ *
+ * Note that this code realizes both
  * the byte order swapping and the reinterpret cast access to get a long from the byte array.
  *
  * <pre>
@@ -97,12 +128,18 @@ import java.util.function.Function;
  */
 @Internal
 public abstract class MemorySegment {
-
-    /** The unsafe handle for transparent memory copied (heap / off-heap). */
+    
+    /**
+     * unsafe 类处理/转换 （堆/堆外) 内存 .
+     * The unsafe handle for transparent memory copied (heap / off-heap).
+     *
+     * */
     @SuppressWarnings("restriction")
     protected static final sun.misc.Unsafe UNSAFE = MemoryUtils.UNSAFE;
 
     /**
+     *
+     * 二进制字节数组的起始索引，相对于字节数组对象而言 。
      *
      * The beginning of the byte array contents, relative to the byte array object.
      * */
@@ -110,7 +147,13 @@ public abstract class MemorySegment {
     protected static final long BYTE_ARRAY_BASE_OFFSET = UNSAFE.arrayBaseOffset(byte[].class);
 
     /**
-     * Constant that flags the byte order. Because this is a boolean constant, the JIT compiler can
+     * 标记字节顺序的常量
+     * 判断是否为 LittleEndian 模式的字节存储顺序，若不是，就是 BigEndian 模式 。
+     * 因为这是一个布尔常量，JIT编译器可以很好地利用它来积极地消除不适用的代码路径
+     *
+     * Constant that flags the byte order.
+     *
+     * Because this is a boolean constant, the JIT compiler can
      * use this well to aggressively eliminate the non-applicable code paths.
      */
     private static final boolean LITTLE_ENDIAN =
@@ -121,10 +164,17 @@ public abstract class MemorySegment {
     /**
      * 堆内存引用
      *
+     * 如果 MemeorySegment 使用堆上内存，则表示一个堆上的字节数组 (byle[] ) .
+     * 如果 MemeorySegment 使用堆外内存，则为null 。
+     *
+     *
+     *
      * The heap byte array object relative to which we access the memory.
      *
      * <p>Is non-<tt>null</tt> if the memory is on the heap, and is <tt>null</tt>, if the memory is
-     * off the heap. If we have this buffer, we must never void this reference, or the memory
+     * off the heap.
+     *
+     * If we have this buffer, we must never void this reference, or the memory
      * segment will point to undefined addresses outside the heap and may in out-of-order execution
      * cases cause segmentation faults.
      */
@@ -132,22 +182,32 @@ public abstract class MemorySegment {
 
     /**
      * 堆外内存地址
+     * 如果 heapMemory 为null , 这就代表一个堆外内存的绝对地址.
      *
-     * The address to the data, relative to the heap memory byte array. If the heap memory byte
-     * array is <tt>null</tt>, this becomes an absolute memory address outside the heap.
+     * The address to the data, relative to the heap memory byte array.
+     * If the heap memory byte array is <tt>null</tt>, this becomes an absolute memory address outside the heap.
      */
     protected long address;
 
     /**
+     * 标识地址结束位置 (address +size)
+     *
      * The address one byte after the last addressable byte, i.e. <tt>address + size</tt> while the
      * segment is not disposed.
      */
     protected final long addressLimit;
 
-    /** The size in bytes of the memory segment. */
+    /**
+     * 内存段的字节数。 : 32M = 32 * 1024 = 32768
+     *
+     * The size in bytes of the memory segment.
+     * */
     protected final int size;
 
-    /** Optional owner of the memory segment. */
+    /**
+     * memory segment的所有人
+     * Optional owner of the memory segment.
+     * */
     private final Object owner;
 
     /**
@@ -207,6 +267,7 @@ public abstract class MemorySegment {
     // ------------------------------------------------------------------------
 
     /**
+     * 获取 memory segment 大小
      * Gets the size of the memory segment, in bytes.
      *
      * @return The size of the memory segment.
@@ -216,6 +277,7 @@ public abstract class MemorySegment {
     }
 
     /**
+     * 检测 address 是否大于  addressLimit
      * Checks whether the memory segment was freed.
      *
      * @return <tt>true</tt>, if the memory segment has been freed, <tt>false</tt> otherwise.
@@ -225,19 +287,26 @@ public abstract class MemorySegment {
     }
 
     /**
+     * 释放此   memory segment
      * Frees this memory segment.
      *
+     * 调用此操作后，内存段上不可能进行进一步操作，并且将失败。
+     * 实际内存（堆或堆外）只有在这个内存段对象被垃圾收集之后才会被释放。
+     *
      * <p>After this operation has been called, no further operations are possible on the memory
-     * segment and will fail. The actual memory (heap or off-heap) will only be released after this
+     * segment and will fail.
+     * The actual memory (heap or off-heap) will only be released after this
      * memory segment object has become garbage collected.
      */
     public void free() {
+        // 这确保了我们不能放置更多的数据并触发对释放段的检查
         // this ensures we can place no more data and trigger
         // the checks for the freed segment
         address = addressLimit + 1;
     }
 
     /**
+     * 检测是否为 堆外内存
      * Checks whether this memory segment is backed by off-heap memory.
      *
      * @return <tt>true</tt>, if the memory segment is backed by off-heap memory, <tt>false</tt> if
@@ -248,6 +317,8 @@ public abstract class MemorySegment {
     }
 
     /**
+     * 返回 on-heap memory segments. 上的byte 数组
+     *
      * Returns the byte array of on-heap memory segments.
      *
      * @return underlying byte array
@@ -262,6 +333,8 @@ public abstract class MemorySegment {
     }
 
     /**
+     * 获取堆外内存的地址
+     *
      * Returns the memory address of off-heap memory segments.
      *
      * @return absolute memory address outside the heap
@@ -277,7 +350,9 @@ public abstract class MemorySegment {
 
     /**
      * Wraps the chunk of the underlying memory located between <tt>offset</tt> and <tt>offset +
-     * length</tt> in a NIO ByteBuffer. The ByteBuffer has the full segment as capacity and the
+     * length</tt> in a NIO ByteBuffer.
+     *
+     * The ByteBuffer has the full segment as capacity and the
      * offset and length parameters set the buffers position and limit.
      *
      * @param offset The offset in the memory segment.
