@@ -190,6 +190,8 @@ class NettyClient {
                                             serverSocketAddress.getPort());
                             channel.pipeline().addLast("ssl", sslHandler);
                         }
+                        // todo !!!!!!!!
+                        // 添加 CreditBasedPartitionRequestClientHandler
                         channel.pipeline().addLast(protocol.getClientChannelHandlers());
                     }
                 });

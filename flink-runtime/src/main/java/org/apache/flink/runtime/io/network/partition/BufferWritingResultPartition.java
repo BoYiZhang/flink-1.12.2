@@ -141,11 +141,26 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
 
     @Override
     public void emitRecord(ByteBuffer record, int targetSubpartition) throws IOException {
+
+
+        // 1. 获取一个BufferBuilder
+        // 2. 写入数据流元素到bufferBuilder
+        // 3. 如果buffer被写满，修改buffer状态为finished，申请新的buffer继续写入
+        // 4. buffer写满同时元素也被完全写入，需要跳出循环 ???
+
+
+
         BufferBuilder buffer = appendUnicastDataForNewRecord(record, targetSubpartition);
 
         while (record.hasRemaining()) {
+
+            // 这里很重要，当一个buffer被写满的时候需要标记该buffer的状态为finished
+            // 在ResultSubpartition取出缓存数据的时候会对buffer队列中每个buffer的finished状态进行检查
+            // 只允许buffer队列中最后一个buffer的状态为没有finished
+
             // full buffer, partial record
             finishUnicastBufferBuilder(targetSubpartition);
+
             buffer = appendUnicastDataForRecordContinuation(record, targetSubpartition);
         }
 
@@ -327,6 +342,8 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
 
     private BufferBuilder requestNewBufferBuilderFromPool(int targetSubpartition)
             throws IOException {
+
+
         BufferBuilder bufferBuilder = bufferPool.requestBufferBuilder(targetSubpartition);
         if (bufferBuilder != null) {
             return bufferBuilder;

@@ -49,7 +49,14 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 public class BufferManager implements BufferListener, BufferRecycler {
 
-    /** The available buffer queue wraps both exclusive and requested floating buffers. */
+    /**
+     *
+     * AvailableBufferQueue负责维护RemoteInputChannel的可用buffer
+     *
+     *
+     * The available buffer queue wraps both exclusive and requested floating buffers.
+     *
+     * */
     private final AvailableBufferQueue bufferQueue = new AvailableBufferQueue();
 
     /** The buffer provider for requesting exclusive buffers. */
@@ -83,6 +90,8 @@ public class BufferManager implements BufferListener, BufferRecycler {
 
     @Nullable
     Buffer requestBuffer() {
+        // 其中bufferQueue对象为AvailableBufferQueue类型。
+        //AvailableBufferQueue负责维护RemoteInputChannel的可用内存 .
         synchronized (bufferQueue) {
             return bufferQueue.takeBuffer();
         }
@@ -129,6 +138,7 @@ public class BufferManager implements BufferListener, BufferRecycler {
 
     /** Requests exclusive buffers from the provider. */
     void requestExclusiveBuffers(int numExclusiveBuffers) throws IOException {
+        // numExclusiveBuffers : MemorySegment为批量申请，该变量决定一批次申请的MemorySegment的数量
         Collection<MemorySegment> segments = globalPool.requestMemorySegments(numExclusiveBuffers);
         checkArgument(
                 !segments.isEmpty(),
@@ -136,6 +146,8 @@ public class BufferManager implements BufferListener, BufferRecycler {
 
         synchronized (bufferQueue) {
             for (MemorySegment segment : segments) {
+                // 此处使用NetworkBuffer封装了memorySegment。
+                //因此该内存块回收的时候会调用RemoteInputChannel的recycle方法
                 bufferQueue.addExclusiveBuffer(
                         new NetworkBuffer(segment, this), numRequiredBuffers);
             }
@@ -159,11 +171,18 @@ public class BufferManager implements BufferListener, BufferRecycler {
 
             numRequiredBuffers = numRequired;
 
+            // while循环不断的从inputGate的bufferPool（即LocalBufferPool）获取可用的缓存块，
+            //加入到浮动缓存队列中，同时记录请求的缓存块数量，
+            //直到可用缓存数量不再小于需要缓存块的数量时候停止循环。
+
             while (bufferQueue.getAvailableBufferSize() < numRequiredBuffers
                     && !isWaitingForFloatingBuffers) {
+                // 获取 BufferPool
                 BufferPool bufferPool = inputChannel.inputGate.getBufferPool();
+                // 请求内存
                 Buffer buffer = bufferPool.requestBuffer();
                 if (buffer != null) {
+                    // 添加到浮动内存..
                     bufferQueue.addFloatingBuffer(buffer);
                     numRequestedBuffers++;
                 } else if (bufferPool.addBufferListener(this)) {
@@ -193,8 +212,11 @@ public class BufferManager implements BufferListener, BufferRecycler {
                 // Similar to notifyBufferAvailable(), make sure that we never add a buffer
                 // after channel released all buffers via releaseAllResources().
                 if (inputChannel.isReleased()) {
+                    // 使用globalPool#recycleMemorySegments    回收内存
                     globalPool.recycleMemorySegments(Collections.singletonList(segment));
                 } else {
+
+                    // 添加内存片段到专属内存
                     numAddedBuffers =
                             bufferQueue.addExclusiveBuffer(
                                     new NetworkBuffer(segment, this), numRequiredBuffers);
@@ -220,7 +242,11 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
     }
 
-    /** Recycles all the exclusive and floating buffers from the given buffer queue. */
+    /**
+     * 释放所有的Buffers
+     *
+     * Recycles all the exclusive and floating buffers from the given buffer queue.
+     * */
     void releaseAllBuffers(ArrayDeque<Buffer> buffers) throws IOException {
         // Gather all exclusive buffers and recycle them to global pool in batch, because
         // we do not want to trigger redistribution of buffers after each recycle.
@@ -235,6 +261,7 @@ public class BufferManager implements BufferListener, BufferRecycler {
             }
         }
         synchronized (bufferQueue) {
+           //   释放RemoteInputChannel所有缓存
             bufferQueue.releaseAll(exclusiveRecyclingSegments);
             bufferQueue.notifyAll();
         }
@@ -351,15 +378,45 @@ public class BufferManager implements BufferListener, BufferRecycler {
     }
 
     /**
+     * AvailableBufferQueue负责维护RemoteInputChannel的可用buffer。
+     *
+     * 它的内部维护了两个内存队列，分别为floatingBuffers(浮动buffer)和exclusiveBuffers(专用buffer)。
+
+     * exclusiveBuffers 是在创建InputChannel的时候分配的（setup方法，间接调用了NetworkBufferPool的requestMemorySegments）
+     * exclusiveBuffers的大小是固定的，归RemoteInputChannel独享。
+     * 如果出现专属buffer不够用的情况，会申请浮动buffer。
+     *
+     * 浮动buffer在InputChannel所属的bufferPool中申请
+     * 所有属于同一个inputGate的inputChannel共享这一个bufferPool。
+     * 总结来说浮动buffer可以理解为是按需分配，从公有的bufferPool中"借用"的。
+     *
+     *
      * Manages the exclusive and floating buffers of this channel, and handles the internal buffer
      * related logic.
      */
     static final class AvailableBufferQueue {
 
-        /** The current available floating buffers from the fixed buffer pool. */
+        /**
+         *
+         * 固定缓冲池中当前可用的浮动缓冲区。
+         *
+         * 浮动buffer在InputChannel所属的bufferPool中申请
+         * 所有属于同一个inputGate的inputChannel共享这一个bufferPool。
+         * 总结来说浮动buffer可以理解为是按需分配，从公有的bufferPool中"借用"的。
+         *
+         * The current available floating buffers from the fixed buffer pool.
+         * */
         final ArrayDeque<Buffer> floatingBuffers;
 
-        /** The current available exclusive buffers from the global buffer pool. */
+        /**
+         * 全局缓冲池中当前可用的独占缓冲区。
+         *
+         * exclusiveBuffers 是在创建InputChannel的时候分配的（setup方法方法，间接调用了NetworkBufferPool的requestMemorySegments）
+         * exclusiveBuffers的大小是固定的，归RemoteInputChannel独享。
+         * 如果出现专属buffer不够用的情况，会申请浮动buffer。
+         *
+         * The current available exclusive buffers from the global buffer pool.
+         * */
         final ArrayDeque<Buffer> exclusiveBuffers;
 
         AvailableBufferQueue() {
@@ -368,6 +425,10 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
 
         /**
+         * 为队列增加专属buffer的方法为addExclusiveBuffer
+         *
+         * 在InputGate的setup阶段为所有的input channel分配专属内存。查看SingleInputGate的setup方法
+         *
          * Adds an exclusive buffer (back) into the queue and recycles one floating buffer if the
          * number of available buffers in queue is more than the required amount.
          *
@@ -376,14 +437,22 @@ public class BufferManager implements BufferListener, BufferRecycler {
          * @return How many buffers were added to the queue
          */
         int addExclusiveBuffer(Buffer buffer, int numRequiredBuffers) {
+
+            // 1. 添加buffer到专属buffer队列。
             exclusiveBuffers.add(buffer);
+
+            // 2. 如果可用buffer数（浮动buffer+专属buffer）大于所需内存buffer数，回收一个浮动buffer。
             if (getAvailableBufferSize() > numRequiredBuffers) {
+                // 超过所需要的 Buffer , 释放...
                 Buffer floatingBuffer = floatingBuffers.poll();
                 if (floatingBuffer != null) {
+                    // 释放浮动
                     floatingBuffer.recycleBuffer();
+                    // 如果回收了浮动内存，返回0，否则返回1。
                     return 0;
                 }
             }
+            // 如果回收了浮动内存，返回0，否则返回1。
             return 1;
         }
 
@@ -399,6 +468,8 @@ public class BufferManager implements BufferListener, BufferRecycler {
          */
         @Nullable
         Buffer takeBuffer() {
+            // 请求内存的逻辑位于takeBuffer方法，如下面所示：
+            // 如果有可用的浮动内存，会优先使用他们。没有可用浮动内存的时候会使用专属内存。
             if (floatingBuffers.size() > 0) {
                 return floatingBuffers.poll();
             } else {

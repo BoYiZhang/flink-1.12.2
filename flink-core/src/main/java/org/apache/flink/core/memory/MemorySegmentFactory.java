@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /**
+ *
  * A factory for (hybrid) memory segments ({@link HybridMemorySegment}).
  *
  * <p>The purpose of this factory is to make sure that all memory segments for heap data are of the
@@ -44,6 +45,11 @@ public final class MemorySegmentFactory {
     private static final Runnable NO_OP = () -> {};
 
     /**
+     *
+     * 包装字节数组为HybridMemorySegment。内存位于堆内。
+     * 由于此Factory返回的都是HybridMemorySegment类型，后面统一使用MemorySegment称呼也不会引起混淆。
+     *
+     *
      * Creates a new memory segment that targets the given heap memory region.
      *
      * <p>This method should be used to turn short lived byte arrays into memory segments.
@@ -96,6 +102,8 @@ public final class MemorySegmentFactory {
     }
 
     /**
+     * 分配指定字节数的内存，位于堆内。
+     *
      * Allocates some unpooled memory and creates a new memory segment that represents that memory.
      *
      * <p>This method is similar to {@link #allocateUnpooledSegment(int)}, but additionally sets the
@@ -110,6 +118,9 @@ public final class MemorySegmentFactory {
     }
 
     /**
+     * 分配指定字节数的内存，位于堆外。
+     * 返回MemorySegment包装ByteBuffer.allocateDirect()方式分配的堆外内存。
+     *
      * Allocates some unpooled off-heap memory and creates a new memory segment that represents that
      * memory.
      *
@@ -121,6 +132,9 @@ public final class MemorySegmentFactory {
     }
 
     /**
+     * 分配指定字节数的内存，位于堆外。
+     * 返回MemorySegment包装ByteBuffer.allocateDirect()方式分配的堆外内存。
+     *
      * Allocates some unpooled off-heap memory and creates a new memory segment that represents that
      * memory.
      *
@@ -132,6 +146,7 @@ public final class MemorySegmentFactory {
         ByteBuffer memory = allocateDirectMemory(size);
         return new HybridMemorySegment(memory, owner);
     }
+
 
     @VisibleForTesting
     public static MemorySegment allocateOffHeapUnsafeMemory(int size) {
@@ -158,6 +173,11 @@ public final class MemorySegmentFactory {
     }
 
     /**
+     *
+     *
+     * 使用sun.misc.Unsafe的allocateMemory方法分配堆外内存。
+     * 注意，使用这种方式分配的内存不受-XX:MaxDirectMemorySize这个JVM参数的限制。
+     *
      * Allocates an off-heap unsafe memory and creates a new memory segment to represent that
      * memory.
      *
@@ -181,6 +201,8 @@ public final class MemorySegmentFactory {
     }
 
     /**
+     * 包装ByteBuffer类型堆外内存为MemorySegment类型。
+     *
      * Creates a memory segment that wraps the off-heap memory backing the given ByteBuffer. Note
      * that the ByteBuffer needs to be a <i>direct ByteBuffer</i>.
      *

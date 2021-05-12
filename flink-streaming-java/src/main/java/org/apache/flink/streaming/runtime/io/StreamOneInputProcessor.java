@@ -63,7 +63,7 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
     @Override
     public InputStatus processInput() throws Exception {
 
-
+        // 读取数据
         //  input 直接发送数据给 output
         // StreamTaskNetworkInput#emitNext
         // org.apache.flink.streaming.runtime.io.StreamTaskNetworkInput#emitNext

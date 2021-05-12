@@ -152,6 +152,7 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
         this.inputIndex = inputIndex;
     }
 
+    // 该方法负责从InputGate中拉取数据，数据被反序列化器反序列化之后发往operator。
     @Override
     public InputStatus emitNext(DataOutput<T> output) throws Exception {
 
@@ -165,7 +166,16 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
                     throw new IOException(
                             String.format("Can't get next record for channel %s", lastChannel), e);
                 }
+
+                // 关键点
+                // 如果buffer中的数据已经被反序列化完毕
+                // result.isBufferConsumed()返回true
+                // 调用反序列化器中内存块的recycleBuffer方法。
+
+
                 if (result.isBufferConsumed()) {
+                    // 在这里currentRecordDeserializer.
+                    // getCurrentBuffer()是NetworkBuffer类型。
                     currentRecordDeserializer.getCurrentBuffer().recycleBuffer();
                     currentRecordDeserializer = null;
                 }

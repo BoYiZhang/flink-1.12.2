@@ -211,6 +211,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
+            //处理数据...
             decodeMsg(msg);
         } catch (Throwable t) {
             notifyAllChannelsOfErrorAndClose(t);
@@ -286,6 +287,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
         // ---- Buffer --------------------------------------------------------
         if (msgClazz == NettyMessage.BufferResponse.class) {
+            // 数据转换
             NettyMessage.BufferResponse bufferOrEvent = (NettyMessage.BufferResponse) msg;
 
             RemoteInputChannel inputChannel = inputChannels.get(bufferOrEvent.receiverId);
@@ -298,6 +300,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
             }
 
             try {
+                // 处理数据
                 decodeBufferOrEvent(inputChannel, bufferOrEvent);
             } catch (Throwable t) {
                 inputChannel.onError(t);
@@ -336,12 +339,16 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         }
     }
 
+    // RemoteInputChannel储存从上游接收到的数据使用的buffer从AvailableBufferQueue中请求。
+    // CreditBasedPartitionRequestClientHandler的decodeBufferOrEvent方法负责处理netty通信接收到的上游数据。
     private void decodeBufferOrEvent(
             RemoteInputChannel inputChannel, NettyMessage.BufferResponse bufferOrEvent)
             throws Throwable {
+
         if (bufferOrEvent.isBuffer() && bufferOrEvent.bufferSize == 0) {
             inputChannel.onEmptyBuffer(bufferOrEvent.sequenceNumber, bufferOrEvent.backlog);
         } else if (bufferOrEvent.getBuffer() != null) {
+            // 通知inputChannel缓存数据已准备就绪
             inputChannel.onBuffer(
                     bufferOrEvent.getBuffer(), bufferOrEvent.sequenceNumber, bufferOrEvent.backlog);
         } else {

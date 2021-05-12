@@ -55,6 +55,12 @@ class NetworkBufferAllocator {
         // message
         // will be discarded.
         if (inputChannel != null) {
+
+            //    RemoteInputChannel储存从上游接收到的数据使用的buffer从AvailableBufferQueue中请求。
+            //    CreditBasedPartitionRequestClientHandler的decodeBufferOrEvent方法负责处理netty通信接收到的上游数据。
+            //    调用inputChannel的requestBuffer，获取一个buffer。
+            //    如果能够获取到buffer，会接着调用inputChannel的onBuffer方法，把接收到的数据存入到receivedBuffers中。
+            // 获取buffer
             buffer = inputChannel.requestBuffer();
         }
 

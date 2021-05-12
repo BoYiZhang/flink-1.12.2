@@ -264,6 +264,7 @@ public class ResultPartitionFactory {
                             ? sortShuffleMinBuffers
                             : numberOfSubpartitions + 1;
 
+            // 在这里会构建 LocalBufferPool
             // If the partition type is back pressure-free, we register with the buffer pool for
             // callbacks to release memory.
             return bufferPoolFactory.createBufferPool(

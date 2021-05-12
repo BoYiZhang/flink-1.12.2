@@ -39,6 +39,17 @@ import java.util.concurrent.CompletableFuture;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /**
+ *
+ * 数据发送端最重要的角色是RecordWriter和ResultPartition。
+ * RecordWriter负责将数据流中的元素序列化，存入到ResultSubpartition中。
+ *
+ * RecordWriter具有两个子类：BroadcastRecordWriter和ChannelSelectorRecordWriter，
+ * 分别负责广播形式写入数据和根据channel选择器向指定的channel写入数据。
+ *
+ * 这两个子类的emit方法主要逻辑都位于父类RecordWriter的emit方法。
+ *
+
+ *
  * An abstract record-oriented runtime result writer.
  *
  * <p>The RecordWriter wraps the runtime's {@link ResultPartitionWriter} and takes care of channel
@@ -101,9 +112,11 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
     protected void emit(T record, int targetSubpartition) throws IOException {
         checkErroneous();
 
+        // 序列化record，存入到目标channel的缓存中
         targetPartition.emitRecord(serializeRecord(serializer, record), targetSubpartition);
 
         if (flushAlways) {
+            // flush 操作...
             targetPartition.flush(targetSubpartition);
         }
     }

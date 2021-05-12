@@ -274,38 +274,50 @@ public class PipelinedSubpartition extends ResultSubpartition
 
             Buffer buffer = null;
 
+            // 如果buffers队列为空，不需要flush
             if (buffers.isEmpty()) {
                 flushRequested = false;
             }
 
             while (!buffers.isEmpty()) {
-                BufferConsumerWithPartialRecordLength bufferConsumerWithPartialRecordLength =
-                        buffers.peek();
+
+                BufferConsumerWithPartialRecordLength bufferConsumerWithPartialRecordLength = buffers.peek();
+
+
                 BufferConsumer bufferConsumer =
                         bufferConsumerWithPartialRecordLength.getBufferConsumer();
 
+               // 转换bufferConsumer为Buffer类型
                 buffer = buildSliceBuffer(bufferConsumerWithPartialRecordLength);
 
+                // 检查buffers队列，没有finished的buffer不能在队列头部
+                // 只允许buffer队列最后一个buffer的状态为没有finish
                 checkState(
                         bufferConsumer.isFinished() || buffers.size() == 1,
                         "When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue.");
 
+                // 如果队列只有一个buffer，不需要flush
                 if (buffers.size() == 1) {
                     // turn off flushRequested flag if we drained all of the available data
                     flushRequested = false;
                 }
 
+                // 如果当前bufferConsumer已经finish，回收这个buffer，待处理的buffer数量减1
                 if (bufferConsumer.isFinished()) {
+                    // 注意，回收已经finished的buffer的调用在此
                     requireNonNull(buffers.poll()).getBufferConsumer().close();
                     decreaseBuffersInBacklogUnsafe(bufferConsumer.isBuffer());
                 }
 
+                // 如果可读字节数大于0，跳出循环
                 if (buffer.readableBytes() > 0) {
                     break;
                 }
+                // 否则回收内存
                 buffer.recycleBuffer();
                 buffer = null;
                 if (!bufferConsumer.isFinished()) {
+                    // 运行到这里只有一种可能，buffer队列中只有一个没有finished的buffer，跳出循环
                     break;
                 }
             }
@@ -318,7 +330,10 @@ public class PipelinedSubpartition extends ResultSubpartition
                 isBlocked = true;
             }
 
+            // 更新总字节数计数器
             updateStatistics(buffer);
+
+
             // Do not report last remaining buffer on buffers as available to read (assuming it's
             // unfinished).
             // It will be reported for reading either on flush or when the number of buffers in the
@@ -329,6 +344,8 @@ public class PipelinedSubpartition extends ResultSubpartition
                     buffer,
                     parent.getOwningTaskName(),
                     subpartitionInfo);
+
+            // 返回BufferAndBacklog对象，该对象包装了包含数据的buffer
             return new BufferAndBacklog(
                     buffer,
                     getBuffersInBacklog(),

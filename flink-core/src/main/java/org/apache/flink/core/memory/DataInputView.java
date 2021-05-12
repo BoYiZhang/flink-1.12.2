@@ -24,9 +24,13 @@ import java.io.DataInput;
 import java.io.IOException;
 
 /**
+ * 这个接口定义了一些内存上的视图，可以用来顺序地读取内存的内容。
+ * 该视图通常由一个或多个{@link org.apache.flink.core.memory.MemorySegment}支持。
+ *
  * This interface defines a view over some memory that can be used to sequentially read the contents
- * of the memory. The view is typically backed by one or more {@link
- * org.apache.flink.core.memory.MemorySegment}.
+ * of the memory.
+ *
+ * The view is typically backed by one or more {@link org.apache.flink.core.memory.MemorySegment}.
  */
 @Public
 public interface DataInputView extends DataInput {

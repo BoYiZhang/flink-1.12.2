@@ -542,6 +542,8 @@ public class Task
                 shuffleEnvironment.createShuffleIOOwnerContext(
                         taskNameWithSubtaskAndId, executionId, metrics.getIOMetricGroup());
 
+
+        // 在这里会创建LocalBufferPool  !!!!!!
         // produced intermediate result partitions
         final ResultPartitionWriter[] resultPartitionWriters =
                 shuffleEnvironment

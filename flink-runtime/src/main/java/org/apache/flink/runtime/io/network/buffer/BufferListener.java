@@ -19,6 +19,11 @@
 package org.apache.flink.runtime.io.network.buffer;
 
 /**
+ * BufferListener接口有两个方法：notifyBufferAvailable和notifyBufferDestroyed。
+ *
+ * 前者用来告知有新的buffer可用（可用buffer数量从无到有的时候调用），后者用于告知bufferPool已被销毁。
+ *
+
  * Interface of the availability of buffers. Listeners can opt for a one-time only notification or
  * to be notified repeatedly.
  */

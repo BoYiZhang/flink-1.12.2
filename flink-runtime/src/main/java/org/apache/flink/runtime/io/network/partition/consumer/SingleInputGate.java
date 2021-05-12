@@ -244,14 +244,20 @@ public class SingleInputGate extends IndexedInputGate {
         return inputChannelsWithData;
     }
 
+    // 在InputGate的setup阶段为所有的input channel分配专属内存。查看SingleInputGate的setup方法
     @Override
     public void setup() throws IOException {
         checkState(
                 this.bufferPool == null,
                 "Bug in input gate setup logic: Already registered buffer pool.");
+
+        // 为所有的InputChannel分配专用buffer，剩下的作为浮动buffer
         setupChannels();
 
+        // 设置bufferPool，用于分配浮动buffer
         BufferPool bufferPool = bufferPoolFactory.get();
+
+        // 请求各个input channel需要读取的subpartition
         setBufferPool(bufferPool);
     }
 
@@ -299,9 +305,35 @@ public class SingleInputGate extends IndexedInputGate {
         LOG.info("Converting recovered input channels ({} channels)", getNumberOfInputChannels());
         for (Map.Entry<IntermediateResultPartitionID, InputChannel> entry :
                 inputChannels.entrySet()) {
+
+            // inputChannel = {LocalRecoveredInputChannel@7178}
+            //    partitionManager = {ResultPartitionManager@7167}
+            //    taskEventPublisher = {TaskEventDispatcher@7168}
+            //    receivedBuffers = {ArrayDeque@7186}  size = 0
+            //    stateConsumedFuture = {CompletableFuture@7187} "java.util.concurrent.CompletableFuture@fa3bb19[Completed normally]"
+            //    bufferManager = {BufferManager@7188}
+            //    isReleased = false
+            //    channelStateWriter = {ChannelStateWriter$NoOpChannelStateWriter@7170}
+            //    sequenceNumber = -2147483648
+            //    networkBuffersPerChannel = 2
+            //    exclusiveBuffersAssigned = false
+            //    channelInfo = {InputChannelInfo@7189} "InputChannelInfo{gateIdx=0, inputChannelIdx=1}"
+            //    partitionId = {ResultPartitionID@7190} "fed335673801e7c5b4560d86af77b7fe#1@114c195b8f111702ea7728fd7b5846dc"
+            //    inputGate = {SingleInputGate@7176} "SingleInputGate{owningTaskName='Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction) (3/4)#0 (38152ea7733e5a835ec4db6cb078a1ad)', gateIndex=0}"
+            //    cause = {AtomicReference@7191} "null"
+            //    initialBackoff = 100
+            //    maxBackoff = 10000
+            //    numBytesIn = {InputChannelMetrics$MultiCounterWrapper@7192}
+            //    numBuffersIn = {InputChannelMetrics$MultiCounterWrapper@7193}
+            //    currentBackoff = 0
+
             InputChannel inputChannel = entry.getValue();
             if (inputChannel instanceof RecoveredInputChannel) {
                 try {
+
+                    //    inputChannel = {LocalRecoveredInputChannel@7178}
+                    //    realInputChannel = {LocalInputChannel@7179} "LocalInputChannel [fed335673801e7c5b4560d86af77b7fe#1@114c195b8f111702ea7728fd7b5846dc]"
+
                     InputChannel realInputChannel =
                             ((RecoveredInputChannel) inputChannel).toInputChannel();
                     inputChannel.releaseAllResources();
@@ -419,6 +451,7 @@ public class SingleInputGate extends IndexedInputGate {
     public void setupChannels() throws IOException {
         synchronized (requestLock) {
             for (InputChannel inputChannel : inputChannels.values()) {
+                // 分别调用SingleInputGate中每个InputChannel的setup方法。
                 inputChannel.setup();
             }
         }

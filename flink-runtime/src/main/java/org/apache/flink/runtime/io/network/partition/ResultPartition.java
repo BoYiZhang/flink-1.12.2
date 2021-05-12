@@ -47,6 +47,14 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
+ *
+ * 一个数据处理流程(Task)对应着一个ResultPartition，
+ * ResultPartition的数据需要发送数据到多个下游Channel(对应着下游多个Task)，
+ * ResultPartition中的数据专门为下游不同的接收者做了分组，这个分组叫做ResultSubpartition。
+ *
+
+ *
+ *
  * A result partition for data produced by a single task.
  *
  * <p>This class is the runtime part of a logical {@link IntermediateResultPartition}. Essentially,

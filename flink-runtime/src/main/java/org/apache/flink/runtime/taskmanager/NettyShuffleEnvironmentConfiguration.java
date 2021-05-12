@@ -208,8 +208,10 @@ public class NettyShuffleEnvironmentConfiguration {
             boolean localTaskManagerCommunication,
             InetAddress taskManagerAddress) {
 
+        // 0
         final int dataBindPort = getDataBindPort(configuration);
 
+        // 32768 = 32 k
         final int pageSize = ConfigurationParserUtils.getPageSize(configuration);
 
         final NettyConfig nettyConfig =
@@ -219,6 +221,12 @@ public class NettyShuffleEnvironmentConfiguration {
                         taskManagerAddress,
                         dataBindPort);
 
+
+        //    networkMemorySize = {MemorySize@5213} "134217730 bytes"
+        //    localTaskManagerCommunication = false
+        //    taskManagerAddress = {Inet4Address@5296} "/0.0.0.0"
+
+        //  numberOfNetworkBuffers:  4096
         final int numberOfNetworkBuffers =
                 calculateNumberOfNetworkBuffers(configuration, networkMemorySize, pageSize);
 
@@ -243,6 +251,8 @@ public class NettyShuffleEnvironmentConfiguration {
         int sortShuffleMinBuffers =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_SORT_SHUFFLE_MIN_BUFFERS);
+
+        // Integer.MAX_VALUE: 2147483647
         int sortShuffleMinParallelism =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_SORT_SHUFFLE_MIN_PARALLELISM);

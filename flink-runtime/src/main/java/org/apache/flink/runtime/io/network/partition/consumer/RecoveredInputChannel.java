@@ -252,6 +252,7 @@ public abstract class RecoveredInputChannel extends InputChannel implements Chan
     public Buffer requestBufferBlocking() throws InterruptedException, IOException {
         // not in setup to avoid assigning buffers unnecessarily if there is no state
         if (!exclusiveBuffersAssigned) {
+
             bufferManager.requestExclusiveBuffers(networkBuffersPerChannel);
             exclusiveBuffersAssigned = true;
         }

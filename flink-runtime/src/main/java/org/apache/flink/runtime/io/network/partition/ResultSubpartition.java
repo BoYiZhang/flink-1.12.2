@@ -27,7 +27,10 @@ import java.io.IOException;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** A single subpartition of a {@link ResultPartition} instance. */
+/**
+ *
+ *
+ * A single subpartition of a {@link ResultPartition} instance. */
 public abstract class ResultSubpartition {
 
     /** The info of the subpartition to identify it globally within a task. */
@@ -91,6 +94,7 @@ public abstract class ResultSubpartition {
     public abstract void finish() throws IOException;
 
     public abstract void release() throws IOException;
+
 
     public abstract ResultSubpartitionView createReadView(
             BufferAvailabilityListener availabilityListener) throws IOException;

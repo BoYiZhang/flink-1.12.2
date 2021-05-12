@@ -61,7 +61,18 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** An input channel, which requests a remote partition queue. */
+/**
+ *
+ *
+ * 数据接收端主要是指RemoteInputChannel。
+ * 该channel用来接受和处理从其他节点读取到的数据。
+ * 和RemoteInputChanel对应的是 LocalInputChannel ，负责读取本地的subpartition，不需要使用接收端缓存。
+ *
+
+ *
+ * An input channel, which requests a remote partition queue.
+ *
+ * */
 public class RemoteInputChannel extends InputChannel {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteInputChannel.class);
 
@@ -135,6 +146,8 @@ public class RemoteInputChannel extends InputChannel {
         this.initialCredit = networkBuffersPerChannel;
         this.connectionId = checkNotNull(connectionId);
         this.connectionManager = checkNotNull(connectionManager);
+
+        // 构建BufferManager
         this.bufferManager = new BufferManager(inputGate.getMemorySegmentProvider(), this, 0);
         this.channelStatePersister = new ChannelStatePersister(stateWriter, getChannelInfo());
     }
@@ -154,6 +167,7 @@ public class RemoteInputChannel extends InputChannel {
                 bufferManager.unsynchronizedGetAvailableExclusiveBuffers() == 0,
                 "Bug in input channel setup logic: exclusive buffers have already been set for this input channel.");
 
+        // 根据初始的信用值  申请 MemorySegment .
         bufferManager.requestExclusiveBuffers(initialCredit);
     }
 
@@ -419,6 +433,10 @@ public class RemoteInputChannel extends InputChannel {
     }
 
     /**
+     *
+     * 该方法从bufferQueue中拿到一个buffer并返回。
+     *
+     *
      * Requests buffer from input channel directly for receiving network data. It should always
      * return an available buffer in credit-based mode unless the channel has been released.
      *
@@ -430,6 +448,10 @@ public class RemoteInputChannel extends InputChannel {
     }
 
     /**
+     *
+     * 根据backlog（积压的数量）提前分配内存，
+     * 如果backlog加上初始的credit大于可用buffer数，需要分配浮动buffer。
+     *
      * Receives the backlog from the producer's buffer response. If the number of available buffers
      * is less than backlog + initialCredit, it will request floating buffers from the buffer
      * manager, and then notify unannounced credits to the producer.
@@ -437,8 +459,12 @@ public class RemoteInputChannel extends InputChannel {
      * @param backlog The number of unsent buffers in the producer's sub partition.
      */
     void onSenderBacklog(int backlog) throws IOException {
+
+        // 请求浮动内存
         int numRequestedBuffers = bufferManager.requestFloatingBuffers(backlog + initialCredit);
+
         if (numRequestedBuffers > 0 && unannouncedCredit.getAndAdd(numRequestedBuffers) == 0) {
+            //
             notifyCreditAvailable();
         }
     }
@@ -454,7 +480,9 @@ public class RemoteInputChannel extends InputChannel {
 
             final boolean wasEmpty;
             boolean firstPriorityEvent = false;
+
             synchronized (receivedBuffers) {
+
                 NetworkActionsLogger.traceInput(
                         "RemoteInputChannel#onBuffer",
                         buffer,
@@ -476,6 +504,9 @@ public class RemoteInputChannel extends InputChannel {
                 if (dataType.hasPriority()) {
                     firstPriorityEvent = addPriorityBuffer(sequenceBuffer);
                 } else {
+                    //  把已经填充了数据的内存块放入receivedBuffers队列
+                    //  后续的operator可以通过 StreamTaskNetworkInput 的实现类 读取InputChannel中缓存的数据。
+                    // [比如 StreamOneInputProcessor]
                     receivedBuffers.add(sequenceBuffer);
                     channelStatePersister.maybePersist(buffer);
                     if (dataType.requiresAnnouncement()) {

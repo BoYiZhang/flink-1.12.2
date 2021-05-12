@@ -50,6 +50,12 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ *
+ * NetworkBufferPool是供网络层使用的，固定大小的缓存池。
+ *
+ * 每个task并非直接从NetworkBufferPool获取内存，而是使用从NetworkBufferPool创建出的LocalBufferPool来分配内存。
+ *
+
  * The NetworkBufferPool is a fixed size pool of {@link MemorySegment} instances for the network
  * stack.
  *
@@ -62,10 +68,13 @@ public class NetworkBufferPool
 
     private static final Logger LOG = LoggerFactory.getLogger(NetworkBufferPool.class);
 
+    // 默认应该是 4096个.
     private final int totalNumberOfMemorySegments;
 
+    // 默认 32k  = 32768 byte
     private final int memorySegmentSize;
 
+    // 一个队列，用来存放可用的MemorySegment
     private final ArrayDeque<MemorySegment> availableMemorySegments;
 
     private volatile boolean isDestroyed;
@@ -74,10 +83,13 @@ public class NetworkBufferPool
 
     private final Object factoryLock = new Object();
 
+    //  用来存放基于此NetworkBufferPool创建的LocalBufferPool
     private final Set<LocalBufferPool> allBufferPools = new HashSet<>();
 
+    // 总共需要的buffer数量。统计所有已经分配给LocalBufferPool的buffer数量
     private int numTotalRequiredBuffers;
 
+    // 请求内存的最大等待时间（超时时间）
     private final Duration requestSegmentsTimeout;
 
     private final AvailabilityHelper availabilityHelper = new AvailabilityHelper();
@@ -90,18 +102,27 @@ public class NetworkBufferPool
     /** Allocates all {@link MemorySegment} instances managed by this pool. */
     public NetworkBufferPool(
             int numberOfSegmentsToAllocate, int segmentSize, Duration requestSegmentsTimeout) {
+
+        // 设置总MemorySegment数量 :  4096 = (128 * 1024 * 1024) /(32 *1024)
         this.totalNumberOfMemorySegments = numberOfSegmentsToAllocate;
+
+        // 设置每个MemorySegment的大小 : 32 *1024
         this.memorySegmentSize = segmentSize;
 
         Preconditions.checkNotNull(requestSegmentsTimeout);
         checkArgument(
                 requestSegmentsTimeout.toMillis() > 0,
                 "The timeout for requesting exclusive buffers should be positive.");
+
+        // 设置请求内存的超时时间
         this.requestSegmentsTimeout = requestSegmentsTimeout;
 
+        // MemorySegment大小转换为long
         final long sizeInLong = (long) segmentSize;
 
         try {
+            // 创建availableMemorySegments队列 :
+            //              这个队列只能从头或者为移除数据, 做不到移除指定元素.
             this.availableMemorySegments = new ArrayDeque<>(numberOfSegmentsToAllocate);
         } catch (OutOfMemoryError err) {
             throw new OutOfMemoryError(
@@ -112,6 +133,8 @@ public class NetworkBufferPool
         }
 
         try {
+            // 循环调用，创建numberOfSegmentsToAllocate个MemorySegment
+            // 这里分配的是堆外内存 : 4096个 ?
             for (int i = 0; i < numberOfSegmentsToAllocate; i++) {
                 availableMemorySegments.add(
                         MemorySegmentFactory.allocateUnpooledOffHeapMemory(segmentSize, null));
@@ -138,8 +161,10 @@ public class NetworkBufferPool
                             + err.getMessage());
         }
 
+        // 设置状态为可用
         availabilityHelper.resetAvailable();
 
+        // 分配的内次你空间大小 :  32k*4096 / 1024 = 128Mb
         long allocatedMb = (sizeInLong * availableMemorySegments.size()) >> 20;
 
         LOG.info(
@@ -152,10 +177,12 @@ public class NetworkBufferPool
     @Nullable
     public MemorySegment requestMemorySegment() {
         synchronized (availableMemorySegments) {
+            // 调用internalRequestMemorySegment
             return internalRequestMemorySegment();
         }
     }
 
+    // 回收单个MemorySegment的方法为recycle。
     public void recycle(MemorySegment segment) {
         // Adds the segment back to the queue, which does not immediately free the memory
         // however, since this happens when references to the global pool are also released,
@@ -163,6 +190,8 @@ public class NetworkBufferPool
         internalRecycleMemorySegments(Collections.singleton(checkNotNull(segment)));
     }
 
+    // 批量请求 内存的方法
+    // numberOfSegmentsToRequest : MemorySegment为批量申请，该变量决定一批次申请的MemorySegment的数量
     @Override
     public List<MemorySegment> requestMemorySegments(int numberOfSegmentsToRequest)
             throws IOException {
@@ -175,11 +204,14 @@ public class NetworkBufferPool
                 throw new IllegalStateException("Network buffer pool has already been destroyed.");
             }
 
+            // 尝试重新分配内存
             tryRedistributeBuffers(numberOfSegmentsToRequest);
         }
 
+        // 创建容纳请求到的内存的容器
         final List<MemorySegment> segments = new ArrayList<>(numberOfSegmentsToRequest);
         try {
+            // 统计请求内存操作耗时
             final Deadline deadline = Deadline.fromNow(requestSegmentsTimeout);
             while (true) {
                 if (isDestroyed) {
@@ -188,18 +220,24 @@ public class NetworkBufferPool
 
                 MemorySegment segment;
                 synchronized (availableMemorySegments) {
+                    // 调用之前分析过的internalRequestMemorySegment方法
+                    // 从availableMemorySegments中获取一个内存片段
+                    // 如果没有获取成功，等得2000毫秒
                     if ((segment = internalRequestMemorySegment()) == null) {
                         availableMemorySegments.wait(2000);
                     }
                 }
+                // 如果获取成功，加入内存到segments容器
                 if (segment != null) {
                     segments.add(segment);
                 }
 
+                // 如果请求到的内存数量超过了单批次请求的数量限制，退出循环
                 if (segments.size() >= numberOfSegmentsToRequest) {
                     break;
                 }
 
+                // 如果申请内存操作超时，抛出异常
                 if (!deadline.hasTimeLeft()) {
                     throw new IOException(
                             String.format(
@@ -224,7 +262,9 @@ public class NetworkBufferPool
     private MemorySegment internalRequestMemorySegment() {
         assert Thread.holdsLock(availableMemorySegments);
 
+        // 从availableMemorySegments获取一个内存片段
         final MemorySegment segment = availableMemorySegments.poll();
+        // 如果获取这个内存成功（不为null）之后availableMemorySegments变为empty，设置状态为不可用
         if (availableMemorySegments.isEmpty() && segment != null) {
             availabilityHelper.resetUnavailable();
         }
@@ -237,6 +277,7 @@ public class NetworkBufferPool
     }
 
     private void recycleMemorySegments(Collection<MemorySegment> segments, int size) {
+
         internalRecycleMemorySegments(segments);
 
         synchronized (factoryLock) {
@@ -244,6 +285,8 @@ public class NetworkBufferPool
 
             // note: if this fails, we're fine for the buffer pool since we already recycled the
             // segments
+
+            // 内存回收成功之后，需要重新分配内存
             redistributeBuffers();
         }
     }
@@ -251,10 +294,14 @@ public class NetworkBufferPool
     private void internalRecycleMemorySegments(Collection<MemorySegment> segments) {
         CompletableFuture<?> toNotify = null;
         synchronized (availableMemorySegments) {
+
+            // 如果可以成功归还内存，需要设置availabilityHelper为可用状态
             if (availableMemorySegments.isEmpty() && !segments.isEmpty()) {
                 toNotify = availabilityHelper.getUnavailableToResetAvailable();
             }
+            // 加入归还的内存片段到availableMemorySegments
             availableMemorySegments.addAll(segments);
+            // 通知所有等待调用的对象
             availableMemorySegments.notifyAll();
         }
 
@@ -351,6 +398,10 @@ public class NetworkBufferPool
                 numRequiredBuffers, maxUsedBuffers, numSubpartitions, maxBuffersPerChannel);
     }
 
+
+    // numRequiredBuffers：必须要有的buffer数量
+    // maxUsedBuffers：使用的buffer数量不能超过这个值
+    // bufferPoolOwner：bufferPool所有者，用于回收内存时通知owner
     private BufferPool internalCreateBufferPool(
             int numRequiredBuffers,
             int maxUsedBuffers,
@@ -360,6 +411,8 @@ public class NetworkBufferPool
 
         // It is necessary to use a separate lock from the one used for buffer
         // requests to ensure deadlock freedom for failure cases.
+
+        //  synchronized!!!!!!!!!!!!!!!
         synchronized (factoryLock) {
             if (isDestroyed) {
                 throw new IllegalStateException("Network buffer pool has already been destroyed.");
@@ -367,6 +420,8 @@ public class NetworkBufferPool
 
             // Ensure that the number of required buffers can be satisfied.
             // With dynamic memory management this should become obsolete.
+
+            // 检查内存分配不能超过NetworkBufferPool总容量
             if (numTotalRequiredBuffers + numRequiredBuffers > totalNumberOfMemorySegments) {
                 throw new IOException(
                         String.format(
@@ -377,10 +432,12 @@ public class NetworkBufferPool
                                 getConfigDescription()));
             }
 
+            // 更新所有LocalBufferPool占用的总内存数量
             this.numTotalRequiredBuffers += numRequiredBuffers;
 
-            // We are good to go, create a new buffer pool and redistribute
-            // non-fixed size buffers.
+            // 创建一个LocalBufferPool
+            // 我们可以开始了，创建一个新的缓冲池并重新分配非固定大小的缓冲区。
+            // We are good to go, create a new buffer pool and redistribute non-fixed size buffers.
             LocalBufferPool localBufferPool =
                     new LocalBufferPool(
                             this,
@@ -389,8 +446,10 @@ public class NetworkBufferPool
                             numSubpartitions,
                             maxBuffersPerChannel);
 
+            // 记录新创建的bufferPool到allBufferPools集合
             allBufferPools.add(localBufferPool);
 
+            // 重新分配每个LocalBufferPool的内存块，接下来分析
             redistributeBuffers();
 
             return localBufferPool;
@@ -434,7 +493,8 @@ public class NetworkBufferPool
         }
     }
 
-    // Must be called from synchronized block
+    // numberOfSegmentsToRequest : MemorySegment为批量申请，该变量决定一批次申请的MemorySegment的数量
+    //Must be called from synchronized block
     private void tryRedistributeBuffers(int numberOfSegmentsToRequest) throws IOException {
         assert Thread.holdsLock(factoryLock);
 
@@ -465,8 +525,13 @@ public class NetworkBufferPool
         assert Thread.holdsLock(factoryLock);
 
         // All buffers, which are not among the required ones
+        // 计算出尚未分配的内存块数量
         final int numAvailableMemorySegment = totalNumberOfMemorySegments - numTotalRequiredBuffers;
 
+        // 如果没有可用的内存
+        // 即所有的内存都分配给了各个LocalBufferPool
+        // 需要设置每个bufferPool的大小为每个pool要求的最小内存大小
+        // 通知LocalBufferPool 归还超出数量的内存
         if (numAvailableMemorySegment == 0) {
             // in this case, we need to redistribute buffers so that every pool gets its minimum
             for (LocalBufferPool bufferPool : allBufferPools) {
@@ -485,13 +550,21 @@ public class NetworkBufferPool
 
         long totalCapacity = 0; // long to avoid int overflow
 
+        // 统计所有的bufferPool可以被额外分配的内存数量总和
         for (LocalBufferPool bufferPool : allBufferPools) {
+
+            // 计算每个bufferPool可以最多超量使用的内存数
             int excessMax =
                     bufferPool.getMaxNumberOfMemorySegments()
                             - bufferPool.getNumberOfRequiredMemorySegments();
+
+            // 如果最多可超量使用的内存数量比numAvailableMemorySegment还多
+            // 肯定无法满足这个需求
+            // 按照numAvailableMemorySegment来统计
             totalCapacity += Math.min(numAvailableMemorySegment, excessMax);
         }
 
+        // 如果总容量为0，直接返回
         // no capacity to receive additional buffers?
         if (totalCapacity == 0) {
             return; // necessary to avoid div by zero when nothing to re-distribute
@@ -500,33 +573,51 @@ public class NetworkBufferPool
         // since one of the arguments of 'min(a,b)' is a positive int, this is actually
         // guaranteed to be within the 'int' domain
         // (we use a checked downCast to handle possible bugs more gracefully).
+
+        // 计算可以重分配的内存数量
+        // MathUtils.checkedDownCast用来确保结果转换成int不会溢出
         final int memorySegmentsToDistribute =
                 MathUtils.checkedDownCast(Math.min(numAvailableMemorySegment, totalCapacity));
 
         long totalPartsUsed = 0; // of totalCapacity
         int numDistributedMemorySegment = 0;
+
+        // 对每个LocalBufferPool重新设置pool size
         for (LocalBufferPool bufferPool : allBufferPools) {
+
+            // 计算pool的最大可超量使用的内存数
             int excessMax =
                     bufferPool.getMaxNumberOfMemorySegments()
                             - bufferPool.getNumberOfRequiredMemorySegments();
 
             // shortcut
+            // 如果可超量分配的内存数量为0，不用进行后续操作
             if (excessMax == 0) {
                 continue;
             }
 
+            // 和totalCapacity统计相同
             totalPartsUsed += Math.min(numAvailableMemorySegment, excessMax);
 
             // avoid remaining buffers by looking at the total capacity that should have been
             // re-distributed up until here
             // the downcast will always succeed, because both arguments of the subtraction are in
             // the 'int' domain
+
+            // 计算每个pool可重分配（增加）的内存数量
+            // totalPartsUsed / totalCapacity可以计算出已分配的内存占据总可用内存的比例
+            // 因为增加totalPartsUsed在实际分配内存之前，所以这个比例包含了即将分配内存的这个LocalBufferPool的占比
+            // memorySegmentsToDistribute * totalPartsUsed / totalCapacity可计算出已分配的内存数量（包含即将分配buffer的这个LocalBufferPool）
+            // 这个结果再减去numDistributedMemorySegment（已分配内存数量），最终得到需要分配给此bufferPool的内存数量
             final int mySize =
                     MathUtils.checkedDownCast(
                             memorySegmentsToDistribute * totalPartsUsed / totalCapacity
                                     - numDistributedMemorySegment);
 
+            // 更新已分配内存数量的统计
             numDistributedMemorySegment += mySize;
+
+            // 重新设置bufferPool的大小为新的值
             bufferPool.setNumBuffers(bufferPool.getNumberOfRequiredMemorySegments() + mySize);
         }
 
