@@ -64,6 +64,16 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
             final OperatorChain<?, ?> operatorChain)
             throws Exception {
 
+        //   streamStatusMaintainer = {OperatorChain@7182}
+        //        streamOutputs = {RecordWriterOutput[1]@7320}
+        //        mainOperatorOutput = {RecordWriterOutput@7306}
+        //        mainOperatorWrapper = {StreamOperatorWrapper@7321}
+        //        firstOperatorWrapper = {StreamOperatorWrapper@7321}
+        //        tailOperatorWrapper = {StreamOperatorWrapper@7321}
+        //        chainedSources = {Collections$EmptyMap@7322}  size = 0
+        //        numOperators = 1
+        //        operatorEventDispatcher = {OperatorEventDispatcherImpl@7323}
+        //        streamStatus = {StreamStatus@7324} "StreamStatus(ACTIVE)"
         run(lockingObject, streamStatusMaintainer, output, operatorChain);
     }
 
@@ -76,8 +86,61 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
 
         final TimeCharacteristic timeCharacteristic = getOperatorConfig().getTimeCharacteristic();
 
+        //
+        //    "internal.jobgraph-path" -> "job.graph"
+        //    "high-availability.cluster-id" -> "application_1619273419318_0053"
+        //    "jobmanager.rpc.address" -> "henghe-030"
+        //    "taskmanager.memory.task.off-heap.size" -> "0b"
+        //    "sun.security.krb5.debug" -> "true"
+        //    "io.tmp.dirs" -> "/opt/tools/hadoop-3.1.3/data/local-dirs/usercache/yarn/appcache/application_1619273419318_0053"
+        //    "parallelism.default" -> "4"
+        //    "taskmanager.memory.process.size" -> "1728m"
+        //    "web.port" -> "0"
+        //    "jobmanager.memory.off-heap.size" -> "134217728b"
+        //    "web.tmpdir" -> "/tmp/flink-web-c11e7cee-a537-425a-bf24-983e0eac5d77"
+        //    "jobmanager.rpc.port" -> "35339"
+        //    "security.kerberos.login.principal" -> "yarn/henghe-030@HENGHE.COM"
+        //    "slot.request.timeout" -> "1000000000"
+        //    "rest.address" -> "henghe-030"
+        //    "security.kerberos.login.keytab" -> "/opt/tools/hadoop-3.1.3/data/local-dirs/usercache/yarn/appcache/application_1619273419318_0053/container_1619273419318_0053_01_000002/krb5.keytab"
+        //    "$internal.deployment.config-dir" -> "/opt/tools/flink-1.12.0/conf"
+        //    "$internal.yarn.log-config-file" -> "/opt/tools/flink-1.12.0/conf/log4j.properties"
+        //    "jobmanager.memory.jvm-overhead.max" -> "201326592b"
+        //    "jobmanager.execution.failover-strategy" -> "region"
+        //    "rest.connection-timeout" -> "360000000"
+        //    "taskmanager.cpu.cores" -> "4.0"
+        //    "jobmanager.memory.jvm-overhead.min" -> "201326592b"
+        //    "security.kerberos.login.use-ticket-cache" -> "true"
+        //    "execution.savepoint.ignore-unclaimed-state" -> "false"
+        //    "taskmanager.memory.framework.off-heap.size" -> "134217728b"
+        //    "taskmanager.host" -> "henghe-030"
+        //    "taskmanager.numberOfTaskSlots" -> "4"
+        //    "taskmanager.memory.task.heap.size" -> "402653174b"
+        //    "akka.ask.timeout" -> "1000000s"
+        //    "akka.jvm-exit-on-fatal-error" -> {Boolean@7523} true
+        //    "taskmanager.resource-id" -> "container_1619273419318_0053_01_000002"
+        //    "heartbeat.timeout" -> "10000000000"
+        //    "rest.idleness-timeout" -> "360000000"
+        //    "taskmanager.memory.network.min" -> "134217730b"
+        //    "web.timeout" -> "3600000000"
+        //    "execution.target" -> "yarn-per-job"
+        //    "jobmanager.memory.process.size" -> "1600m"
+        //    "internal.taskmanager.resource-id.metadata" -> "henghe-030:37326"
+        //    "internal.io.tmpdirs.use-local-default" -> {Boolean@7523} true
+        //    "taskmanager.memory.network.max" -> "134217730b"
+        //    "execution.attached" -> "true"
+        //    "internal.cluster.execution-mode" -> "NORMAL"
+        //    "execution.shutdown-on-attached-exit" -> "false"
+        //    "pipeline.jars" -> "file:/opt/tools/flink-1.12.0/examples/streaming/SocketWindowWordCount.jar"
+        //    "taskmanager.memory.managed.size" -> "536870920b"
+        //    "taskmanager.memory.framework.heap.size" -> "134217728b"
+        //    "env.java.opts.taskmanager" -> "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5007"
+        //    "jobmanager.memory.jvm-metaspace.size" -> "268435456b"
+        //    "jobmanager.memory.heap.size" -> "1073741824b"
         final Configuration configuration =
                 this.getContainingTask().getEnvironment().getTaskManagerInfo().getConfiguration();
+
+        // 0
         final long latencyTrackingInterval =
                 getExecutionConfig().isLatencyTrackingConfigured()
                         ? getExecutionConfig().getLatencyTrackingInterval()
@@ -94,9 +157,20 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
                             getRuntimeContext().getIndexOfThisSubtask());
         }
 
+        // 200
         final long watermarkInterval =
                 getRuntimeContext().getExecutionConfig().getAutoWatermarkInterval();
 
+        //
+        //    this.ctx = {StreamSourceContexts$ManualWatermarkContext@7657}
+        //        output = {CountingOutput@7212}
+        //        reuse = {StreamRecord@7658} "Record @ (undef) : null"
+        //        timeService = {ProcessingTimeServiceImpl@7217}
+        //        checkpointLock = {Object@7183}
+        //        streamStatusMaintainer = {OperatorChain@7182}
+        //        idleTimeout = -1
+        //        nextCheck = null
+        //        failOnNextCheck = false
         this.ctx =
                 StreamSourceContexts.getSourceContext(
                         timeCharacteristic,
@@ -108,6 +182,9 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
                         -1);
 
         try {
+
+            //userFunction = {SocketTextStreamFunction@7209}
+            // SocketTextStreamFunction#run
             userFunction.run(ctx);
 
             // if we get here, then the user function either exited after being done (finite source)

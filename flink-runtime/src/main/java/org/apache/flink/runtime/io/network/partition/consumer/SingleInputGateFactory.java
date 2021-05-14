@@ -104,6 +104,8 @@ public class SingleInputGateFactory {
             @Nonnull InputGateDeploymentDescriptor igdd,
             @Nonnull PartitionProducerStateProvider partitionProducerStateProvider,
             @Nonnull InputChannelMetrics metrics) {
+
+        // 在这里会构建 LocalBufferPool
         SupplierWithException<BufferPool, IOException> bufferPoolFactory =
                 createBufferPoolFactory(
                         networkBufferPool,
@@ -253,9 +255,9 @@ public class SingleInputGateFactory {
             ResultPartitionType type) {
         // Note that we should guarantee at-least one floating buffer for local channel state
         // recovery.
+        // 在这里会构建 LocalBufferPool
         return () -> bufferPoolFactory.createBufferPool(1, floatingNetworkBuffersPerGate);
     }
-
     /** Statistics of input channels. */
     protected static class ChannelStatistics {
         int numLocalChannels;

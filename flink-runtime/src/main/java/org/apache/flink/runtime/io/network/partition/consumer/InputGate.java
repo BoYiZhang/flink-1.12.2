@@ -253,6 +253,10 @@ public abstract class InputGate
      * Setup gate, potentially heavy-weight, blocking operation comparing to just creation. */
     public abstract void setup() throws IOException;
 
+    /**
+     * 请求分区数据?
+     * @throws IOException
+     */
     public abstract void requestPartitions() throws IOException;
 
     public abstract CompletableFuture<Void> getStateConsumedFuture();

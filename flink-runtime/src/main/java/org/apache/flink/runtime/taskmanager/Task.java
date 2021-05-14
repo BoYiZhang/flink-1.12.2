@@ -560,6 +560,7 @@ public class Task
                         resultPartitionConsumableNotifier);
 
         // consumed intermediate result partitions
+        // 在这里会构建 LocalBufferPool
         final IndexedInputGate[] gates =
                 shuffleEnvironment
                         .createInputGates(taskShuffleContext, this, inputGateDeploymentDescriptors)

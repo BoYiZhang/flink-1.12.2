@@ -98,6 +98,7 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
                 Preconditions.checkState(!polled.isPresent());
             }
             inputGate.setChannelStateWriter(ChannelStateWriter.NO_OP);
+            // 读取分区数据???
             inputGate.requestPartitions();
             requestedPartitions = true;
         }

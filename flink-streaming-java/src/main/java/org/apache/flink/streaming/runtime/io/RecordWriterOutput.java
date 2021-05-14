@@ -79,6 +79,12 @@ public class RecordWriterOutput<OUT> implements WatermarkGaugeExposingOutput<Str
 
     @Override
     public void collect(StreamRecord<OUT> record) {
+
+        //    record = {StreamRecord@7658} "Record @ (undef) : 正正正"
+        //        value = "正正正"
+        //        timestamp = 0
+        //        hasTimestamp = false
+
         if (this.outputTag != null) {
             // we are not responsible for emitting to the main output.
             return;
@@ -95,9 +101,26 @@ public class RecordWriterOutput<OUT> implements WatermarkGaugeExposingOutput<Str
     }
 
     private <X> void pushToRecordWriter(StreamRecord<X> record) {
+
+        //    serializationDelegate = {SerializationDelegate@7309}
+        //        instance = {StreamRecord@7658} "Record @ (undef) : 正正正"
+        //        serializer = {StreamElementSerializer@7319}
+        //            typeSerializer = {StringSerializer@7843}
         serializationDelegate.setInstance(record);
 
         try {
+
+            //    recordWriter = {ChannelSelectorRecordWriter@7308}
+            //        channelSelector = {RebalancePartitioner@7311} "REBALANCE"
+            //        targetPartition = {PipelinedResultPartition@7312} "PipelinedResultPartition f3e53e3fbc3eab68b25ea79f80873233#0@9bd406565dca544a85576fd06acc0fc0 [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+            //        numberOfChannels = 4
+            //        serializer = {DataOutputSerializer@7313} "[pos=9 cap=128]"
+            //        rng = {XORShiftRandom@7314}
+            //        flushAlways = false
+            //        outputFlusher = {RecordWriter$OutputFlusher@6594} "Thread[OutputFlusher for Source: Socket Stream,5,Flink Task Threads]"
+            //        flusherException = null
+            //        volatileFlusherException = null
+            //        volatileFlusherExceptionCheckSkipCount = 6
             recordWriter.emit(serializationDelegate);
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);

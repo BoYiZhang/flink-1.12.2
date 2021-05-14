@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkElementIndex;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -89,6 +90,7 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
                 bufferPoolFactory);
 
         this.subpartitions = checkNotNull(subpartitions);
+        // 根据子分区的数量构建
         this.unicastBufferBuilders = new BufferBuilder[subpartitions.length];
     }
 
@@ -142,6 +144,8 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
     @Override
     public void emitRecord(ByteBuffer record, int targetSubpartition) throws IOException {
 
+        //    record = {HeapByteBuffer@7875} "java.nio.HeapByteBuffer[pos=0 lim=15 cap=128]"
+        //    targetSubpartition = 2
 
         // 1. 获取一个BufferBuilder
         // 2. 写入数据流元素到bufferBuilder
@@ -254,9 +258,16 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
 
     private BufferBuilder appendUnicastDataForNewRecord(
             final ByteBuffer record, final int targetSubpartition) throws IOException {
+
+        //    unicastBufferBuilders = {BufferBuilder[4]@7861}
+        //        0 = {BufferBuilder@7882}
+        //        1 = {BufferBuilder@7883}
+        //        2 = {BufferBuilder@7878}
+        //        3 = {BufferBuilder@7884}
         BufferBuilder buffer = unicastBufferBuilders[targetSubpartition];
 
         if (buffer == null) {
+            // 如果 buffer 没有创建 , 构建一个
             buffer = requestNewUnicastBufferBuilder(targetSubpartition);
             subpartitions[targetSubpartition].add(buffer.createBufferConsumerFromBeginning(), 0);
         }

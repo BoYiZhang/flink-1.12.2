@@ -958,7 +958,7 @@ public class StreamingJobGraphGenerator {
         // 验证两个StreamNode 是否可以合并的条件.
 
         // 1. 有相同的SlotSharingGroup
-        // 2.
+        // 2. 上下游算子的 chainning 策略，要允许chainning
         // 3. edge的分区器是ForwardPartitioner
         // 4. 不是ShuffleMode.BATCH 模式
         // 5. 上下游的并行度相同

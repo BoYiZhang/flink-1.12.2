@@ -362,6 +362,11 @@ public class TaskManagerServices {
                 libraryCacheManager);
     }
 
+    //    numberOfSlots = 4
+    //    taskExecutorResourceSpec = {TaskExecutorResourceSpec@5649}
+    //    timerServiceShutdownTimeout = 1000000000
+    //    pageSize = 32768
+    //    memoryVerificationExecutor = {ThreadPoolExecutor@5638} "java.util.concurrent.ThreadPoolExecutor@443a06ad[Running, pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0]"
     private static TaskSlotTable<Task> createTaskSlotTable(
             final int numberOfSlots,
             final TaskExecutorResourceSpec taskExecutorResourceSpec,

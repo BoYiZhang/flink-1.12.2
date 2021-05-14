@@ -293,6 +293,8 @@ public class SingleInputGate extends IndexedInputGate {
                 }
 
                 convertRecoveredInputChannels();
+
+                // 请求分区数据
                 internalRequestPartitions();
             }
 
@@ -347,9 +349,11 @@ public class SingleInputGate extends IndexedInputGate {
         }
     }
 
+    // 请求数据 ???
     private void internalRequestPartitions() {
         for (InputChannel inputChannel : inputChannels.values()) {
             try {
+                // todo
                 inputChannel.requestSubpartition(consumedSubpartitionIndex);
             } catch (Throwable t) {
                 inputChannel.setError(t);
@@ -499,8 +503,10 @@ public class SingleInputGate extends IndexedInputGate {
                 boolean isLocal = shuffleDescriptor.isLocalTo(localLocation);
                 InputChannel newChannel;
                 if (isLocal) {
+                    // LocalInputChannel
                     newChannel = unknownChannel.toLocalInputChannel();
                 } else {
+                    // RemoteInputChannel
                     RemoteInputChannel remoteInputChannel =
                             unknownChannel.toRemoteInputChannel(
                                     shuffleDescriptor.getConnectionId());

@@ -97,6 +97,16 @@ public class SocketTextStreamFunction implements SourceFunction<String> {
         this.delayBetweenRetries = delayBetweenRetries;
     }
 
+    //
+    //    this.ctx = {StreamSourceContexts$ManualWatermarkContext@7657}
+    //        output = {CountingOutput@7212}
+    //        reuse = {StreamRecord@7658} "Record @ (undef) : null"
+    //        timeService = {ProcessingTimeServiceImpl@7217}
+    //        checkpointLock = {Object@7183}
+    //        streamStatusMaintainer = {OperatorChain@7182}
+    //        idleTimeout = -1
+    //        nextCheck = null
+    //        failOnNextCheck = false
     @Override
     public void run(SourceContext<String> ctx) throws Exception {
 
@@ -141,6 +151,7 @@ public class SocketTextStreamFunction implements SourceFunction<String> {
                                 record = record.substring(0, record.length() - 1);
                             }
                             // 处理数据
+                            // StreamSourceContexts#collect
                             ctx.collect(record);
                             // 清理掉buffer中的缓存数据...
                             buffer.delete(0, delimPos + delimiter.length());

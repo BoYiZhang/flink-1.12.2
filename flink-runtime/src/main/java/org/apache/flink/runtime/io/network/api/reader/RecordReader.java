@@ -49,12 +49,15 @@ public class RecordReader<T extends IOReadableWritable> extends AbstractRecordRe
         this.recordType = recordType;
     }
 
+    // !!!!!!!!!!!!!!!!!!!!!!!!!
     @Override
     public boolean hasNext() throws IOException, InterruptedException {
         if (currentRecord != null) {
             return true;
         } else {
             T record = instantiateRecordType();
+
+            // 读取数据???
             if (getNextRecord(record)) {
                 currentRecord = record;
                 return true;
@@ -66,6 +69,7 @@ public class RecordReader<T extends IOReadableWritable> extends AbstractRecordRe
 
     @Override
     public T next() throws IOException, InterruptedException {
+        // 读取数据
         if (hasNext()) {
             T tmp = currentRecord;
             currentRecord = null;

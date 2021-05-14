@@ -203,6 +203,8 @@ public class NettyShuffleEnvironment
             for (int partitionIndex = 0;
                     partitionIndex < resultPartitions.length;
                     partitionIndex++) {
+
+                // 构建 resultPartitions
                 resultPartitions[partitionIndex] =
                         resultPartitionFactory.create(
                                 ownerContext.getOwnerName(),
@@ -234,9 +236,13 @@ public class NettyShuffleEnvironment
 
             SingleInputGate[] inputGates =
                     new SingleInputGate[inputGateDeploymentDescriptors.size()];
+
+
             for (int gateIndex = 0; gateIndex < inputGates.length; gateIndex++) {
                 final InputGateDeploymentDescriptor igdd =
                         inputGateDeploymentDescriptors.get(gateIndex);
+
+                // 在这里会构建 LocalBufferPool
                 SingleInputGate inputGate =
                         singleInputGateFactory.create(
                                 ownerContext.getOwnerName(),

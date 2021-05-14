@@ -113,8 +113,35 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
         checkErroneous();
 
         // 序列化record，存入到目标channel的缓存中
-        targetPartition.emitRecord(serializeRecord(serializer, record), targetSubpartition);
 
+
+        //    targetPartition = {PipelinedResultPartition@7312} "PipelinedResultPartition f3e53e3fbc3eab68b25ea79f80873233#0@9bd406565dca544a85576fd06acc0fc0 [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+        //            releaseLock = {Object@7858}
+        //            consumedSubpartitions = {boolean[4]@7859} [false, false, false, false]
+        //            numUnconsumedSubpartitions = 4
+        //            subpartitions = {ResultSubpartition[4]@7860}
+        //            unicastBufferBuilders = {BufferBuilder[4]@7861}
+        //            broadcastBufferBuilder = null
+        //            idleTimeMsPerSecond = {MeterView@7862}
+        //            owningTaskName = "Source: Socket Stream (1/1)#0 (9bd406565dca544a85576fd06acc0fc0)"
+        //            partitionIndex = 0
+        //            partitionId = {ResultPartitionID@7864} "f3e53e3fbc3eab68b25ea79f80873233#0@9bd406565dca544a85576fd06acc0fc0"
+        //            partitionType = {ResultPartitionType@6650} "PIPELINED_BOUNDED"
+        //            partitionManager = {ResultPartitionManager@6651}
+        //            numSubpartitions = 4
+        //            numTargetKeyGroups = 128
+        //            isReleased = {AtomicBoolean@7865} "false"
+        //            bufferPool = {LocalBufferPool@7866} "[size: 16, required: 5, requested: 5, available: 1, max: 16, listeners: 0,subpartitions: 4, maxBuffersPerChannel: 10, destroyed: false]"
+        //            isFinished = false
+        //            cause = null
+        //            bufferPoolFactory = {ResultPartitionFactory$lambda@7867}
+        //            bufferCompressor = null
+        //            numBytesOut = {SimpleCounter@7868}
+        //            numBuffersOut = {SimpleCounter@7869}
+
+        // PipelinedResultPartition 的父类  BufferWritingResultPartition # emitRecord
+        targetPartition.emitRecord(serializeRecord(serializer, record), targetSubpartition);
+        // flushAlways : false
         if (flushAlways) {
             // flush 操作...
             targetPartition.flush(targetSubpartition);

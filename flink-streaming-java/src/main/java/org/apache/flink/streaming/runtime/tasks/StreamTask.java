@@ -389,6 +389,21 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         super(environment);
 
         this.configuration = new StreamConfig(getTaskConfiguration());
+
+        // 构建 writer ....
+
+        //    this.recordWriter = {SingleRecordWriter@7023}
+        //        recordWriter = {ChannelSelectorRecordWriter@6810}
+        //        channelSelector = {KeyGroupStreamPartitioner@6627} "HASH"
+        //        targetPartition = {PipelinedResultPartition@6639} "PipelinedResultPartition db1576884668472b75f882792173d0fa#0@eb44184ef213a1ddc71dc739d2f1edee [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+        //        numberOfChannels = 4
+        //        serializer = {DataOutputSerializer@6851} "[pos=0 cap=128]"
+        //        rng = {XORShiftRandom@6852}
+        //        flushAlways = false
+        //        outputFlusher = {RecordWriter$OutputFlusher@6811} "Thread[OutputFlusher for Flat Map,5,Flink Task Threads]"
+        //        flusherException = null
+        //        volatileFlusherException = null
+        //        volatileFlusherExceptionCheckSkipCount = 0
         this.recordWriter = createRecordWriterDelegate(configuration, environment);
         this.actionExecutor = Preconditions.checkNotNull(actionExecutor);
 
@@ -1374,9 +1389,28 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
             RecordWriterDelegate<SerializationDelegate<StreamRecord<OUT>>>
                     createRecordWriterDelegate(
                             StreamConfig configuration, Environment environment) {
+
+        // RecordWriters
+
+        //    recordWrites = {ArrayList@6540}  size = 1
+        //        0 = {ChannelSelectorRecordWriter@6810}
+        //            channelSelector = {KeyGroupStreamPartitioner@6627} "HASH"
+        //            targetPartition = {PipelinedResultPartition@6639} "PipelinedResultPartition db1576884668472b75f882792173d0fa#0@eb44184ef213a1ddc71dc739d2f1edee [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+        //            numberOfChannels = 4
+        //            serializer = {DataOutputSerializer@6851} "[pos=0 cap=128]"
+        //            rng = {XORShiftRandom@6852}
+        //            flushAlways = false
+        //            outputFlusher = {RecordWriter$OutputFlusher@6811} "Thread[OutputFlusher for Flat Map,5,Flink Task Threads]"
+        //            flusherException = null
+        //            volatileFlusherException = null
+        //            volatileFlusherExceptionCheckSkipCount = 0
+
+
+
         List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> recordWrites =
                 createRecordWriters(configuration, environment);
         if (recordWrites.size() == 1) {
+
             return new SingleRecordWriter<>(recordWrites.get(0));
         } else if (recordWrites.size() == 0) {
             return new NonRecordWriter<>();
@@ -1388,8 +1422,25 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
     private static <OUT>
             List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> createRecordWriters(
                     StreamConfig configuration, Environment environment) {
-        List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> recordWriters =
-                new ArrayList<>();
+
+        // 构建 RecordWriters
+        List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> recordWriters =  new ArrayList<>();
+
+
+        //    0 = {StreamEdge@6549} "(Flat Map-2 -> Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)-4, typeNumber=0, outputPartitioner=HASH, bufferTimeout=100, outputTag=null)"
+        //        edgeId = "Flat Map-2_Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)-4_0_HASH"
+        //        sourceId = 2
+        //        targetId = 4
+        //        typeNumber = 0
+        //        outputTag = null
+        //        outputPartitioner = {KeyGroupStreamPartitioner@6552} "HASH"
+        //        sourceOperatorName = "Flat Map"
+        //        targetOperatorName = "Window(TumblingProcessingTimeWindows(5000), ProcessingTimeTrigger, ReduceFunction$1, PassThroughWindowFunction)"
+        //        shuffleMode = {ShuffleMode@6555} "UNDEFINED"
+        //        bufferTimeout = 100
+
+
+
         List<StreamEdge> outEdgesInOrder =
                 configuration.getOutEdgesInOrder(
                         environment.getUserCodeClassLoader().asClassLoader());
@@ -1420,6 +1471,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         // Clones the partition to avoid multiple stream edges sharing the same stream partitioner,
         // like the case of https://issues.apache.org/jira/browse/FLINK-14087.
         try {
+            //   outputPartitioner = {KeyGroupStreamPartitioner@6627} "HASH"
+
+
+
             outputPartitioner =
                     InstantiationUtil.clone(
                             (StreamPartitioner<OUT>) edge.getPartitioner(),
@@ -1435,22 +1490,85 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
                 outputIndex,
                 taskName);
 
+
+        //    bufferWriter = {PipelinedResultPartition@6639} "PipelinedResultPartition db1576884668472b75f882792173d0fa#0@eb44184ef213a1ddc71dc739d2f1edee [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+        //        releaseLock = {Object@6643}
+        //        consumedSubpartitions = {boolean[4]@6644} [false, false, false, false]
+        //        numUnconsumedSubpartitions = 4
+        //        subpartitions = {ResultSubpartition[4]@6645}
+        //        unicastBufferBuilders = {BufferBuilder[4]@6646}
+        //        broadcastBufferBuilder = null
+        //        idleTimeMsPerSecond = {MeterView@6647}
+        //        owningTaskName = "Flat Map (1/4)#0 (eb44184ef213a1ddc71dc739d2f1edee)"
+        //        partitionIndex = 0
+        //        partitionId = {ResultPartitionID@6649} "db1576884668472b75f882792173d0fa#0@eb44184ef213a1ddc71dc739d2f1edee"
+        //        partitionType = {ResultPartitionType@6650} "PIPELINED_BOUNDED"
+        //        partitionManager = {ResultPartitionManager@6651}
+        //        numSubpartitions = 4
+        //        numTargetKeyGroups = 128
+        //        isReleased = {AtomicBoolean@6652} "false"
+        //        bufferPool = {LocalBufferPool@6653} "[size: 16, required: 5, requested: 1, available: 1, max: 16, listeners: 0,subpartitions: 4, maxBuffersPerChannel: 10, destroyed: false]"
+        //        isFinished = false
+        //        cause = null
+        //        bufferPoolFactory = {ResultPartitionFactory$lambda@6654}
+        //        bufferCompressor = null
+        //        numBytesOut = {SimpleCounter@6655}
+        //        numBuffersOut = {SimpleCounter@6656}
         ResultPartitionWriter bufferWriter = environment.getWriter(outputIndex);
 
         // we initialize the partitioner here with the number of key groups (aka max. parallelism)
         if (outputPartitioner instanceof ConfigurableStreamPartitioner) {
+            // 128
             int numKeyGroups = bufferWriter.getNumTargetKeyGroups();
             if (0 < numKeyGroups) {
                 ((ConfigurableStreamPartitioner) outputPartitioner).configure(numKeyGroups);
             }
         }
 
+        //    output = {ChannelSelectorRecordWriter@6810}
+        //        channelSelector = {KeyGroupStreamPartitioner@6627} "HASH"
+        //        targetPartition = {PipelinedResultPartition@6639} "PipelinedResultPartition db1576884668472b75f882792173d0fa#0@eb44184ef213a1ddc71dc739d2f1edee [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+        //        releaseLock = {Object@6643}
+        //        consumedSubpartitions = {boolean[4]@6644} [false, false, false, false]
+        //        numUnconsumedSubpartitions = 4
+        //        subpartitions = {ResultSubpartition[4]@6645}
+        //        unicastBufferBuilders = {BufferBuilder[4]@6646}
+        //        broadcastBufferBuilder = null
+        //        idleTimeMsPerSecond = {MeterView@6647}
+        //        owningTaskName = "Flat Map (1/4)#0 (eb44184ef213a1ddc71dc739d2f1edee)"
+        //        partitionIndex = 0
+        //        partitionId = {ResultPartitionID@6649} "db1576884668472b75f882792173d0fa#0@eb44184ef213a1ddc71dc739d2f1edee"
+        //        partitionType = {ResultPartitionType@6650} "PIPELINED_BOUNDED"
+        //        partitionManager = {ResultPartitionManager@6651}
+        //        numSubpartitions = 4
+        //        numTargetKeyGroups = 128
+        //        isReleased = {AtomicBoolean@6652} "false"
+        //        bufferPool = {LocalBufferPool@6653} "[size: 16, required: 5, requested: 1, available: 1, max: 16, listeners: 0,subpartitions: 4, maxBuffersPerChannel: 10, destroyed: false]"
+        //        isFinished = false
+        //        cause = null
+        //        bufferPoolFactory = {ResultPartitionFactory$lambda@6654}
+        //        bufferCompressor = null
+        //        numBytesOut = {SimpleCounter@6655}
+        //        numBuffersOut = {SimpleCounter@6656}
+        //        numberOfChannels = 4
+        //        serializer = {DataOutputSerializer@6851} "[pos=0 cap=128]"
+        //        rng = {XORShiftRandom@6852}
+        //        flushAlways = false
+        //        outputFlusher = {RecordWriter$OutputFlusher@6811} "Thread[OutputFlusher for Flat Map,5,Flink Task Threads]"
+        //        flusherException = null
+        //        volatileFlusherException = null
+        //        volatileFlusherExceptionCheckSkipCount = 0
+        // writer ????
         RecordWriter<SerializationDelegate<StreamRecord<OUT>>> output =
                 new RecordWriterBuilder<SerializationDelegate<StreamRecord<OUT>>>()
                         .setChannelSelector(outputPartitioner)
                         .setTimeout(bufferTimeout)
                         .setTaskName(taskName)
                         .build(bufferWriter);
+
+
+
+
         output.setMetricGroup(environment.getMetricGroup().getIOMetricGroup());
         return output;
     }

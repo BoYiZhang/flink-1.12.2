@@ -148,6 +148,15 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
             final Executor asyncExecutor) {
 
         this.index = index;
+
+
+        //    ResourceProfile{
+        //        cpuCores=1.0000000000000000,
+        //        taskHeapMemory=96.000mb (100663293 bytes),
+        //        taskOffHeapMemory=0 bytes,
+        //        managedMemory=128.000mb (134217730 bytes),
+        //        networkMemory=32.000mb (33554432 bytes)
+        //    }
         this.resourceProfile = Preconditions.checkNotNull(resourceProfile);
         this.asyncExecutor = Preconditions.checkNotNull(asyncExecutor);
 
@@ -157,6 +166,8 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
         this.jobId = jobId;
         this.allocationId = allocationId;
 
+        //    resourceProfile = {ResourceProfile@5672} "ResourceProfile{cpuCores=1.0000000000000000, taskHeapMemory=96.000mb (100663293 bytes), taskOffHeapMemory=0 bytes, managedMemory=128.000mb (134217730 bytes), networkMemory=32.000mb (33554432 bytes)}"
+        //    memoryPageSize = 32768
         this.memoryManager = createMemoryManager(resourceProfile, memoryPageSize);
 
         this.closingFuture = new CompletableFuture<>();

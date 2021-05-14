@@ -53,6 +53,16 @@ public class StreamSourceContexts {
 
         final SourceFunction.SourceContext<OUT> ctx;
         switch (timeCharacteristic) {
+
+            //  ctx = {StreamSourceContexts$ManualWatermarkContext@7657}
+            //    output = {CountingOutput@7212}
+            //    reuse = {StreamRecord@7658} "Record @ (undef) : null"
+            //    timeService = {ProcessingTimeServiceImpl@7217}
+            //    checkpointLock = {Object@7183}
+            //    streamStatusMaintainer = {OperatorChain@7182}
+            //    idleTimeout = -1
+            //    nextCheck = null
+            //    failOnNextCheck = false
             case EventTime:
                 ctx =
                         new ManualWatermarkContext<>(
@@ -61,7 +71,6 @@ public class StreamSourceContexts {
                                 checkpointLock,
                                 streamStatusMaintainer,
                                 idleTimeout);
-
                 break;
             case IngestionTime:
                 ctx =
@@ -314,6 +323,16 @@ public class StreamSourceContexts {
 
         @Override
         protected void processAndCollect(T element) {
+            // 这里 ??
+            // this = {StreamSourceContexts$ManualWatermarkContext@7657}
+            //  element = "正正"
+            //    reuse = {StreamRecord@7658} "Record @ (undef) : 正正正"
+            //        value = "正正正"
+            //        timestamp = 0
+            //        hasTimestamp = false
+
+
+            // CountingOutput.collect
             output.collect(reuse.replace(element));
         }
 
@@ -397,9 +416,21 @@ public class StreamSourceContexts {
             scheduleNextIdleDetectionTask();
         }
 
+        // this = {StreamSourceContexts$ManualWatermarkContext@7657}
+        //        output = {CountingOutput@7212}
+        //        reuse = {StreamRecord@7658} "Record @ (undef) : 正正正"
+        //        timeService = {ProcessingTimeServiceImpl@7217}
+        //        checkpointLock = {Object@7183}
+        //        streamStatusMaintainer = {OperatorChain@7182}
+        //        idleTimeout = -1
+        //        nextCheck = null
+        //        failOnNextCheck = false
         @Override
         public void collect(T element) {
+
             synchronized (checkpointLock) {
+
+                //  OperatorChain#toggleStreamStatus
                 streamStatusMaintainer.toggleStreamStatus(StreamStatus.ACTIVE);
 
                 if (nextCheck != null) {

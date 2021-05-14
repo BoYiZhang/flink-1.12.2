@@ -132,6 +132,8 @@ public class ResultPartitionFactory {
         if (type == ResultPartitionType.PIPELINED
                 || type == ResultPartitionType.PIPELINED_BOUNDED
                 || type == ResultPartitionType.PIPELINED_APPROXIMATE) {
+
+            //构建  结果分区 ... 在这里会构建 LocalBufferPool
             final PipelinedResultPartition pipelinedPartition =
                     new PipelinedResultPartition(
                             taskNameWithSubtaskAndId,

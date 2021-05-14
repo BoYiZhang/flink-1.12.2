@@ -400,8 +400,9 @@ public class NetworkBufferPool
 
 
     // numRequiredBuffers：必须要有的buffer数量
-    // maxUsedBuffers：使用的buffer数量不能超过这个值
+    // maxUsedBuffers：使用的buffer数量不能超过这个值 :  默认值 8 .  控制参数: taskmanager.network.memory.floating-buffers-per-gate
     // bufferPoolOwner：bufferPool所有者，用于回收内存时通知owner
+    // numSubpartitions 子分区的数量
     private BufferPool internalCreateBufferPool(
             int numRequiredBuffers,
             int maxUsedBuffers,
