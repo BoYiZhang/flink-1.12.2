@@ -51,16 +51,28 @@ public class ZooKeeperModule implements SecurityModule {
     @Override
     public void install() throws SecurityInstallException {
 
+        //  获取zookeeper.sasl.client系统变量值，用于在卸载module的时候恢复
         priorSaslEnable = System.getProperty(ZK_ENABLE_CLIENT_SASL, null);
+
+
+        // 读取Flink配置项zookeeper.sasl.disable的值，根据其语义（取反）设置为zookeeper.sasl.client系统变量
         System.setProperty(
                 ZK_ENABLE_CLIENT_SASL, String.valueOf(!securityConfig.isZkSaslDisable()));
 
+        // 获取zookeeper.sasl.client.username系统变量值，用于在卸载module的时候恢复
         priorServiceName = System.getProperty(ZK_SASL_CLIENT_USERNAME, null);
+
+        // 读取Flink配置项zookeeper.sasl.service-name
+        // 如果不为默认值zookeeper，设置zookeeper.sasl.client.username系统变量
         if (!"zookeeper".equals(securityConfig.getZooKeeperServiceName())) {
             System.setProperty(ZK_SASL_CLIENT_USERNAME, securityConfig.getZooKeeperServiceName());
         }
 
+        // 获取zookeeper.sasl.clientconfig系统变量值，用于在卸载module的时候恢复
         priorLoginContextName = System.getProperty(ZK_LOGIN_CONTEXT_NAME, null);
+
+        // 读取Flink配置项zookeeper.sasl.login-context-name
+        // 如果不为默认值Client，设置zookeeper.sasl.clientconfig系统变量
         if (!"Client".equals(securityConfig.getZooKeeperLoginContextName())) {
             System.setProperty(
                     ZK_LOGIN_CONTEXT_NAME, securityConfig.getZooKeeperLoginContextName());

@@ -26,6 +26,8 @@ import java.security.PrivilegedExceptionAction;
 import java.util.concurrent.Callable;
 
 /**
+ * HadoopSecurityContext用于在认证过的UserGroupInformation中执行逻辑（封装在Callable中）
+ *
  * Hadoop security context which runs a Callable with the previously initialized UGI and appropriate
  * security credentials.
  */

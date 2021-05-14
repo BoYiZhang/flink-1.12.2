@@ -82,6 +82,7 @@ public class SecurityConfiguration {
             Configuration flinkConf,
             List<String> securityContextFactory,
             List<String> securityModuleFactories) {
+        // zookeeper.sasl.disable
         this.isZkSaslDisable = flinkConf.getBoolean(SecurityOptions.ZOOKEEPER_SASL_DISABLE);
         this.keytab = flinkConf.getString(SecurityOptions.KERBEROS_LOGIN_KEYTAB);
         this.principal = flinkConf.getString(SecurityOptions.KERBEROS_LOGIN_PRINCIPAL);

@@ -82,32 +82,54 @@ public class JaasModule implements SecurityModule {
         this.workingDir = dirs[0];
     }
 
+    // install方法读取了java.security.auth.login.config系统变量对应的jaas配置，
+    // 并且将Flink配置文件中相关配置转换为JAAS中的entry，
+    // 合并到系统变量对应的jaas配置中并设置给JVM。
     @Override
     public void install() {
 
         // ensure that a config file is always defined, for compatibility with
         // ZK and Kafka which check for the system property and existence of the file
+
+        // 读取java.security.auth.login.config系统变量值，用于在卸载module的时候恢复
+
         priorConfigFile = System.getProperty(JAVA_SECURITY_AUTH_LOGIN_CONFIG, null);
+
+        // 如果没有配置
         if (priorConfigFile == null) {
+            // Flink的 io.tmp.dirs配置项第一个目录为workingDir
+            // 将默认的flink-jaas.conf文件写入这个位置，创建临时文件，名为jass-xxx.conf
+            // 在JVM进程关闭的时候删除这个临时文件
             File configFile = generateDefaultConfigFile(workingDir);
+            // 配置java.security.auth.login.config系统变量值
+            // 保证这个系统变量的值始终存在，这是为了兼容Zookeeper和Kafka
+            // 他们会去检查这个jaas文件是否存在
             System.setProperty(JAVA_SECURITY_AUTH_LOGIN_CONFIG, configFile.getAbsolutePath());
             LOG.info("Jaas file will be created as {}.", configFile);
         }
 
         // read the JAAS configuration file
+        // 读取已安装的jaas配置文件
         priorConfig = javax.security.auth.login.Configuration.getConfiguration();
 
         // construct a dynamic JAAS configuration
+        // 包装为DynamicConfiguration，这个配置是可以修改的
         currentConfig = new DynamicConfiguration(priorConfig);
 
         // wire up the configured JAAS login contexts to use the krb5 entries
+        // 从Flink配置文件中读取kerberos配置
+        // AppConfigurationEntry为Java读取Jaas配置文件中一段配置项的封装
+        // 一段配置项指的是大括号之内的配置
         AppConfigurationEntry[] krb5Entries = getAppConfigurationEntries(securityConfig);
         if (krb5Entries != null) {
+            // 遍历Flink配置项security.kerberos.login.contexts，作为entry name使用
             for (String app : securityConfig.getLoginContextNames()) {
+                // 将krb5Entries对应的AppConfigurationEntry添加入currrentConfig
+                // 使用security.kerberos.login.contexts对应的entry name
                 currentConfig.addAppConfigurationEntry(app, krb5Entries);
             }
         }
-
+        // 设置新的currentConfig
         javax.security.auth.login.Configuration.setConfiguration(currentConfig);
     }
 
@@ -124,6 +146,47 @@ public class JaasModule implements SecurityModule {
     public DynamicConfiguration getCurrentConfiguration() {
         return currentConfig;
     }
+
+    /**
+     *     getAppConfigurationEntries方法从Flink的securityConfig中读取配置，
+     *     转换为JAAS entry的格式，存入AppConfigurationEntry。
+     *     如果Flink配置了security.kerberos.login.use-ticket-cache，
+     *     加载类似如下内容的文件，生成一个AppConfigurationEntry叫做userKerberosAce
+     *
+     *      {@code
+     *         EntryName {
+     *             com.sun.security.auth.module.Krb5LoginModule optional
+     *             doNotPrompt=true
+     *             useTicketCache=true
+     *             renewTGT=true;
+     *         };
+     *       }
+     *
+     *  如果Flink中配置了security.kerberos.login.keytab，会加载如下配置，
+     *  生成一个AppConfigurationEntry叫做keytabKerberosAce：
+     *
+     *  {@code
+     *       EntryName {
+     *           com.sun.security.auth.module.Krb5LoginModule required
+     *           keyTab=keytab路径
+     *           doNotPrompt=true
+     *           useKeyTab=true
+     *           storeKey=true
+     *           principal=principal名称
+     *           refreshKrb5Config=true;
+     *       };
+     *
+     *
+     *  }
+     *
+     *
+     *  getAppConfigurationEntries最后返回这两个AppConfigurationEntry的集合，
+     *  如果某一个为null，只返回其中一个。
+     *
+     * @param securityConfig
+     * @return
+     */
+
 
     private static AppConfigurationEntry[] getAppConfigurationEntries(
             SecurityConfiguration securityConfig) {

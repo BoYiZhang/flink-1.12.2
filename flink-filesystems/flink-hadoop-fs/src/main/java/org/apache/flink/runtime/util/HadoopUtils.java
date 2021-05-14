@@ -46,6 +46,15 @@ public class HadoopUtils {
 
     static final Text HDFS_DELEGATION_TOKEN_KIND = new Text("HDFS_DELEGATION_TOKEN");
 
+
+
+    //    读取HADOOP_HOME环境变量，如果存在，分别从它的conf和etc/hadoop目录下读取core-site.xml和hdfs-site.xml文件。
+    //    从Flink配置文件的fs.hdfs.hdfssite配置项所在目录下寻找。
+    //    从Flink配置文件的fs.hdfs.hadoopconf配置项所在目录下寻找。
+    //    从HADOOP_CONF_DIR环境变量对应的目录下寻找。
+    //    读取Flink配置文件中所有以flink.hadoop.为前缀的key，将这些key截掉这个前缀作为新的key，和原先的value一起作为hadoop conf的配置项，存放入hadoop conf。
+    //
+
     @SuppressWarnings("deprecation")
     public static Configuration getHadoopConfiguration(
             org.apache.flink.configuration.Configuration flinkConfiguration) {
@@ -53,7 +62,10 @@ public class HadoopUtils {
         // Instantiate an HdfsConfiguration to load the hdfs-site.xml and hdfs-default.xml
         // from the classpath
 
+        // 创建个空的conf
         Configuration result = new HdfsConfiguration();
+
+        // 标记是否找到hadoop配置文件
         boolean foundHadoopConfiguration = false;
 
         // We need to load both core-site.xml and hdfs-site.xml to determine the default fs path and
@@ -63,10 +75,19 @@ public class HadoopUtils {
         // file with higher priority should be added later.
 
         // Approach 1: HADOOP_HOME environment variables
+
+        // 保存两个可能的hadoop conf路径
         String[] possibleHadoopConfPaths = new String[2];
 
+        // 获取HADOOP_HOME环境变量的值
         final String hadoopHome = System.getenv("HADOOP_HOME");
         if (hadoopHome != null) {
+
+            // 如果发现HADOOP_HOME环境变量的值
+            // 尝试分别从如下路径获取：
+            // $HADOOP_HOME/conf
+            // $HADOOP_HOME/etc/hadoop
+
             // Searching Hadoop configuration files in HADOOP_HOME: /opt/tools/hadoop-3.2.1
             LOG.debug("Searching Hadoop configuration files in HADOOP_HOME: {}", hadoopHome);
             possibleHadoopConfPaths[0] = hadoopHome + "/conf";
@@ -75,6 +96,7 @@ public class HadoopUtils {
 
         for (String possibleHadoopConfPath : possibleHadoopConfPaths) {
             if (possibleHadoopConfPath != null) {
+                // 依次尝试读取possibleHadoopConfPath下的core-site.xml文件和hdfs-site.xml文件到hadoop conf中
 
                 //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/core-site.xml to hadoop configuration
                 //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/hdfs-site.xml to hadoop configuration
@@ -83,6 +105,8 @@ public class HadoopUtils {
         }
 
         // Approach 2: Flink configuration (deprecated)
+
+        // 获取Flink配置项 fs.hdfs.hdfsdefault 对应的配置文件，加入hadoop conf
         final String hdfsDefaultPath =
                 flinkConfiguration.getString(ConfigConstants.HDFS_DEFAULT_CONFIG, null);
         if (hdfsDefaultPath != null) {
@@ -95,6 +119,7 @@ public class HadoopUtils {
             foundHadoopConfiguration = true;
         }
 
+        // 获取Flink配置项 fs.hdfs.hdfssite 对应的配置文件，加入hadoop conf
         final String hdfsSitePath =
                 flinkConfiguration.getString(ConfigConstants.HDFS_SITE_CONFIG, null);
         if (hdfsSitePath != null) {
@@ -104,6 +129,7 @@ public class HadoopUtils {
             foundHadoopConfiguration = true;
         }
 
+        // 获取Flink配置项 fs.hdfs.hadoopconf 对应的配置文件，加入hadoop conf
         final String hadoopConfigPath =
                 flinkConfiguration.getString(ConfigConstants.PATH_HADOOP_CONFIG, null);
         if (hadoopConfigPath != null) {
@@ -113,10 +139,14 @@ public class HadoopUtils {
         }
 
         // Approach 3: HADOOP_CONF_DIR environment variable
+        // 从系统环境变量HADOOP_CONF_DIR目录中读取hadoop配置文件
         String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
         if (hadoopConfDir != null) {
             LOG.debug("Searching Hadoop configuration files in HADOOP_CONF_DIR: {}", hadoopConfDir);
 
+
+            // 读取Flink配置文件中所有以flink.hadoop.为前缀的key
+            // 将这些key截掉这个前缀作为新的key，和原先的value一起作为hadoop conf的配置项，存放入hadoop conf
 
             //  Searching Hadoop configuration files in HADOOP_CONF_DIR: /opt/tools/hadoop-3.2.1/etc/hadoop
             //  Adding /opt/tools/hadoop-3.2.1/etc/hadoop/core-site.xml to hadoop configuration
@@ -125,6 +155,9 @@ public class HadoopUtils {
             foundHadoopConfiguration =
                     addHadoopConfIfFound(result, hadoopConfDir) || foundHadoopConfiguration;
         }
+
+
+        // 如果以上途径均未找到hadoop conf，显示告警信息
 
         if (!foundHadoopConfiguration) {
             LOG.warn(

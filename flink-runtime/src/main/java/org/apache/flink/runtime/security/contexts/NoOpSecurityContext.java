@@ -20,7 +20,9 @@ package org.apache.flink.runtime.security.contexts;
 
 import java.util.concurrent.Callable;
 
-/** A security context that simply runs a Callable without performing a login action. */
+/**
+ * NoOpSecurityContext不做任何认证，直接运行Callable。
+ * A security context that simply runs a Callable without performing a login action. */
 public class NoOpSecurityContext implements SecurityContext {
 
     @Override
