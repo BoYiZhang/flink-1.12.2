@@ -220,6 +220,7 @@ public class RemoteInputChannel extends InputChannel {
         final SequenceBuffer next;
         final DataType nextDataType;
 
+        // 从receivedBuffers队列中获取buffer
         synchronized (receivedBuffers) {
             next = receivedBuffers.poll();
             nextDataType =
@@ -470,9 +471,13 @@ public class RemoteInputChannel extends InputChannel {
     }
 
     public void onBuffer(Buffer buffer, int sequenceNumber, int backlog) throws IOException {
+
+        // 是否需要回收此buffer
         boolean recycleBuffer = true;
 
         try {
+
+            // 检查sequenceNumber
             if (expectedSequenceNumber != sequenceNumber) {
                 onError(new BufferReorderingException(expectedSequenceNumber, sequenceNumber));
                 return;
@@ -497,6 +502,7 @@ public class RemoteInputChannel extends InputChannel {
                     return;
                 }
 
+                // 判断添加buffer之前的队列是否为空
                 wasEmpty = receivedBuffers.isEmpty();
 
                 SequenceBuffer sequenceBuffer = new SequenceBuffer(buffer, sequenceNumber);
@@ -513,21 +519,28 @@ public class RemoteInputChannel extends InputChannel {
                         firstPriorityEvent = addPriorityBuffer(announce(sequenceBuffer));
                     }
                 }
+
+                // 增加SequenceNumber
                 ++expectedSequenceNumber;
             }
+            // 已接收到数据，缓存不需要回收
             recycleBuffer = false;
+
 
             if (firstPriorityEvent) {
                 notifyPriorityEvent(sequenceNumber);
             }
+            // 如果添加buffer之前的队列为空，需要通知对应的inputGate，现在已经有数据了（不为空
             if (wasEmpty) {
                 notifyChannelNonEmpty();
             }
 
             if (backlog >= 0) {
+                // 负责提前分配buffer
                 onSenderBacklog(backlog);
             }
         } finally {
+            // 回收buffer
             if (recycleBuffer) {
                 buffer.recycleBuffer();
             }

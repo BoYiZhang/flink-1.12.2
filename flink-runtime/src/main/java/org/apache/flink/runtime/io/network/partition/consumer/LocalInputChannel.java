@@ -215,7 +215,12 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
     Optional<BufferAndAvailability> getNextBuffer() throws IOException {
         checkError();
 
+        // 获取requestSubpartition方法得到的subpartitionView
         ResultSubpartitionView subpartitionView = this.subpartitionView;
+
+        // 如果没有获取到subpartitionView，需要再次检查subpartitionView
+        // 如果此时另一线程正在调用requestSubpartition方法，checkAndWaitForSubpartitionView方法会被阻塞
+        // 等待requestSubpartition执行完毕
         if (subpartitionView == null) {
             // There is a possible race condition between writing a EndOfPartitionEvent (1) and
             // flushing (3) the Local
@@ -237,6 +242,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
             subpartitionView = checkAndWaitForSubpartitionView();
         }
 
+        // 获取缓存数据
         BufferAndBacklog next = subpartitionView.getNextBuffer();
 
         if (next == null) {
@@ -254,7 +260,10 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
             buffer = ((FileRegionBuffer) buffer).readInto(inputGate.getUnpooledSegment());
         }
 
+        // 更新已读取字节数
         numBytesIn.inc(buffer.getSize());
+
+        // 更新以读取缓存数
         numBuffersIn.inc();
         if (buffer.getDataType().hasPriority()) {
             channelStatePersister.checkForBarrier(buffer);

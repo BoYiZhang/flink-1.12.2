@@ -26,6 +26,11 @@ import java.nio.ByteBuffer;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ *
+ * ChannelSelectorRecordWriter:
+ *      通过channelSelector对象判断数据需要发往下游的哪个channel。
+ *      keyBy算子用的正是这个RecordWriter。
+ *
  * A regular record-oriented runtime result writer.
  *
  * <p>The ChannelSelectorRecordWriter extends the {@link RecordWriter} and emits records to the

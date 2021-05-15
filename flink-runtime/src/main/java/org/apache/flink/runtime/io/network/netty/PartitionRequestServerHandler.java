@@ -71,11 +71,14 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NettyMessage msg) throws Exception {
         try {
+
+            // 获取接收到消息的类型
             Class<?> msgClazz = msg.getClass();
 
             // ----------------------------------------------------------------
             // Intermediate result partition requests
             // ----------------------------------------------------------------
+            // 如果是分区请求消息
             if (msgClazz == PartitionRequest.class) {
                 PartitionRequest request = (PartitionRequest) msg;
 
@@ -83,13 +86,18 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
 
                 try {
                     NetworkSequenceViewReader reader;
+
+                    // 创建一个reader
                     reader =
                             new CreditBasedSequenceNumberingViewReader(
                                     request.receiverId, request.credit, outboundQueue);
 
+                    // 为该reader分配一个subpartitionView
                     reader.requestSubpartitionView(
                             partitionProvider, request.partitionId, request.queueIndex);
 
+                    // 注册reader到outboundQueue中
+                    // outboundQueue中存放了多个reader，这些reader在队列中排队，等待数据发送
                     outboundQueue.notifyReaderCreated(reader);
                 } catch (PartitionNotFoundException notFound) {
                     respondWithError(ctx, notFound, request.receiverId);
@@ -116,11 +124,13 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
             } else if (msgClazz == AddCredit.class) {
                 AddCredit request = (AddCredit) msg;
 
+                // 调用addCredit方法
                 outboundQueue.addCreditOrResumeConsumption(
                         request.receiverId, reader -> reader.addCredit(request.credit));
             } else if (msgClazz == ResumeConsumption.class) {
                 ResumeConsumption request = (ResumeConsumption) msg;
 
+                // 调用addCredit方法
                 outboundQueue.addCreditOrResumeConsumption(
                         request.receiverId, NetworkSequenceViewReader::resumeConsumption);
             } else {

@@ -161,10 +161,14 @@ public class BufferManager implements BufferListener, BufferRecycler {
      */
     int requestFloatingBuffers(int numRequired) {
         int numRequestedBuffers = 0;
+
+        // 锁定bufferQueue
         synchronized (bufferQueue) {
             // Similar to notifyBufferAvailable(), make sure that we never add a buffer after
             // channel
             // released all buffers via releaseAllResources().
+
+            // 避免在releaseAllResources()之后执行
             if (inputChannel.isReleased()) {
                 return numRequestedBuffers;
             }
@@ -186,6 +190,8 @@ public class BufferManager implements BufferListener, BufferRecycler {
                     bufferQueue.addFloatingBuffer(buffer);
                     numRequestedBuffers++;
                 } else if (bufferPool.addBufferListener(this)) {
+                    // 如果请求不到buffer（channel没有足够的buffer）
+                    // 注册一个监听器，并且标记等待请求浮动Buffers的状态为true
                     isWaitingForFloatingBuffers = true;
                     break;
                 }

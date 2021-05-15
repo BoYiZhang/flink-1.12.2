@@ -510,14 +510,20 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         // StreamOneInputProcessor
         // StreamTwoInputProcessor
         // StreamMultipleInputProcessor
+
+        // 调用inputProcessor的processInput方法
         InputStatus status = inputProcessor.processInput();
         if (status == InputStatus.MORE_AVAILABLE && recordWriter.isAvailable()) {
             return;
         }
         if (status == InputStatus.END_OF_INPUT) {
+
+            // 如果输入结束，将mailboxLoopRunning设置为false，停止运行
             controller.allActionsCompleted();
             return;
         }
+
+        // 在inputGate recordWriter或inputProcessor恢复可用之后异步调用default action的恢复操作
         CompletableFuture<?> jointFuture = getInputOutputJointFuture(status);
         MailboxDefaultAction.Suspension suspendedDefaultAction = controller.suspendDefaultAction();
         assertNoException(jointFuture.thenRun(suspendedDefaultAction::resume));

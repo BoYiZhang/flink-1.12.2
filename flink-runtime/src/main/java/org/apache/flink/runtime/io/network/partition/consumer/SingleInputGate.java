@@ -277,6 +277,8 @@ public class SingleInputGate extends IndexedInputGate {
     @Override
     public void requestPartitions() {
         synchronized (requestLock) {
+
+            // 只能请求一次partition，第一次调用该方法后此flag会被设置为true
             if (!requestedPartitionsFlag) {
                 if (closeFuture.isDone()) {
                     throw new IllegalStateException("Already released.");
@@ -298,12 +300,15 @@ public class SingleInputGate extends IndexedInputGate {
                 internalRequestPartitions();
             }
 
+            // 方法调用完毕设置flag为true，防止重复调用
             requestedPartitionsFlag = true;
         }
     }
 
     @VisibleForTesting
     void convertRecoveredInputChannels() {
+
+        // 循环所有的inputChannels，请求他们对应的subPartition
         LOG.info("Converting recovered input channels ({} channels)", getNumberOfInputChannels());
         for (Map.Entry<IntermediateResultPartitionID, InputChannel> entry :
                 inputChannels.entrySet()) {
@@ -652,14 +657,17 @@ public class SingleInputGate extends IndexedInputGate {
 
     private Optional<BufferOrEvent> getNextBufferOrEvent(boolean blocking)
             throws IOException, InterruptedException {
+        // 如果接收到所有分区终止的事件，则返回空
         if (hasReceivedAllEndOfPartitionEvents) {
             return Optional.empty();
         }
 
+        // 如果input gate被关闭
         if (closeFuture.isDone()) {
             throw new CancelTaskException("Input gate is already closed.");
         }
 
+        // 以阻塞方式读取数据
         Optional<InputWithData<InputChannel, BufferAndAvailability>> next =
                 waitAndGetNextData(blocking);
         if (!next.isPresent()) {
@@ -679,11 +687,14 @@ public class SingleInputGate extends IndexedInputGate {
             boolean blocking) throws IOException, InterruptedException {
         while (true) {
             synchronized (inputChannelsWithData) {
+
+
                 Optional<InputChannel> inputChannelOpt = getChannel(blocking);
                 if (!inputChannelOpt.isPresent()) {
                     return Optional.empty();
                 }
 
+                // 获取channel，根据blocking参数决定是否是阻塞方式
                 final InputChannel inputChannel = inputChannelOpt.get();
                 Optional<BufferAndAvailability> bufferAndAvailabilityOpt =
                         inputChannel.getNextBuffer();
@@ -709,8 +720,10 @@ public class SingleInputGate extends IndexedInputGate {
                     }
                 }
 
+                // 如果inputChannelsWithData为空，设置为不可用状态
                 checkUnavailability();
 
+                // 返回包装后的结果
                 return Optional.of(
                         new InputWithData<>(
                                 inputChannel,

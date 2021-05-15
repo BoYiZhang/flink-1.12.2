@@ -161,6 +161,7 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
             if (currentRecordDeserializer != null) {
                 DeserializationResult result;
                 try {
+                    // 从buffer的memorySegment中反序列化数据
                     result = currentRecordDeserializer.getNextRecord(deserializationDelegate);
                 } catch (IOException e) {
                     throw new IOException(
@@ -172,7 +173,7 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
                 // result.isBufferConsumed()返回true
                 // 调用反序列化器中内存块的recycleBuffer方法。
 
-
+                // 如果buffer已经消费了，可以回收buffer
                 if (result.isBufferConsumed()) {
                     // 在这里currentRecordDeserializer.
                     // getCurrentBuffer()是NetworkBuffer类型。
@@ -180,6 +181,7 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
                     currentRecordDeserializer = null;
                 }
 
+                // 如果已经读取到完整记录
                 if (result.isFullRecord()) {
                     // 处理数据
                     processElement(deserializationDelegate.getInstance(), output);
@@ -187,18 +189,25 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
                 }
             }
 
+            // 从CheckpointInputGate读取数据
             Optional<BufferOrEvent> bufferOrEvent = checkpointedInputGate.pollNext();
             if (bufferOrEvent.isPresent()) {
+
                 // return to the mailbox after receiving a checkpoint barrier to avoid processing of
                 // data after the barrier before checkpoint is performed for unaligned checkpoint
                 // mode
+
+
                 if (bufferOrEvent.get().isBuffer()) {
+                    // 如果是buffer的话
                     processBuffer(bufferOrEvent.get());
                 } else {
+                    // 如果接收到的是even
                     processEvent(bufferOrEvent.get());
                     return InputStatus.MORE_AVAILABLE;
                 }
             } else {
+                // 如果checkpointedInputGate 输入流结束，返回END_OF_INPUT
                 if (checkpointedInputGate.isFinished()) {
                     checkState(
                             checkpointedInputGate.getAvailableFuture().isDone(),
@@ -245,18 +254,26 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
         if (event.getClass() == EndOfPartitionEvent.class) {
             // release the record deserializer immediately,
             // which is very valuable in case of bounded stream
+
+
+            //  清除channel对应的反序列化器
+            // 并将recordDeserializers[channelIndex] 引用置空
             releaseDeserializer(bufferOrEvent.getChannelInfo());
         }
     }
 
     private void processBuffer(BufferOrEvent bufferOrEvent) throws IOException {
+
+        // 读取buffer对应的channel id
         lastChannel = bufferOrEvent.getChannelInfo();
         checkState(lastChannel != null);
+        // 获取channel对应的record反序列化器
         currentRecordDeserializer = recordDeserializers.get(lastChannel);
         checkState(
                 currentRecordDeserializer != null,
                 "currentRecordDeserializer has already been released");
 
+        // 此处是关键，设置反序列化器要读取的buffer为inputGate获取到的buffer
         currentRecordDeserializer.setNextBuffer(bufferOrEvent.getBuffer());
     }
 

@@ -229,8 +229,11 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         if (msg instanceof ClientOutboundMessage) {
             boolean triggerWrite = clientOutboundMessages.isEmpty();
 
+            // 加入clientOutboundMessages队列
             clientOutboundMessages.add((ClientOutboundMessage) msg);
 
+            // 如果入队之前队列为空，调用writeAndFlushNextMessageIfPossible方法
+            // 发送AddCredit请求到server端
             if (triggerWrite) {
                 writeAndFlushNextMessageIfPossible(ctx.channel());
             }
@@ -369,6 +372,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         }
 
         while (true) {
+            // 从inputChannelsWithCredit获取一个ClientOutboundMessage
             ClientOutboundMessage outboundMessage = clientOutboundMessages.poll();
 
             // The input channel may be null because of the write callbacks
@@ -379,6 +383,8 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
             // It is no need to notify credit or resume data consumption for the released channel.
             if (!outboundMessage.inputChannel.isReleased()) {
+
+                // 如果channel没有被释放，构造一个Message请求并发送
                 Object msg = outboundMessage.buildMessage();
 
                 // Write and flush and wait until this is done before

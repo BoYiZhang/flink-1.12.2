@@ -371,7 +371,10 @@ public class PipelinedSubpartition extends ResultSubpartition
     public PipelinedSubpartitionView createReadView(
             BufferAvailabilityListener availabilityListener) {
         synchronized (buffers) {
+            // 检查该SubPartition的缓存不能被释放
             checkState(!isReleased);
+
+            // 检查之前不能创建过read view
             checkState(
                     readView == null,
                     "Subpartition %s of is being (or already has been) consumed, "
@@ -384,7 +387,7 @@ public class PipelinedSubpartition extends ResultSubpartition
                     parent.getOwningTaskName(),
                     getSubPartitionIndex(),
                     parent.getPartitionId());
-
+            // 创建view，同时转入availabilityListener
             readView = new PipelinedSubpartitionView(this, availabilityListener);
         }
 

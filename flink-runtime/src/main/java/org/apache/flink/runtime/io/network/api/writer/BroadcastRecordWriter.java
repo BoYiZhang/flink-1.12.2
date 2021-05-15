@@ -23,6 +23,9 @@ import org.apache.flink.core.io.IOReadableWritable;
 import java.io.IOException;
 
 /**
+ *
+ * BroadcastRecordWriter: 维护了多个下游channel，发送数据到下游所有的channel中。
+ *
  * A special record-oriented runtime result writer only for broadcast mode.
  *
  * <p>The BroadcastRecordWriter extends the {@link RecordWriter} and emits records to all channels

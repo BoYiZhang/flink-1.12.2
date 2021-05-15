@@ -112,8 +112,13 @@ public class NettyPartitionRequestClient implements PartitionRequestClient {
                 partitionId,
                 delayMs);
 
+
+        // clientHandler为CreditBasedPartitionRequestClientHandler
+        // 它内部维护了input channel ID和channel的对应关系，是一个map类型变量
+        // 在读取消息的时候，需要依赖该map从channel ID获取到channel对象本身
         clientHandler.addInputChannel(inputChannel);
 
+        // 创建PartitionRequest对象
         final PartitionRequest request =
                 new PartitionRequest(
                         partitionId,
@@ -121,13 +126,19 @@ public class NettyPartitionRequestClient implements PartitionRequestClient {
                         inputChannel.getInputChannelId(),
                         inputChannel.getInitialCredit());
 
+        // 发送PartitionRequest请求发送成功之后的回调函数
         final ChannelFutureListener listener =
                 new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
+
+                        // 如果遇到了错误
                         if (!future.isSuccess()) {
+                            // map中移除这个channel
                             clientHandler.removeInputChannel(inputChannel);
                             SocketAddress remoteAddr = future.channel().remoteAddress();
+
+                            // 为inputChannel内部的cause变量赋值，设置一个error
                             inputChannel.onError(
                                     new LocalTransportException(
                                             String.format(
@@ -139,10 +150,12 @@ public class NettyPartitionRequestClient implements PartitionRequestClient {
                     }
                 };
 
+        // 如果不需要延迟发送
         if (delayMs == 0) {
             ChannelFuture f = tcpChannel.writeAndFlush(request);
             f.addListener(listener);
         } else {
+            // 如果需要延迟发送，调用eventLoop的schedule方法
             final ChannelFuture[] f = new ChannelFuture[1];
             tcpChannel
                     .eventLoop()

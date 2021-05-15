@@ -97,6 +97,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
      * availability, so there is no race condition here.
      */
     private void enqueueAvailableReader(final NetworkSequenceViewReader reader) throws Exception {
+
+        // 如果reader已注册为可用（调用过enqueueAvailableReader）或者reader本身不可用，直接返回。
         if (reader.isRegisteredAsAvailable() || !reader.isAvailable()) {
             return;
         }
@@ -104,6 +106,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         // we try trigger the actual write. Otherwise this will be handled by
         // the writeAndFlushNextMessageIfPossible calls.
         boolean triggerWrite = availableReaders.isEmpty();
+
+        // 注册此reader为可用reader
         registerAvailableReader(reader);
 
         if (triggerWrite) {
@@ -153,8 +157,11 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
             return;
         }
 
+        // 根据receiverId获取reader
         NetworkSequenceViewReader reader = allReaders.get(receiverId);
         if (reader != null) {
+
+
             operation.accept(reader);
 
             enqueueAvailableReader(reader);
@@ -194,6 +201,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
     }
 
     private void writeAndFlushNextMessageIfPossible(final Channel channel) throws IOException {
+
+        // 如果channel不可写，返回
         if (fatalError || !channel.isWritable()) {
             return;
         }
@@ -202,6 +211,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         // input channel logic. You can think of this class acting as the input
         // gate and the consumed views as the local input channels.
 
+        // 队列中取出一个reader
         BufferAndAvailability next = null;
         try {
             while (true) {
@@ -213,6 +223,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
                     return;
                 }
 
+                // 获取buffer
                 next = reader.getNextBuffer();
                 if (next == null) {
                     if (!reader.isReleased()) {
@@ -241,6 +252,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
                                     reader.getReceiverId(),
                                     next.buffersInBacklog());
 
+
+                    // 将msg发送到下游
                     // Write and flush and wait until this is done before
                     // trying to continue with the next buffer.
                     channel.writeAndFlush(msg).addListener(writeListener);
@@ -258,7 +271,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
     }
 
     private void registerAvailableReader(NetworkSequenceViewReader reader) {
+        // 添加reader到availableReaders队列
         availableReaders.add(reader);
+        // 设置reader已注册为可用的标记为true
         reader.setRegisteredAsAvailable(true);
     }
 
