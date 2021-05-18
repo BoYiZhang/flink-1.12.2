@@ -50,7 +50,24 @@ import java.util.TimerTask;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** An input channel, which requests a local subpartition. */
+/**
+ *
+ *
+ * 如果一个 InputChannel 和其消费的上游 ResultPartition 所属 Task 都在同一个 TaskManager 中运行，
+ * 那么它们之间的数据交换就在同一个 JVM 进程内不同线程之间进行，无需通过网络交换。
+ *
+ * LocalInputChannel 实现了 InputChannel 接口，同时也实现了 BufferAvailabilityListener 接口。
+ *
+ *
+ * LocalInputChannel 通过 ResultPartitionManager 请求创建和指定 ResultSubparition 关联的 ResultSubparitionView，
+ * 并以自身作为 ResultSubparitionView 的回调。
+ * 这样，一旦 ResultSubparition 有数据产出时，ResultSubparitionView 会得到通知，
+ * 同时 LocalInputChannel 的回调函数也会被调用，
+ * 这样消费者这一端就可以及时获取到数据的生产情况，从而及时地去消费数据。
+ *
+ * ResultSubpartition 中的 buffer 可以通过 ResultSubpartitionView 进行消费
+ *
+ * An input channel, which requests a local subpartition. */
 public class LocalInputChannel extends InputChannel implements BufferAvailabilityListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(LocalInputChannel.class);
@@ -132,6 +149,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
         channelStatePersister.stopPersisting(checkpointId);
     }
 
+    //请求消费对应的子分区
     @Override
     protected void requestSubpartition(int subpartitionIndex) throws IOException {
 
@@ -151,7 +169,10 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
                         channelStatePersister);
 
                 try {
-                    // 构建View ?
+                    // Local，无需网络通信，通过 ResultPartitionManager 创建一个 ResultSubpartitionView
+                    // LocalInputChannel 实现了 BufferAvailabilityListener
+                    // 在有数据时会得到通知，notifyDataAvailable 会被调用，
+                    // 进而将当前 channel 加到 InputGate 的可用 Channel 队列中
                     ResultSubpartitionView subpartitionView =
                             partitionManager.createSubpartitionView(
                                     partitionId, subpartitionIndex, this);
@@ -212,6 +233,11 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
         }
     }
 
+    /**
+     * //读取数据，借助 ResultSubparitionView 消费 ResultSubparition 中的数据
+     * @return
+     * @throws IOException
+     */
     @Override
     Optional<BufferAndAvailability> getNextBuffer() throws IOException {
         checkError();
@@ -243,7 +269,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
             subpartitionView = checkAndWaitForSubpartitionView();
         }
 
-        // 获取缓存数据
+        //通过 ResultSubparitionView 获取
         BufferAndBacklog next = subpartitionView.getNextBuffer();
 
         if (next == null) {
@@ -286,8 +312,10 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
                         next.getSequenceNumber()));
     }
 
+    //回调，在 ResultSubparition 通知 ResultSubparitionView 有数据可供消费，
     @Override
     public void notifyDataAvailable() {
+        //LocalInputChannel 通知 InputGate
         notifyChannelNonEmpty();
     }
 
@@ -326,6 +354,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
                 subpartitionView != null,
                 "Tried to send task event to producer before requesting the subpartition.");
 
+        //事件分发
         if (!taskEventPublisher.publish(partitionId, event)) {
             throw new IOException(
                     "Error while publishing event "

@@ -188,6 +188,7 @@ public abstract class InputGate
         return availabilityHelper.getAvailableFuture();
     }
 
+    //请求消费 ResultPartition
     public abstract void resumeConsumption(InputChannelInfo channelInfo) throws IOException;
 
     /**

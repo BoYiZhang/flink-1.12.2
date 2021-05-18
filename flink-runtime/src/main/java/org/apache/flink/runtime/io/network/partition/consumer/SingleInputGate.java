@@ -67,6 +67,11 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
+ * SingleInputGate 的逻辑还比较清晰，它通过内部维护的一个队列形成一个生产者-消费者的模型，
+ * 当 InputChannel 中有数据时就加入到队列中，
+ * 在需要获取数据时从队列中取出一个 channel，
+ * 获取 channel 中的数据。
+ *
  * An input gate consumes one or more partitions of a single produced intermediate result.
  *
  * <p>Each intermediate result is partitioned over its producing parallel subtasks; each of these
@@ -146,7 +151,11 @@ public class SingleInputGate extends IndexedInputGate {
     @GuardedBy("requestLock")
     private final InputChannel[] channels;
 
-    /** Channels, which notified this input gate about available data. */
+    /**
+     * InputChannel 构成的队列，这些 InputChannel 中都有有可供消费的数据
+     *
+     * Channels, which notified this input gate about available data.
+     * */
     private final PrioritizedDeque<InputChannel> inputChannelsWithData = new PrioritizedDeque<>();
 
     /**
@@ -182,6 +191,7 @@ public class SingleInputGate extends IndexedInputGate {
     /** A timer to retrigger local partition requests. Only initialized if actually needed. */
     private Timer retriggerLocalRequestTimer;
 
+    // bufferpoolFactory的工厂类
     private final SupplierWithException<BufferPool, IOException> bufferPoolFactory;
 
     private final CompletableFuture<Void> closeFuture;
@@ -274,6 +284,7 @@ public class SingleInputGate extends IndexedInputGate {
         }
     }
 
+    //请求分区
     @Override
     public void requestPartitions() {
         synchronized (requestLock) {
@@ -358,7 +369,7 @@ public class SingleInputGate extends IndexedInputGate {
     private void internalRequestPartitions() {
         for (InputChannel inputChannel : inputChannels.values()) {
             try {
-                // todo
+                //每一个channel都请求对应的子分区
                 inputChannel.requestSubpartition(consumedSubpartitionIndex);
             } catch (Throwable t) {
                 inputChannel.setError(t);
@@ -655,6 +666,17 @@ public class SingleInputGate extends IndexedInputGate {
         return getNextBufferOrEvent(false);
     }
 
+
+    /**
+     * Task 通过循环调用 InputGate.getNextBufferOrEvent 方法获取输入数据，
+     * 并将获取的数据交给它所封装的算子进行处理，
+     * 这构成了一个 Task 的基本运行逻辑。
+     *
+     * @param blocking
+     * @return
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private Optional<BufferOrEvent> getNextBufferOrEvent(boolean blocking)
             throws IOException, InterruptedException {
         // 如果接收到所有分区终止的事件，则返回空
@@ -780,6 +802,8 @@ public class SingleInputGate extends IndexedInputGate {
             buffer.recycleBuffer();
         }
 
+        //如果是 EndOfPartitionEvent 事件，那么如果所有的 InputChannel 都接收到这个事件了
+        //将 hasReceivedAllEndOfPartitionEvents 标记为 true，此后不再能获取到数据
         if (event.getClass() == EndOfPartitionEvent.class) {
             channelsWithEndOfPartitionEvents.set(currentChannel.getChannelIndex());
 
@@ -853,6 +877,7 @@ public class SingleInputGate extends IndexedInputGate {
     // Channel notifications
     // ------------------------------------------------------------------------
 
+    // //当一个 InputChannel 有数据时的回调
     void notifyChannelNonEmpty(InputChannel channel) {
         queueChannel(checkNotNull(channel), null);
     }
@@ -889,6 +914,7 @@ public class SingleInputGate extends IndexedInputGate {
                 }));
     }
 
+    //将新的channel加入队列
     private void queueChannel(InputChannel channel, @Nullable Integer prioritySequenceNumber) {
 
 
@@ -950,6 +976,7 @@ public class SingleInputGate extends IndexedInputGate {
     private boolean queueChannelUnsafe(InputChannel channel, boolean priority) {
         assert Thread.holdsLock(inputChannelsWithData);
 
+        //判断这个channel是否已经在队列中
         final boolean alreadyEnqueued =
                 enqueuedInputChannelsWithData.get(channel.getChannelIndex());
         if (alreadyEnqueued
@@ -958,7 +985,9 @@ public class SingleInputGate extends IndexedInputGate {
             return false;
         }
 
+        //加入队列
         inputChannelsWithData.add(channel, priority, alreadyEnqueued);
+
         if (!alreadyEnqueued) {
             enqueuedInputChannelsWithData.set(channel.getChannelIndex());
         }

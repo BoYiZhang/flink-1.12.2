@@ -40,6 +40,8 @@ import static org.apache.flink.util.Preconditions.checkState;
 
 /**
  *
+ * UnionInputGate 时多个 SingleInputGate 联合组成，它的内部有一个 inputGatesWithData 队列
+ *
  * Input gate wrapper合并来自多个  input gates 的输入。
  * 
  * 每个  input gates 都连接有输入通道，从中读取数据。
@@ -319,6 +321,7 @@ public class UnionInputGate extends InputGate {
     @Override
     public void requestPartitions() throws IOException {
         for (InputGate inputGate : inputGatesByGateIndex.values()) {
+            //首先尝试请求分区，实际的请求只会执行一次
             inputGate.requestPartitions();
         }
     }

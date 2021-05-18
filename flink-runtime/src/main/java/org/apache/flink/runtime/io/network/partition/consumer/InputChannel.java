@@ -37,6 +37,21 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ *
+ *
+ * InputChannel 的基本逻辑也比较简单，
+ * 它的生命周期按照 requestSubpartition(int subpartitionIndex),
+ *              getNextBuffer() 和 releaseAllResources() 这样的顺序进行。
+ *
+ * 根据 InputChannel 消费的 ResultPartition 的位置，
+ * InputChannel 有 LocalInputChannel 和 RemoteInputChannel 两中不同的实现，
+ * 分别对应本地和远程数据交换。
+ *
+ *
+ * InputChannel 还有一个实现类是 UnknownInputChannel，
+ * 相当于是还未确定 ResultPartition 位置的情况下的占位符，
+ * 最终还是会更新为 LocalInputChannel 或是 RemoteInputChannel。
+ *
  * An input channel consumes a single {@link ResultSubpartitionView}.
  *
  * <p>For each channel, the consumption life cycle is as follows:
@@ -51,6 +66,7 @@ public abstract class InputChannel {
     /** The info of the input channel to identify it globally within a task. */
     protected final InputChannelInfo channelInfo;
 
+    //消费的目标 ResultPartitionID
     protected final ResultPartitionID partitionId;
 
     protected final SingleInputGate inputGate;
@@ -131,6 +147,9 @@ public abstract class InputChannel {
     public abstract void resumeConsumption() throws IOException;
 
     /**
+     *
+     * //回调函数，告知 InputGate 当前 channel 有数据
+     *
      * Notifies the owning {@link SingleInputGate} that this channel became non-empty.
      *
      * <p>This is guaranteed to be called only when a Buffer was added to a previously empty input
@@ -156,6 +175,9 @@ public abstract class InputChannel {
     // ------------------------------------------------------------------------
 
     /**
+     *
+     * 请求ResultSubpartition
+     *
      * Requests the queue with the specified index of the source intermediate result partition.
      *
      * <p>The queue index to request depends on which sub task the channel belongs to and is
