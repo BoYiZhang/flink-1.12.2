@@ -48,12 +48,16 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 @NotThreadSafe
 public class BufferConsumerWithPartialRecordLength {
+
+    // 消费者
     private final BufferConsumer bufferConsumer;
     private final int partialRecordLength;
 
     public BufferConsumerWithPartialRecordLength(
             BufferConsumer bufferConsumer, int partialRecordLength) {
+        //设置消费者
         this.bufferConsumer = checkNotNull(bufferConsumer);
+        // 设置 已经处理的数据长度 ??
         this.partialRecordLength = partialRecordLength;
     }
 
@@ -71,6 +75,7 @@ public class BufferConsumerWithPartialRecordLength {
 
     public boolean cleanupPartialRecord() {
 
+        // 对于未对齐的检查点，近似本地恢复还不起作用！
         checkState(
                 partialRecordLength >= 0,
                 "Approximate local recovery does not yet work with unaligned checkpoint!");

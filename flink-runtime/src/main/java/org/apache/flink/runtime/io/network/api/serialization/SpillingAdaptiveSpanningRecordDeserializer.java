@@ -29,7 +29,18 @@ import static org.apache.flink.runtime.io.network.api.serialization.RecordDeseri
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.LAST_RECORD_FROM_BUFFER;
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.PARTIAL_RECORD;
 
-/** @param <T> The type of the record to be deserialized. */
+/**
+ *
+ * 每个 channel 都有一个 SpillingAdaptiveSpanningRecordDeserializer
+ *
+ *
+ * 前面提到，SpillingAdaptiveSpanningRecordDeserializer 主要负责流数据的读取，
+ *
+ * 同时通过 NonReusingDeserializationDelegate 来解序列化，
+ * 从而获得可以发送给算子处理的 StreamElement。
+ *
+ *
+ * @param <T> The type of the record to be deserialized. */
 public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWritable>
         implements RecordDeserializer<T> {
 

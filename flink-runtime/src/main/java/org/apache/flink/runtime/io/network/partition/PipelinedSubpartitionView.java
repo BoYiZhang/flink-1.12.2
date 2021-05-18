@@ -52,6 +52,7 @@ public class PipelinedSubpartitionView implements ResultSubpartitionView {
 
     @Override
     public void notifyDataAvailable() {
+        //回调接口
         availabilityListener.notifyDataAvailable();
     }
 

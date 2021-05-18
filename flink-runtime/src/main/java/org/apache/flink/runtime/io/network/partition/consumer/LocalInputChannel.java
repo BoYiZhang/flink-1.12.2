@@ -151,6 +151,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
                         channelStatePersister);
 
                 try {
+                    // 构建View ?
                     ResultSubpartitionView subpartitionView =
                             partitionManager.createSubpartitionView(
                                     partitionId, subpartitionIndex, this);

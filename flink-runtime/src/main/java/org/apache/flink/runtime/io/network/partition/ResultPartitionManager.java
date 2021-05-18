@@ -29,6 +29,9 @@ import java.util.Map;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
+ *
+ * ResultPartitionManager 会管理当前 Task 的所有 ResultPartition。
+ *
  * The result partition manager keeps track of all currently produced/consumed partitions of a task
  * manager.
  */
@@ -36,10 +39,12 @@ public class ResultPartitionManager implements ResultPartitionProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(ResultPartitionManager.class);
 
+    //管理所有的 ResultPartition，使用的时 Guava 提供的支持多级映射的哈希表
     private final Map<ResultPartitionID, ResultPartition> registeredPartitions = new HashMap<>(16);
 
     private boolean isShutdown;
 
+    //一个 Task 在向 NetworkEnvironment 注册的时候就会逐一注册所有的ResultPartition
     public void registerResultPartition(ResultPartition partition) {
         synchronized (registeredPartitions) {
             checkState(!isShutdown, "Result partition manager already shut down.");
@@ -55,6 +60,7 @@ public class ResultPartitionManager implements ResultPartitionProvider {
         }
     }
 
+    //在指定的 ResultSubpartition 中创建一个 ResultSubpartitionView，用于消费数据
     @Override
     public ResultSubpartitionView createSubpartitionView(
             ResultPartitionID partitionId,

@@ -93,6 +93,7 @@ public abstract class ResultPartition implements ResultPartitionWriter {
     /** Type of this partition. Defines the concrete subpartition implementation to use. */
     protected final ResultPartitionType partitionType;
 
+    //ResultPartitionManager 管理当前 TaskManager 所有的 ResultPartition
     protected final ResultPartitionManager partitionManager;
 
     protected final int numSubpartitions;

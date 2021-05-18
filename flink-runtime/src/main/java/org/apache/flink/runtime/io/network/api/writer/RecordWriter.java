@@ -65,17 +65,31 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordWriter.class);
 
+    //底层的 ResultPartition
     protected final ResultPartitionWriter targetPartition;
 
+    //channel的数量，即 sub-partition的数量
     protected final int numberOfChannels;
 
+    //序列化
     protected final DataOutputSerializer serializer;
 
     protected final Random rng = new XORShiftRandom();
 
     protected final boolean flushAlways;
 
-    /** The thread that periodically flushes the output, to give an upper latency bound. */
+
+    /**
+     * //定时强制 flush 输出buffer , 默认值 100 毫秒
+     *
+     * 假如产出的数据记录较少无法完整地填充一个 MemorySegment，
+     * 那么 ResultSubpartition 可能会一直处于不可被消费的状态。
+     * 而为了保证产出的记录能够及时被消费，就需要及时进行 flush，从而确保下游能更及时地处理数据。
+     * 在 RecordWriter 中有一个 OutputFlusher 会定时触发 flush，
+     * 间隔可以通过 [算子] DataStream.setBufferTimeout() 来控制。
+     *
+     *
+     * The thread that periodically flushes the output, to give an upper latency bound. */
     @Nullable private final OutputFlusher outputFlusher;
 
     /**
@@ -92,6 +106,7 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
         this.targetPartition = writer;
         this.numberOfChannels = writer.getNumberOfSubpartitions();
 
+        //序列化器，用于指的一提将一条记录序列化到多个buffer中
         this.serializer = new DataOutputSerializer(128);
 
         checkArgument(timeout >= -1);
@@ -99,6 +114,8 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
         if (timeout == -1 || timeout == 0) {
             outputFlusher = null;
         } else {
+
+            //根据超时时间创建一个定时 flush 输出 buffer 的线程
             String threadName =
                     taskName == null
                             ? DEFAULT_OUTPUT_FLUSH_THREAD_NAME
@@ -112,7 +129,7 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
     protected void emit(T record, int targetSubpartition) throws IOException {
         checkErroneous();
 
-        // 序列化record，存入到目标channel的缓存中
+        // 序列化 record，存入到目标channel的缓存中
 
 
         //    targetPartition = {PipelinedResultPartition@7312} "PipelinedResultPartition f3e53e3fbc3eab68b25ea79f80873233#0@9bd406565dca544a85576fd06acc0fc0 [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"

@@ -92,8 +92,10 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
 
         private final ResultPartitionWriter partitionWriter;
 
+        //通知当前ResultPartition有数据可供消费的回调函数回调
         private final ResultPartitionConsumableNotifier partitionConsumableNotifier;
 
+        //是否已经通知了消费者
         private boolean hasNotifiedPipelinedConsumers;
 
         public ConsumableNotifyingResultPartitionWriter(
@@ -214,6 +216,8 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
         }
 
         /**
+         * 将此结果分区通知流水线使用者一次。
+         *
          * Notifies pipelined consumers of this result partition once.
          *
          * <p>For PIPELINED {@link
@@ -222,6 +226,9 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
          */
         private void notifyPipelinedConsumers() {
             if (!hasNotifiedPipelinedConsumers && !partitionWriter.isReleased()) {
+
+                // 对于 PIPELINE 类型的 ResultPartition，在第一条记录产生时，
+                // 会告知 JobMaster 当前 ResultPartition 可被消费，这会触发下游消费者 Task 的部署
                 partitionConsumableNotifier.notifyPartitionConsumable(
                         jobId, partitionWriter.getPartitionId(), taskActions);
 

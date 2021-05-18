@@ -72,15 +72,35 @@ public class PipelinedSubpartition extends ResultSubpartition
 
     // ------------------------------------------------------------------------
 
-    /** All buffers of this subpartition. Access to the buffers is synchronized on this object. */
-    final PrioritizedDeque<BufferConsumerWithPartialRecordLength> buffers =
-            new PrioritizedDeque<>();
+    /**
+     *
+     * 写入的 Buffer 最终被保存在 ResultSubpartition 中维护的一个队列中，
+     * 如果需要消费这些 Buffer，就需要依赖 ResultSubpartitionView。
+     *
+     * 当需要消费一个 ResultSubpartition 的结果时，需要创建一个 ResultSubpartitionView 对象，
+     * 并关联到 ResultSubpartition 中；当数据可以被消费时，
+     * 会通过对应的回调接口告知 ResultSubpartitionView：
+     *
+     *
+     * 当前 subpartiion 堆积的所有的 Buffer 的队列
+     *
+     * All buffers of this subpartition.
+     * Access to the buffers is synchronized on this object.
+     *
+     * */
+    final PrioritizedDeque<BufferConsumerWithPartialRecordLength> buffers =  new PrioritizedDeque<>();
 
-    /** The number of non-event buffers currently in this subpartition. */
+    /**
+     * //当前 subpartiion 中堆积的 buffer 的数量
+     * The number of non-event buffers currently in this subpartition.
+     * */
     @GuardedBy("buffers")
     private int buffersInBacklog;
 
-    /** The read view to consume this subpartition. */
+    /**
+     * 用于消费写入的 Buffer
+     * The read view to consume this subpartition.
+     * */
     PipelinedSubpartitionView readView;
 
     /** Flag indicating whether the subpartition has been finished. */
@@ -112,6 +132,7 @@ public class PipelinedSubpartition extends ResultSubpartition
 
     // ------------------------------------------------------------------------
 
+    // index 是当前 sub-paritition 的索引
     PipelinedSubpartition(int index, ResultPartition parent) {
         super(index, parent);
     }
@@ -140,22 +161,30 @@ public class PipelinedSubpartition extends ResultSubpartition
         LOG.debug("{}: Finished {}.", parent.getOwningTaskName(), this);
     }
 
+    // 添加一个新的BufferConsumer
+    // 这个参数里的 finish 指的是整个 subpartition 都完成了
     private boolean add(BufferConsumer bufferConsumer, int partialRecordLength, boolean finish) {
         checkNotNull(bufferConsumer);
 
         final boolean notifyDataAvailable;
         int prioritySequenceNumber = -1;
+
+        // 同步队列 ???
         synchronized (buffers) {
+
             if (isFinished || isReleased) {
                 bufferConsumer.close();
                 return false;
             }
 
+            // 添加bufferConsumer & 更新状态
             // Add the bufferConsumer and update the stats
             if (addBuffer(bufferConsumer, partialRecordLength)) {
                 prioritySequenceNumber = sequenceNumber;
             }
             updateStatistics(bufferConsumer);
+
+            //更新 backlog 的数量，只有 buffer 才会使得 buffersInBacklog + 1，事件不会增加 buffersInBacklog
             increaseBuffersInBacklog(bufferConsumer);
             notifyDataAvailable = finish || shouldNotifyDataAvailable();
 
@@ -166,6 +195,7 @@ public class PipelinedSubpartition extends ResultSubpartition
             notifyPriorityEvent(prioritySequenceNumber);
         }
         if (notifyDataAvailable) {
+            //通知数据可以被消费
             notifyDataAvailable();
         }
 
@@ -177,6 +207,7 @@ public class PipelinedSubpartition extends ResultSubpartition
         if (bufferConsumer.getDataType().hasPriority()) {
             return processPriorityBuffer(bufferConsumer, partialRecordLength);
         }
+        // 添加消费者 ???
         buffers.add(new BufferConsumerWithPartialRecordLength(bufferConsumer, partialRecordLength));
         return false;
     }
@@ -537,6 +568,7 @@ public class PipelinedSubpartition extends ResultSubpartition
         }
     }
 
+    //只在第一个 buffer 为 finish 的时候才通知
     @GuardedBy("buffers")
     private boolean shouldNotifyDataAvailable() {
         // Notify only when we added first finished buffer.
@@ -546,6 +578,7 @@ public class PipelinedSubpartition extends ResultSubpartition
                 && getNumberOfFinishedBuffers() == 1;
     }
 
+    //通知readView，有数据可用了
     private void notifyDataAvailable() {
         final PipelinedSubpartitionView readView = this.readView;
         if (readView != null) {
@@ -553,6 +586,7 @@ public class PipelinedSubpartition extends ResultSubpartition
         }
     }
 
+    //通知readView，有 EVENT 可用了
     private void notifyPriorityEvent(int prioritySequenceNumber) {
         final PipelinedSubpartitionView readView = this.readView;
         if (readView != null) {
@@ -563,6 +597,10 @@ public class PipelinedSubpartition extends ResultSubpartition
     private int getNumberOfFinishedBuffers() {
         assert Thread.holdsLock(buffers);
 
+        // 注意：isFinished（）不能保证在这里提供最新的状态
+        // 最坏的情况是：在下一个flush（）调用之前，只有一个完成的缓冲区
+        // （但我们不会提供更有力的担保）
+
         // NOTE: isFinished() is not guaranteed to provide the most up-to-date state here
         // worst-case: a single finished buffer sits around until the next flush() call
         // (but we do not offer stronger guarantees anyway)
@@ -571,6 +609,7 @@ public class PipelinedSubpartition extends ResultSubpartition
             return 1;
         }
 
+        // 我们假设只有最后一个缓冲区没有完成。
         // We assume that only last buffer is not finished.
         return Math.max(0, numBuffers - 1);
     }

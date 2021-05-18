@@ -113,6 +113,7 @@ public class StreamSourceContexts {
         @Override
         public void collect(T element) {
             synchronized (lock) {
+                // RecordWriterOutput#collect(StreamRecord<OUT> record)
                 output.collect(reuse.replace(element));
             }
         }

@@ -41,6 +41,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public final class ChannelSelectorRecordWriter<T extends IOReadableWritable>
         extends RecordWriter<T> {
 
+    //决定一条记录应该写入哪一个channel， 即 sub-partition
     private final ChannelSelector<T> channelSelector;
 
     //    writer = {PipelinedResultPartition@6639} "PipelinedResultPartition db1576884668472b75f882792173d0fa#0@eb44184ef213a1ddc71dc739d2f1edee [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
@@ -93,6 +94,8 @@ public final class ChannelSelectorRecordWriter<T extends IOReadableWritable>
         //    channelSelector = {RebalancePartitioner@7311} "REBALANCE"
         //        nextChannelToSendTo = 1
         //        numberOfChannels = 4
+
+        //channelSelector确定目标channel
         emit(record, channelSelector.selectChannel(record));
     }
 

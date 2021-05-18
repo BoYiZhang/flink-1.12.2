@@ -41,8 +41,10 @@ public interface ResultSubpartitionView {
     @Nullable
     BufferAndBacklog getNextBuffer() throws IOException;
 
+    //通知 ResultSubpartition 的数据可供消费
     void notifyDataAvailable();
 
+    //已经完成对 ResultSubpartition 的消费
     default void notifyPriorityEvent(int priorityBufferNumber) {}
 
     void releaseAllResources() throws IOException;

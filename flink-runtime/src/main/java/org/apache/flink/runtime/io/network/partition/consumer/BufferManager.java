@@ -118,6 +118,7 @@ public class BufferManager implements BufferListener, BufferRecycler {
                 if (buffer != null) {
                     return buffer;
                 }
+                // 阻塞请求...
                 bufferQueue.wait();
             }
             return buffer;

@@ -890,9 +890,16 @@ public class SingleInputGate extends IndexedInputGate {
     }
 
     private void queueChannel(InputChannel channel, @Nullable Integer prioritySequenceNumber) {
+
+
         try (GateNotificationHelper notification =
                 new GateNotificationHelper(this, inputChannelsWithData)) {
+
+
+
             synchronized (inputChannelsWithData) {
+
+
                 boolean priority = prioritySequenceNumber != null;
 
                 if (priority
