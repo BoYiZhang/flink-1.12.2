@@ -28,6 +28,11 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 /**
+ *
+ * NetworkSequenceViewReader 则相当于对 ResultSubpartition 的一层包装，
+ * 她会按顺序为读取的每一个 buffer 分配一个序列号，
+ * 并且记录了接收数据的 RemoteInputChannel 的 ID。
+ *
  * Simple wrapper for the partition readerQueue iterator, which increments a sequence number for
  * each returned buffer and remembers the receiver ID.
  */

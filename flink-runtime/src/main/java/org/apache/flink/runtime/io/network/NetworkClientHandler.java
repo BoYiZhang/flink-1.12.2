@@ -40,6 +40,9 @@ public interface NetworkClientHandler extends ChannelHandler {
     void cancelRequestFor(InputChannelID inputChannelId);
 
     /**
+     *
+     * 通知有新的的 credit 可用
+     *
      * The credit begins to announce after receiving the sender's backlog from buffer response. Than
      * means it should only happen after some interactions with the channel to make sure the context
      * will not be null.

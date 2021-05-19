@@ -283,6 +283,9 @@ public class BufferManager implements BufferListener, BufferRecycler {
     // ------------------------------------------------------------------------
 
     /**
+     *
+     * LocalBufferPool 通知有 buffer 可用
+     *
      * The buffer pool notifies this listener of an available floating buffer. If the listener is
      * released or currently does not need extra buffers, the buffer should be returned to the
      * buffer pool. Otherwise, the buffer will be added into the <tt>bufferQueue</tt>.
@@ -329,13 +332,16 @@ public class BufferManager implements BufferListener, BufferRecycler {
                     return notificationResult;
                 }
 
+                //增加floating buffer
                 bufferQueue.addFloatingBuffer(buffer);
                 bufferQueue.notifyAll();
 
                 if (bufferQueue.getAvailableBufferSize() == numRequiredBuffers) {
+                    //bufferQueue中有足够多的 buffer 了
                     isWaitingForFloatingBuffers = false;
                     notificationResult = BufferListener.NotificationResult.BUFFER_USED_NO_NEED_MORE;
                 } else {
+                    //bufferQueue 中 buffer 仍然不足
                     notificationResult = BufferListener.NotificationResult.BUFFER_USED_NEED_MORE;
                 }
             }
@@ -384,10 +390,15 @@ public class BufferManager implements BufferListener, BufferRecycler {
         return bufferQueue.floatingBuffers.size();
     }
 
+
     /**
      * AvailableBufferQueue负责维护RemoteInputChannel的可用buffer。
      *
      * 它的内部维护了两个内存队列，分别为floatingBuffers(浮动buffer)和exclusiveBuffers(专用buffer)。
+     *
+     *
+     *
+     *
 
      * exclusiveBuffers 是在创建InputChannel的时候分配的（setup方法，间接调用了NetworkBufferPool的requestMemorySegments）
      * exclusiveBuffers的大小是固定的，归RemoteInputChannel独享。

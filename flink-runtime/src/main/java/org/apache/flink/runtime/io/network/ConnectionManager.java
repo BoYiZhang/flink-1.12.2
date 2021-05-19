@@ -21,6 +21,9 @@ package org.apache.flink.runtime.io.network;
 import java.io.IOException;
 
 /**
+ * NetworkEnvironment 中通过 ConnectionManager 来管理所有的网络的连接
+ * NettyConnectionManager 就是 ConnectionManager 的具体实现。
+ *
  * The connection manager manages physical connections for the (logical) remote input channels at
  * runtime.
  */

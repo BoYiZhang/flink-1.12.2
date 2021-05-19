@@ -70,6 +70,17 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
 
  *
+ * RemoteInputChannel 请求远端的 ResultSubpartition
+ * 会创建一个 PartitionRequestClient，
+ * 并通过 Netty 发送 PartitionRequest 请求，
+ * 这时会带上当前 InputChannel 的 id 和初始的 credit 信息：
+ *
+ *
+ * CreditBasedPartitionRequestClientHandler 从网络中读取数据后交给 RemoteInputChannel，
+ * RemoteInputChannel 会将接收到的加入队列中，
+ * 并根据生产端的堆积申请 floating buffer
+ *
+ *
  * An input channel, which requests a remote partition queue.
  *
  * */
@@ -99,7 +110,14 @@ public class RemoteInputChannel extends InputChannel {
      */
     private final AtomicBoolean isReleased = new AtomicBoolean();
 
-    /** Client to establish a (possibly shared) TCP connection and request the partition. */
+    /**
+     * RemoteInputChannel 请求远端的 ResultSubpartition，
+     * 会创建一个 PartitionRequestClient，
+     * 并通过 Netty 发送 PartitionRequest 请求，
+     * 这时会带上当前 InputChannel 的 id 和初始的 credit 信息
+     *
+     * Client to establish a (possibly shared) TCP connection and request the partition.
+     * */
     private volatile PartitionRequestClient partitionRequestClient;
 
     /** The next expected sequence number for the next buffer. */
@@ -180,6 +198,7 @@ public class RemoteInputChannel extends InputChannel {
     @Override
     public void requestSubpartition(int subpartitionIndex)
             throws IOException, InterruptedException {
+
         if (partitionRequestClient == null) {
             LOG.debug(
                     "{}: Requesting REMOTE subpartition {} of partition {}. {}",
@@ -190,7 +209,10 @@ public class RemoteInputChannel extends InputChannel {
             // Create a client and request the partition
             try {
 
+
                 // 构建一个client, 请求partition
+                //REMOTE，需要网络通信，使用 Netty 建立网络
+                //通过 ConnectionManager 来建立连接：创建 PartitionRequestClient，通过 PartitionRequestClient 发起请求
                 partitionRequestClient =
                         connectionManager.createPartitionRequestClient(connectionId);
             } catch (IOException e) {
@@ -199,6 +221,7 @@ public class RemoteInputChannel extends InputChannel {
                 throw new PartitionConnectionException(partitionId, e);
             }
 
+            //请求分区，通过 netty 发起请求
             partitionRequestClient.requestSubpartition(partitionId, subpartitionIndex, this, 0);
         }
     }
@@ -311,7 +334,7 @@ public class RemoteInputChannel extends InputChannel {
      */
     private void notifyCreditAvailable() throws IOException {
         checkPartitionRequestQueueInitialized();
-
+        //通知当前 channel 有新的 credit
         partitionRequestClient.notifyCreditAvailable(this);
     }
 
@@ -452,6 +475,10 @@ public class RemoteInputChannel extends InputChannel {
 
     /**
      *
+     * backlog 是发送端的堆积 的 buffer 数量，
+     * 如果 bufferQueue 中 buffer 的数量不足，就去须从 LocalBufferPool 中请求 floating buffer
+     * 在请求了新的 buffer 后，通知生产者有 credit 可用
+     *
      * 根据backlog（积压的数量）提前分配内存，
      * 如果backlog加上初始的credit大于可用buffer数，需要分配浮动buffer。
      *
@@ -467,11 +494,18 @@ public class RemoteInputChannel extends InputChannel {
         int numRequestedBuffers = bufferManager.requestFloatingBuffers(backlog + initialCredit);
 
         if (numRequestedBuffers > 0 && unannouncedCredit.getAndAdd(numRequestedBuffers) == 0) {
-            //
+
             notifyCreditAvailable();
         }
     }
 
+    /**
+     * 接收到远程 ResultSubpartition 发送的 Buffer
+     * @param buffer
+     * @param sequenceNumber
+     * @param backlog
+     * @throws IOException
+     */
     public void onBuffer(Buffer buffer, int sequenceNumber, int backlog) throws IOException {
 
         // 是否需要回收此buffer
@@ -480,6 +514,7 @@ public class RemoteInputChannel extends InputChannel {
         try {
 
             // 检查sequenceNumber
+            // 序号需要匹配
             if (expectedSequenceNumber != sequenceNumber) {
                 onError(new BufferReorderingException(expectedSequenceNumber, sequenceNumber));
                 return;
@@ -530,15 +565,17 @@ public class RemoteInputChannel extends InputChannel {
 
 
             if (firstPriorityEvent) {
+
                 notifyPriorityEvent(sequenceNumber);
             }
             // 如果添加buffer之前的队列为空，需要通知对应的inputGate，现在已经有数据了（不为空
             if (wasEmpty) {
+                //通知 InputGate，当前 channel 有新数据
                 notifyChannelNonEmpty();
             }
 
             if (backlog >= 0) {
-                // 负责提前分配buffer
+                //根据客户端的积压申请float buffer
                 onSenderBacklog(backlog);
             }
         } finally {

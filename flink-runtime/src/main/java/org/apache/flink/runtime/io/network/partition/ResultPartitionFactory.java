@@ -256,11 +256,15 @@ public class ResultPartitionFactory {
     SupplierWithException<BufferPool, IOException> createBufferPoolFactory(
             int numberOfSubpartitions, ResultPartitionType type) {
         return () -> {
+            //本地缓冲池使用的 buffer 数量
             int maxNumberOfMemorySegments =
                     type.isBounded()
                             ? numberOfSubpartitions * networkBuffersPerChannel
                                     + floatingNetworkBuffersPerGate
                             : Integer.MAX_VALUE;
+
+
+
             int numRequiredBuffers =
                     !type.isPipelined() && numberOfSubpartitions >= sortShuffleMinParallelism
                             ? sortShuffleMinBuffers

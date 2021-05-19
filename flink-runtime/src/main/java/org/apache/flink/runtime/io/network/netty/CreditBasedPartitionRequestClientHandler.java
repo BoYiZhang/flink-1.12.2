@@ -48,6 +48,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ *
+ * NetworkClientHanlder 对应的实现类为 CreditBasedPartitionRequestClientHandler，
+ * CreditBasedPartitionRequestClientHandler 负责接收服务端通过 Netty channel 发送的数据，
+ * 解析数据后交给对应的 RemoteInputChannle 进行处理
+ *
+ *
  * Channel handler to read the messages of buffer response or error response from the producer, to
  * write and flush the unannounced credits for the producer.
  *
@@ -211,7 +217,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
-            //处理数据...
+            //解析消息
             decodeMsg(msg);
         } catch (Throwable t) {
             notifyAllChannelsOfErrorAndClose(t);
@@ -227,6 +233,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ClientOutboundMessage) {
+            //有新的credit会触发
             boolean triggerWrite = clientOutboundMessages.isEmpty();
 
             // 加入clientOutboundMessages队列
@@ -290,20 +297,22 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
         // ---- Buffer --------------------------------------------------------
         if (msgClazz == NettyMessage.BufferResponse.class) {
-            // 数据转换
+            //正常的数据
             NettyMessage.BufferResponse bufferOrEvent = (NettyMessage.BufferResponse) msg;
 
+            //根据 ID 定位到对应的 RemoteInputChannel
             RemoteInputChannel inputChannel = inputChannels.get(bufferOrEvent.receiverId);
             if (inputChannel == null || inputChannel.isReleased()) {
+                //如果没有对应的 RemoteInputChannel
                 bufferOrEvent.releaseBuffer();
-
+                //取消对给定 receiverId 的订阅
                 cancelRequestFor(bufferOrEvent.receiverId);
 
                 return;
             }
 
             try {
-                // 处理数据
+                //解析消息，是buffer还是event
                 decodeBufferOrEvent(inputChannel, bufferOrEvent);
             } catch (Throwable t) {
                 inputChannel.onError(t);

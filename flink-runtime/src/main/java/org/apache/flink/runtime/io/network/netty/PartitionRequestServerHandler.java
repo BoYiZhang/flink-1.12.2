@@ -37,7 +37,21 @@ import org.slf4j.LoggerFactory;
 import static org.apache.flink.runtime.io.network.netty.NettyMessage.PartitionRequest;
 import static org.apache.flink.runtime.io.network.netty.NettyMessage.TaskEventRequest;
 
-/** Channel handler to initiate data transfers and dispatch backwards flowing task events. */
+/**
+ * PartitionRequestServerHandler 负责处理消费端通过 PartitionRequestClient
+ * 发送的 PartitionRequest 和 AddCredit 等请求；
+ *
+ *
+ * 首先，当 NettyServer 接收到 PartitionRequest 消息后，
+ * PartitionRequestServerHandler 会创建一个 NetworkSequenceViewReader 对象，
+ * 请求创建 ResultSubpartitionView, 并将 NetworkSequenceViewReader 保存在 PartitionRequestQueue 中。
+ * PartitionRequestQueue 会持有所有请求消费数据的 RemoteInputChannel 的 ID 和 NetworkSequenceViewReader 之间的映射关系。
+ *
+ * ResultSubpartitionView 用来消费 ResultSubpartition 中的数据，
+ * 并在 ResultSubpartition 中有数据可用时获得提醒；
+ *
+ *
+ * Channel handler to initiate data transfers and dispatch backwards flowing task events. */
 class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMessage> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PartitionRequestServerHandler.class);
@@ -80,6 +94,7 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
             // ----------------------------------------------------------------
             // 如果是分区请求消息
             if (msgClazz == PartitionRequest.class) {
+                //Server 端接收到 client 发送的 PartitionRequest
                 PartitionRequest request = (PartitionRequest) msg;
 
                 LOG.debug("Read channel on {}: {}.", ctx.channel().localAddress(), request);
@@ -93,11 +108,17 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
                                     request.receiverId, request.credit, outboundQueue);
 
                     // 为该reader分配一个subpartitionView
+                    // 通过 ResultPartitionProvider（实际上就是 ResultPartitionManager）创建 ResultSubpartitionView
+                    // 在有可被消费的数据产生后，
+                    // PartitionRequestQueue.notifyReaderNonEmpty 会被回调，
+                    // 进而在 netty channelPipeline 上触发一次 fireUserEventTriggered
                     reader.requestSubpartitionView(
                             partitionProvider, request.partitionId, request.queueIndex);
 
                     // 注册reader到outboundQueue中
                     // outboundQueue中存放了多个reader，这些reader在队列中排队，等待数据发送
+
+                    //通知 PartitionRequestQueue 创建了一个 NetworkSequenceViewReader
                     outboundQueue.notifyReaderCreated(reader);
                 } catch (PartitionNotFoundException notFound) {
                     respondWithError(ctx, notFound, request.receiverId);
@@ -122,6 +143,7 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
             } else if (msgClazz == CloseRequest.class) {
                 outboundQueue.close();
             } else if (msgClazz == AddCredit.class) {
+                //增加 credit
                 AddCredit request = (AddCredit) msg;
 
                 // 调用addCredit方法

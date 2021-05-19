@@ -24,7 +24,9 @@ import org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannel
 
 import java.io.IOException;
 
-/** Client to send messages or task events via network for {@link RemoteInputChannel}. */
+/**
+ *
+ * Client to send messages or task events via network for {@link RemoteInputChannel}. */
 public interface PartitionRequestClient {
 
     /**

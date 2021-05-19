@@ -251,6 +251,11 @@ public abstract class AbstractServerBase<REQ extends MessageBody, RESP extends M
         final int defaultHighWaterMark = 64 * 1024; // from DefaultChannelConfig (not exposed)
         //noinspection ConstantConditions
         // (ignore warning here to make this flexible in case the configuration values change)
+
+        //配置水位线，确保不往网络中写入太多数据
+        //当输出缓冲中的字节数超过高水位值, 则 Channel.isWritable() 会返回false
+        //当输出缓存中的字节数低于低水位值, 则 Channel.isWritable() 会重新返回true
+
         if (LOW_WATER_MARK > defaultHighWaterMark) {
             bootstrap.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, HIGH_WATER_MARK);
             bootstrap.childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, LOW_WATER_MARK);
