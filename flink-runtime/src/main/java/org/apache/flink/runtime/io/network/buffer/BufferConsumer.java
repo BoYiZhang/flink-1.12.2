@@ -110,12 +110,19 @@ public class BufferConsumer implements Closeable {
      *     memory both of them must be recycled/closed.
      */
     public Buffer build() {
+        // 同步 指针
         writerPosition.update();
+        // 获取当前cachedWriterPosition
         int cachedWriterPosition = writerPosition.getCached();
+
+        // 获取只读的 ReadOnlySlicedNetworkBuffer
         Buffer slice =
                 buffer.readOnlySlice(
                         currentReaderPosition, cachedWriterPosition - currentReaderPosition);
+        // 同步当前写入的位置.
         currentReaderPosition = cachedWriterPosition;
+
+        // 将分片buffer转换为NetworkBuffer
         return slice.retainBuffer();
     }
 

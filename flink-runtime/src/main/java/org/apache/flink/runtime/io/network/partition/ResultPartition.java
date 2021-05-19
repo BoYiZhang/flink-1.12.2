@@ -53,6 +53,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * ResultPartition中的数据专门为下游不同的接收者做了分组，这个分组叫做ResultSubpartition。
  *
 
+ * 此类是逻辑{@link IntermediateResultPartition}的运行时部分。实际上，结果分区是{@link Buffer}实例的集合。
  *
  *
  * A result partition for data produced by a single task.
@@ -84,20 +85,34 @@ public abstract class ResultPartition implements ResultPartitionWriter {
 
     protected static final Logger LOG = LoggerFactory.getLogger(ResultPartition.class);
 
+    // 任务名称: "Flat Map (1/4)#0 (b2490d6207a4eaa9f285fb307bd31782)"
     private final String owningTaskName;
 
+    // 分区编号 xxx
     private final int partitionIndex;
 
+    // ResultPartitionID
+    //    partitionId = {ResultPartitionID@6979} "3abe615ae9be22f64d8e5af582df91ed#0@b2490d6207a4eaa9f285fb307bd31782"
+    //          partitionId = {IntermediateResultPartitionID@6988} "3abe615ae9be22f64d8e5af582df91ed#0"
+    //          producerId = {ExecutionAttemptID@6468} "b2490d6207a4eaa9f285fb307bd31782"
     protected final ResultPartitionID partitionId;
 
-    /** Type of this partition. Defines the concrete subpartition implementation to use. */
+
+    /**
+     * 分区类型
+     * partitionType = {ResultPartitionType@6929} "PIPELINED_BOUNDED"
+     *
+     * Type of this partition. Defines the concrete subpartition implementation to use. */
     protected final ResultPartitionType partitionType;
 
+    //
     //ResultPartitionManager 管理当前 TaskManager 所有的 ResultPartition
     protected final ResultPartitionManager partitionManager;
 
+    // 子分区的数量
     protected final int numSubpartitions;
 
+    // 128 ??
     private final int numTargetKeyGroups;
 
     // - Runtime state --------------------------------------------------------
@@ -110,6 +125,7 @@ public abstract class ResultPartition implements ResultPartitionWriter {
 
     private volatile Throwable cause;
 
+    //   bufferPoolFactory = {ResultPartitionFactory$lambda@6982}
     private final SupplierWithException<BufferPool, IOException> bufferPoolFactory;
 
     /** Used to compress buffer to reduce IO. */
@@ -155,8 +171,20 @@ public abstract class ResultPartition implements ResultPartitionWriter {
         checkState(
                 this.bufferPool == null,
                 "Bug in result partition setup logic: Already registered buffer pool.");
-
+        // bufferPool = {LocalBufferPool@6981} "[
+        //          size: 16,
+        //          required: 5,
+        //          requested: 1,
+        //          available: 1,
+        //          max: 16,
+        //          listeners: 0,
+        //          subpartitions: 4,
+        //          maxBuffersPerChannel: 10,
+        //          destroyed: false
+        //     ]"
         this.bufferPool = checkNotNull(bufferPoolFactory.get());
+
+        // 将这个分区注册到partitionManager
         partitionManager.registerResultPartition(this);
     }
 

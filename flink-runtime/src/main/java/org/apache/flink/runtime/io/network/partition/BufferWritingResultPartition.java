@@ -43,6 +43,14 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
+ * 一种{@link ResultPartition}，它将缓冲区直接写入{@link ResultSubpartition}。
+ *
+ * 这与将记录写入联合结构（子分区在写入阶段完成后从中提取数据）的实现（例如基于排序的分区）不同
+ *
+ *
+ * 为了避免混淆：在读取端，所有子分区都返回要通过网络传输的缓冲区（和backlog）。
+ *
+ *
  * A {@link ResultPartition} which writes buffers directly to {@link ResultSubpartition}s. This is
  * in contrast to implementations where records are written to a joint structure, from which the
  * subpartitions draw the data after the write phase is finished, for example the sort-based
@@ -53,16 +61,22 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 public abstract class BufferWritingResultPartition extends ResultPartition {
 
-
-
     // ResultPartition 由 ResultSubpartition 构成，
     // ResultSubpartition 的数量由下游消费 Task 数和 DistributionPattern 来决定。
     // 例如，如果是 FORWARD，则下游只有一个消费者；如果是 SHUFFLE，则下游消费者的数量和下游算子的并行度一样
 
-    /** The subpartitions of this partition. At least one. */
+    /**
+     *
+     *
+     * The subpartitions of this partition. At least one.
+     * */
     protected final ResultSubpartition[] subpartitions;
 
     /**
+     *
+     * 对于非广播模式，每个子分区都维护一个单独的BufferBuilder，该BufferBuilder可能为空
+     *
+     *
      * For non-broadcast mode, each subpartition maintains a separate BufferBuilder which might be
      * null.
      */
@@ -160,7 +174,7 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
         // 4. buffer写满同时元素也被完全写入，需要跳出循环 ???
 
 
-
+        //写入数据
         BufferBuilder buffer = appendUnicastDataForNewRecord(record, targetSubpartition);
 
         //当前这条记录没有写完，申请新的 buffer 写入

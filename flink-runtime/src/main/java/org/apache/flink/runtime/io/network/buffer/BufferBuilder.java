@@ -30,9 +30,13 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * Not thread safe class for filling in the content of the {@link MemorySegment}. To access written
- * data please use {@link BufferConsumer} which allows to build {@link Buffer} instances from the
- * written data.
+ * 不是线程安全类，用于填充{@link MemorySegment}的内容。
+ * 要访问写入的数据，请使用{@link BufferConsumer}，它允许从写入的数据构建{@link Buffer}实例。
+ *
+ * Not thread safe class for filling in the content of the {@link MemorySegment}.
+ *
+ *
+ * To access written data please use {@link BufferConsumer} which allows to build {@link Buffer} instances from the written data.
  */
 @NotThreadSafe
 public class BufferBuilder {
@@ -50,6 +54,11 @@ public class BufferBuilder {
     }
 
     /**
+     *
+     * 此方法始终从当前writer offset 开始创建{@link BufferConsumer}。
+     *
+     * 在创建{@link BufferConsumer}之前写入{@link BufferBuilder}的数据对于该{@link BufferConsumer}将不可见。
+     * 
      * This method always creates a {@link BufferConsumer} starting from the current writer offset.
      * Data written to {@link BufferBuilder} before creation of {@link BufferConsumer} won't be
      * visible for that {@link BufferConsumer}.
@@ -70,10 +79,13 @@ public class BufferBuilder {
         return createBufferConsumer(0);
     }
 
+    // 从指定的offset位置, 构建BufferConsumer .
     private BufferConsumer createBufferConsumer(int currentReaderPosition) {
         checkState(
                 !bufferConsumerCreated, "Two BufferConsumer shouldn't exist for one BufferBuilder");
+        // 设置bufferConsumerCreated 为true
         bufferConsumerCreated = true;
+        // 构建BufferConsumer
         return new BufferConsumer(memorySegment, recycler, positionMarker, currentReaderPosition);
     }
 
@@ -120,8 +132,11 @@ public class BufferBuilder {
      * @return number of written bytes.
      */
     public int finish() {
+        // 获取当前写入的位置
         int writtenBytes = positionMarker.markFinished();
+        // 执行commit操作, 移动positionMarker 指针...
         commit();
+
         return writtenBytes;
     }
 

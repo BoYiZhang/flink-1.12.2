@@ -25,7 +25,11 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 
-/** A view to consume a {@link ResultSubpartition} instance. */
+/**
+ * 一个消费 {@link ResultSubpartition}实例的视图
+ *
+ * *
+ * A view to consume a {@link ResultSubpartition} instance. */
 public interface ResultSubpartitionView {
 
     /**
@@ -44,7 +48,7 @@ public interface ResultSubpartitionView {
     //通知 ResultSubpartition 的数据可供消费
     void notifyDataAvailable();
 
-    //已经完成对 ResultSubpartition 的消费
+    //已经完成对 ResultSubpartition 的Event消费
     default void notifyPriorityEvent(int priorityBufferNumber) {}
 
     void releaseAllResources() throws IOException;
