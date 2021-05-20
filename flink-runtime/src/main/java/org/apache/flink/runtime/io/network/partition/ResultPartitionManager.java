@@ -127,6 +127,7 @@ public class ResultPartitionManager implements ResultPartitionProvider {
             final ResultPartition previous =
                     registeredPartitions.remove(partition.getPartitionId());
             // Release the partition if it was successfully removed
+            // 如果已成功删除分区，请释放该分区
             if (partition == previous) {
                 partition.release();
                 ResultPartitionID partitionId = partition.getPartitionId();

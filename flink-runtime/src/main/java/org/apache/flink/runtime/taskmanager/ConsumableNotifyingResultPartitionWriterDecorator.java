@@ -215,14 +215,11 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
             getCheckpointablePartition().finishReadRecoveredState(notifyAndBlockOnCompletion);
         }
 
-        /**
-         * 将此结果分区通知流水线使用者一次。
-         *
-         * Notifies pipelined consumers of this result partition once.
-         *
-         * <p>For PIPELINED {@link
-         * org.apache.flink.runtime.io.network.partition.ResultPartitionType}s, this will trigger
-         * the deployment of consuming tasks after the first buffer has been added.
+        /** 对于 PIPELINE 类型的 ResultPartition，在第一条记录产生时，
+         *  会告知 JobMaster 当前 ResultPartition 可被消费，这会触发下游消费者 Task 的部署
+         *  Notifies pipelined consumers of this result partition once.
+         * <p>For PIPELINED {@link org.apache.flink.runtime.io.network.partition.ResultPartitionType}s,
+         * this will trigger the deployment of consuming tasks after the first buffer has been added.
          */
         private void notifyPipelinedConsumers() {
             if (!hasNotifiedPipelinedConsumers && !partitionWriter.isReleased()) {

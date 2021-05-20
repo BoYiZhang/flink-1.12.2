@@ -43,8 +43,12 @@ public class StreamFlatMap<IN, OUT> extends AbstractUdfStreamOperator<OUT, FlatM
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+        // 处理时间戳
         collector.setTimestamp(element);
+
         // 使用用户自定义的flatMap函数处理数据
+        //  userFunction = {SocketWindowWordCount$2@7091}
+
         userFunction.flatMap(element.getValue(), collector);
     }
 }

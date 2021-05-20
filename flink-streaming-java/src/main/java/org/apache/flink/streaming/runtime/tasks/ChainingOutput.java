@@ -39,11 +39,23 @@ import javax.annotation.Nullable;
 class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
     private static final Logger LOG = LoggerFactory.getLogger(ChainingOutput.class);
 
+    // 算子类
+    // input = { StreamFlatMap @7086}
     protected final Input<T> input;
+
+    // 计数器, 用于计算处理的多少条数据
     protected final Counter numRecordsIn;
+
+    // Watermark 相关
     protected final WatermarkGauge watermarkGauge = new WatermarkGauge();
+
+    // 状态管理  OperatorChain
     protected final StreamStatusProvider streamStatusProvider;
+
+    // null
     @Nullable protected final OutputTag<T> outputTag;
+
+    // ChainingOutput$lambda@7089
     @Nullable protected final AutoCloseable closeable;
 
     public ChainingOutput(
@@ -104,11 +116,18 @@ class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>>
         try {
             // we know that the given outputTag matches our OutputTag so the record
             // must be of the type that our operator expects.
+            // 我们知道给定的outputTag与我们的outputTag匹配，所以记录必须是我们的操作符期望的类型。
             @SuppressWarnings("unchecked")
             StreamRecord<T> castRecord = (StreamRecord<T>) record;
 
+            // 处理数据的 数量 +1
             numRecordsIn.inc();
+
+            // 设置KeyContextElement
+            // 比如调用 StreamFlatMap 算子的 setKeyContextElement
             input.setKeyContextElement(castRecord);
+            // 设置处理数据
+            // 比如调用 StreamFlatMap 算子的 processElement
             input.processElement(castRecord);
         } catch (Exception e) {
             throw new ExceptionInChainedOperatorException(e);

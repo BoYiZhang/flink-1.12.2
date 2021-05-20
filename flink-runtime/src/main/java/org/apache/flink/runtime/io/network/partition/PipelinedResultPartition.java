@@ -31,12 +31,22 @@ import java.io.IOException;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /**
+ *
+ * 一个任务的结果输出，通过pipelined (streamed) 传输到接收器。
+ * 这个结果分区实现同时用于批处理和流处理。
+ *
+ * 对于流式传输，它支持低延迟传输（确保数据在100毫秒内发送）或无限制传输，而对于批处理，它仅在缓冲区已满时传输。
+ *
+ * 此外，对于流式使用，这通常会限制缓冲区积压的长度，以避免有太多的数据在传输中，而对于批处理，我们不限制这一点。
+ *
+ *
  * A result output of a task, pipelined (streamed) to the receivers.
  *
- * <p>This result partition implementation is used both in batch and streaming. For streaming it
- * supports low latency transfers (ensure data is sent within x milliseconds) or unconstrained while
- * for batch it transfers only once a buffer is full. Additionally, for streaming use this typically
- * limits the length of the buffer backlog to not have too much data in flight, while for batch we
+ * <p>This result partition implementation is used both in batch and streaming.
+ * For streaming it supports low latency transfers (ensure data is sent within x milliseconds) or unconstrained while
+ * for batch it transfers only once a buffer is full.
+ *
+ * Additionally, for streaming use this typically limits the length of the buffer backlog to not have too much data in flight, while for batch we
  * do not constrain this.
  *
  * <h2>Specifics of the PipelinedResultPartition</h2>
@@ -105,11 +115,16 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
     }
 
     /**
+     * 一旦释放了所有子分区读取器，pipelined分区就会自动释放。
+     *
+     * 这是因为pipelined分区不能被多次使用或重新连接。
+     * 
      * The pipelined partition releases automatically once all subpartition readers are released.
      * That is because pipelined partitions cannot be consumed multiple times, or reconnect.
      */
     @Override
     void onConsumedSubpartition(int subpartitionIndex) {
+        // 如果资源已被释放, 则直接return
         if (isReleased()) {
             return;
         }
@@ -118,13 +133,16 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
 
         // we synchronize only the bookkeeping section, to avoid holding the lock during any
         // calls into other components
+        //加锁
         synchronized (releaseLock) {
+            // 如果该子分区已经处于可消费的状态,直接返回
             if (consumedSubpartitions[subpartitionIndex]) {
                 // repeated call - ignore
                 return;
             }
-
+            // 设置该子分区处于可消费的状态
             consumedSubpartitions[subpartitionIndex] = true;
+            // 减少 remainingUnconsumed 值
             remainingUnconsumed = (--numUnconsumedSubpartitions);
         }
 
@@ -132,6 +150,7 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
                 "{}: Received consumed notification for subpartition {}.", this, subpartitionIndex);
 
         if (remainingUnconsumed == 0) {
+            // 如果没有可以消费的 子分区. 通知partitionManager改子分区可以释放资源.
             partitionManager.onConsumedPartition(this);
         } else if (remainingUnconsumed < 0) {
             throw new IllegalStateException(

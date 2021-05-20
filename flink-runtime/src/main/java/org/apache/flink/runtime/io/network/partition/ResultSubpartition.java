@@ -33,10 +33,15 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * A single subpartition of a {@link ResultPartition} instance. */
 public abstract class ResultSubpartition {
 
-    /** The info of the subpartition to identify it globally within a task. */
+    /**
+     * 子分区的信息
+     * The info of the subpartition to identify it globally within a task.
+     * */
     protected final ResultSubpartitionInfo subpartitionInfo;
 
-    /** The parent partition this subpartition belongs to. */
+    /**
+     * 该子分区属于那个Resultpartition
+     * The parent partition this subpartition belongs to. */
     protected final ResultPartition parent;
 
     // - Statistics ----------------------------------------------------------
@@ -70,14 +75,24 @@ public abstract class ResultSubpartition {
     }
 
     /**
+     * 添加给定的buffer。
+     * 请求可以同步执行，也可以异步执行，具体取决于实现。
+     *
+     * 在添加新的{@link BufferConsumer}之前，先前添加的必须处于finished状态。
+     * 由于性能原因，这仅在数据读取期间强制执行。
+     * 可以在前一个缓冲区使用者仍然打开时添加优先级事件，在这种情况下，打开的缓冲区使用者将被超越。
+     *
      * Adds the given buffer.
      *
      * <p>The request may be executed synchronously, or asynchronously, depending on the
      * implementation.
      *
      * <p><strong>IMPORTANT:</strong> Before adding new {@link BufferConsumer} previously added must
-     * be in finished state. Because of the performance reasons, this is only enforced during the
-     * data reading. Priority events can be added while the previous buffer consumer is still open,
+     * be in finished state.
+     *
+     * Because of the performance reasons, this is only enforced during the data reading.
+     *
+     * Priority events can be added while the previous buffer consumer is still open,
      * in which case the open buffer consumer is overtaken.
      *
      * @param bufferConsumer the buffer to add (transferring ownership to this writer)
@@ -119,13 +134,19 @@ public abstract class ResultSubpartition {
     // ------------------------------------------------------------------------
 
     /**
+     * {@link Buffer}  和backlog长度的组合，指示子分区中有多少非事件缓冲区可用。
+     *
      * A combination of a {@link Buffer} and the backlog length indicating how many non-event
      * buffers are available in the subpartition.
      */
     public static final class BufferAndBacklog {
+        // 缓存数据
         private final Buffer buffer;
+        // 积压的buffer数量
         private final int buffersInBacklog;
+        // Buffer的数据类型
         private final Buffer.DataType nextDataType;
+        // 序号
         private final int sequenceNumber;
 
         public BufferAndBacklog(
