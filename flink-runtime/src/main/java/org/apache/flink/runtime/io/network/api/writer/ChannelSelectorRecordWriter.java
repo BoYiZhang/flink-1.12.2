@@ -95,7 +95,7 @@ public final class ChannelSelectorRecordWriter<T extends IOReadableWritable>
         //        nextChannelToSendTo = 1
         //        numberOfChannels = 4
 
-        //channelSelector确定目标channel
+        //channelSelector确定目标子分区
         emit(record, channelSelector.selectChannel(record));
     }
 

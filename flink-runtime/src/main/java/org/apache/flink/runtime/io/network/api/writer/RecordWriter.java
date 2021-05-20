@@ -74,8 +74,13 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
     //序列化
     protected final DataOutputSerializer serializer;
 
+    // 基于George Marsaglia 提出的 XORShift 算法实现了一个随机数发生器。
+    // 这个RNG比基准测试中的{@link java.util.Random}快4.5倍，代价是放弃线程安全性。
+    // 因此建议为每个线程创建一个新的 {@link XORShiftRandom}
     protected final Random rng = new XORShiftRandom();
 
+    // 是否每一条数据都flush , 默认是false
+    // 采用OutputFlusher定时器,每100毫秒flush一次.
     protected final boolean flushAlways;
 
 
@@ -93,13 +98,15 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
     @Nullable private final OutputFlusher outputFlusher;
 
     /**
-     * To avoid synchronization overhead on the critical path, best-effort error tracking is enough
-     * here.
+     * flusher 异常相关
+     *
+     * To avoid synchronization overhead on the critical path, best-effort error tracking is enough here.
      */
     private Throwable flusherException;
-
     private volatile Throwable volatileFlusherException;
     private int volatileFlusherExceptionCheckSkipCount;
+
+    // 默认 OutputFlusher 默认flush的时间: 100 毫秒
     private static final int VOLATILE_FLUSHER_EXCEPTION_MAX_CHECK_SKIP_COUNT = 100;
 
     RecordWriter(ResultPartitionWriter writer, long timeout, String taskName) {
