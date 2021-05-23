@@ -33,6 +33,8 @@ import java.io.IOException;
 public interface ResultSubpartitionView {
 
     /**
+     * 从队列中获取{@link Buffer}的实例
+     *
      * Returns the next {@link Buffer} instance of this queue iterator.
      *
      * <p>If there is currently no instance available, it will return <code>null</code>. This might
@@ -51,15 +53,21 @@ public interface ResultSubpartitionView {
     //已经完成对 ResultSubpartition 的Event消费
     default void notifyPriorityEvent(int priorityBufferNumber) {}
 
+    // 释放所有资源
     void releaseAllResources() throws IOException;
 
+    // 是否释放资源
     boolean isReleased();
 
+    // 重新进行消费
     void resumeConsumption();
 
+    // 获取异常
     Throwable getFailureCause();
 
+    // 获取可用额度
     boolean isAvailable(int numCreditsAvailable);
 
+    // 未同步获取排队缓冲区的数目
     int unsynchronizedGetNumberOfQueuedBuffers();
 }

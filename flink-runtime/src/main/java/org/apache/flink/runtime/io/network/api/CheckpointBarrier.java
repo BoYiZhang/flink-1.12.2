@@ -28,6 +28,23 @@ import java.io.IOException;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ * Checkpoint barriers用于在整个流拓扑中对齐检查点。
+ *
+ *
+ * 当JobManager指示时，source 会发出barriers。
+ *
+ * 当operators在其一个input 上接收到CheckpointBarrier时，它知道这是 pre-checkpoint 和 post-checkpoint数据之间的点。
+ *
+
+ *
+ * 一旦操作员从其所有输入通道接收到Checkpoint barriers，它就知道 某个检查点已完成。
+ *
+ * 它可以触发特定于操作员的检查点行为和 向下游运营商广播屏障。
+ *
+ * <p>根据语义保证，可以将检查点后数据延迟到检查点  完成（正好一次）。
+ *
+ * <p>Checkpoint barriersID是严格单调递增的。
+ *
  * Checkpoint barriers are used to align checkpoints throughout the streaming topology. The barriers
  * are emitted by the sources when instructed to do so by the JobManager. When operators receive a
  * CheckpointBarrier on one of its inputs, it knows that this is the point between the

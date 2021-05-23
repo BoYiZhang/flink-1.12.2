@@ -127,6 +127,7 @@ public abstract class InputGate
 
     protected final AvailabilityHelper priorityAvailabilityHelper = new AvailabilityHelper();
 
+    // 设置ChannelStateWriter(
     @Override
     public void setChannelStateWriter(ChannelStateWriter channelStateWriter) {
         for (int index = 0, numChannels = getNumberOfInputChannels();
@@ -139,8 +140,10 @@ public abstract class InputGate
         }
     }
 
+    // 获取InputChannels数量
     public abstract int getNumberOfInputChannels();
 
+    // 是否完成
     public abstract boolean isFinished();
 
     /**
@@ -176,6 +179,7 @@ public abstract class InputGate
      */
     public abstract Optional<BufferOrEvent> pollNext() throws IOException, InterruptedException;
 
+    // 发送 任务事件
     public abstract void sendTaskEvent(TaskEvent event) throws IOException;
 
     /**
@@ -255,7 +259,7 @@ public abstract class InputGate
     public abstract void setup() throws IOException;
 
     /**
-     * 请求分区数据?
+     * 请求消费 ResultPartition
      * @throws IOException
      */
     public abstract void requestPartitions() throws IOException;

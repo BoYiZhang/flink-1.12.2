@@ -69,6 +69,7 @@ public abstract class InputChannel {
     //消费的目标 ResultPartitionID
     protected final ResultPartitionID partitionId;
 
+    // 归属于具体的 InputGate
     protected final SingleInputGate inputGate;
 
     // - Asynchronous error notification --------------------------------------
@@ -77,17 +78,26 @@ public abstract class InputChannel {
 
     // - Partition request backoff --------------------------------------------
 
-    /** The initial backoff (in ms). */
+    /**
+     * 初始化backoff(ms)
+     * The initial backoff (in ms).
+     * */
     protected final int initialBackoff;
 
-    /** The maximum backoff (in ms). */
+    /**
+     * 最大的backoff(ms)
+     * The maximum backoff (in ms). */
     protected final int maxBackoff;
 
+    // 数据大小数量计数器
     protected final Counter numBytesIn;
 
+    // Buffer数量计数器
     protected final Counter numBuffersIn;
 
-    /** The current backoff (in ms). */
+    /**
+     * 当前的Backoff (ms)
+     * The current backoff (in ms). */
     private int currentBackoff;
 
     protected InputChannel(

@@ -123,7 +123,9 @@ public class RemoteInputChannel extends InputChannel {
     /** The next expected sequence number for the next buffer. */
     private int expectedSequenceNumber = 0;
 
-    /** The initial number of exclusive buffers assigned to this channel. */
+    /**
+     * 初始化信用值
+     * The initial number of exclusive buffers assigned to this channel. */
     private final int initialCredit;
 
     /** The number of available buffers that have not been announced to the producer yet. */
@@ -165,7 +167,8 @@ public class RemoteInputChannel extends InputChannel {
         this.connectionId = checkNotNull(connectionId);
         this.connectionManager = checkNotNull(connectionManager);
 
-        // 构建BufferManager
+        // 构建BufferManager , 每一个 RemoteinputChannel只有一个BufferManager用于内存管理
+        // 但是实际上 内存的最终管理者MemorySegmentProvider globalPool 依旧是NetworkBufferPool级别的.
         this.bufferManager = new BufferManager(inputGate.getMemorySegmentProvider(), this, 0);
         this.channelStatePersister = new ChannelStatePersister(stateWriter, getChannelInfo());
     }
@@ -553,6 +556,7 @@ public class RemoteInputChannel extends InputChannel {
                     receivedBuffers.add(sequenceBuffer);
                     channelStatePersister.maybePersist(buffer);
                     if (dataType.requiresAnnouncement()) {
+                        // !!!! todo 没想明白呢 .. barrier ???
                         firstPriorityEvent = addPriorityBuffer(announce(sequenceBuffer));
                     }
                 }

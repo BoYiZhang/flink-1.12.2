@@ -48,6 +48,16 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
  * 在每个  input gates 处，输入通道具有从0（包含）到输入通道数（排除）的唯一ID。
  *
+ * <pre>
+ * +---+---+      +---+---+---+
+ * | 0 | 1 |      | 0 | 1 | 2 |
+ * +--------------+--------------+
+ * | Input gate 0 | Input gate 1 |
+ * +--------------+--------------+
+ * </pre>
+ *
+ *
+ *
  *
  * Input gate wrapper to union the input from multiple input gates.
  *
@@ -65,6 +75,13 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <p>The union input gate maps these IDs from 0 to the *total* number of input channels across all
  * unioned input gates, e.g. the channels of input gate 0 keep their original indexes and the
  * channel indexes of input gate 1 are set off by 2 to 2--4.
+ *
+ *
+ * union input gate 将这些ID从0映射到所有union input gates的*total* 输入通道数，
+ *
+ * 例如，输入门0的通道保留其原始索引，
+ * gate 1的通道索引由2设置为2--4。
+ *
  *
  * <pre>
  * +---+---++---+---+---+

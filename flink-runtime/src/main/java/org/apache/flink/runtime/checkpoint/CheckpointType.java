@@ -32,11 +32,11 @@ public enum CheckpointType {
 
     /** A savepoint taken while terminating the job. */
     SAVEPOINT_TERMINATE(true, PostCheckpointAction.TERMINATE, "Terminate Savepoint");
-
+    // 是否是svepont类型
     private final boolean isSavepoint;
-
+    // 动作
     private final PostCheckpointAction postCheckpointAction;
-
+    // CheckpointType名称
     private final String name;
 
     CheckpointType(

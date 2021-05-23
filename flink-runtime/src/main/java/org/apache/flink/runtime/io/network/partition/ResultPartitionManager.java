@@ -70,6 +70,7 @@ public class ResultPartitionManager implements ResultPartitionProvider {
 
         final ResultSubpartitionView subpartitionView;
         synchronized (registeredPartitions) {
+            // 获取分区
             final ResultPartition partition = registeredPartitions.get(partitionId);
 
             if (partition == null) {
@@ -78,6 +79,7 @@ public class ResultPartitionManager implements ResultPartitionProvider {
 
             LOG.debug("Requesting subpartition {} of {}.", subpartitionIndex, partition);
 
+            // 构建 ResultSubpartitionView
             subpartitionView =
                     partition.createSubpartitionView(subpartitionIndex, availabilityListener);
         }

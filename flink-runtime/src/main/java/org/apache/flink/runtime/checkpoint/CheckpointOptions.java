@@ -40,16 +40,22 @@ public class CheckpointOptions implements Serializable {
 
     private static final long serialVersionUID = 5010126558083292915L;
 
-    /** Type of the checkpoint. */
+    /**
+     * checkpoint 的类型
+     * Type of the checkpoint. */
     private final CheckpointType checkpointType;
 
+    // checkpint持久化相关
     /** Target location for the checkpoint. */
     private final CheckpointStorageLocationReference targetLocation;
 
+    //是否是精准一次模式.
     private final boolean isExactlyOnceMode;
 
+    // 是否对齐
     private final boolean isUnalignedCheckpoint;
 
+    // 超时时间
     private final long alignmentTimeout;
 
     public static CheckpointOptions create(

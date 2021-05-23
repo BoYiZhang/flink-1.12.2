@@ -315,6 +315,7 @@ public class PipelinedSubpartition extends ResultSubpartition
                 BufferConsumerWithPartialRecordLength bufferConsumerWithPartialRecordLength = buffers.peek();
 
 
+                // 获取消费者
                 BufferConsumer bufferConsumer =
                         bufferConsumerWithPartialRecordLength.getBufferConsumer();
 

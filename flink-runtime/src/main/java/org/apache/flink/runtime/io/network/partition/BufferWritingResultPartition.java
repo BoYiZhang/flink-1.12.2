@@ -246,7 +246,10 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
         checkElementIndex(subpartitionIndex, numSubpartitions, "Subpartition not found.");
         checkState(!isReleased(), "Partition released.");
 
+        // 获取ResultSubpartition
         ResultSubpartition subpartition = subpartitions[subpartitionIndex];
+
+        // 构建 ResultSubpartitionView
         ResultSubpartitionView readView = subpartition.createReadView(availabilityListener);
 
         LOG.debug("Created {}", readView);

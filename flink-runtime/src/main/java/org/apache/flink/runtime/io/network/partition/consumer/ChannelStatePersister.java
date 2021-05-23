@@ -47,8 +47,11 @@ public final class ChannelStatePersister {
     private final InputChannelInfo channelInfo;
 
     private enum CheckpointStatus {
+        // 完成
         COMPLETED,
+        // 挂起
         BARRIER_PENDING,
+        // 已接收
         BARRIER_RECEIVED
     }
 
@@ -70,6 +73,8 @@ public final class ChannelStatePersister {
     protected void startPersisting(long barrierId, List<Buffer> knownBuffers)
             throws CheckpointException {
         logEvent("startPersisting", barrierId);
+
+        // 判断 检查点的状态必须为已接收完毕,并且最后一个 lastSeenBarrier 要大于当前输入的barrierId
         if (checkpointStatus == CheckpointStatus.BARRIER_RECEIVED && lastSeenBarrier > barrierId) {
             throw new CheckpointException(
                     String.format(
@@ -78,7 +83,14 @@ public final class ChannelStatePersister {
                     CheckpointFailureReason
                             .CHECKPOINT_SUBSUMED); // currently, at most one active unaligned
         }
+
         if (lastSeenBarrier < barrierId) {
+            // 不管当前的检查点状态如何，如果我们收到关于最近的检查点的通知，那么我们到目前为止已经看到了，总是标记这个最近的屏障是挂起的。
+            //
+            //BARRIER_RECEIVED status可以发生，如果我们看到一个旧的BARRIER，该BARRIER可能还没有被任务处理，但是任务现在通知我们检查点已经为新的检查点启动。
+            //
+            //我们应该把我们所知道的都说出来，并表明我们正在等待新的障碍的到来
+
             // Regardless of the current checkpointStatus, if we are notified about a more recent
             // checkpoint then we have seen so far, always mark that this more recent barrier is
             // pending.

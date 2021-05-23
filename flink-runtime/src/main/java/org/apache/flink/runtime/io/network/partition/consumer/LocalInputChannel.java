@@ -76,10 +76,29 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 
     private final Object requestLock = new Object();
 
-    /** The local partition manager. */
+    /**
+     *
+     * 分区管理器,里面存放着所有的分区信息
+     *    partitionManager = {ResultPartitionManager@7381}
+     *            registeredPartitions = {HashMap@7405}  size = 8
+     *                    {ResultPartitionID@7416} "6b3e5e999219f9532114514c4bdbb773#0@51ad11521e991efaad6349cdf2accda7" -> {PipelinedResultPartition@7417} "PipelinedResultPartition 6b3e5e999219f9532114514c4bdbb773#0@51ad11521e991efaad6349cdf2accda7 [PIPELINED_BOUNDED, 1 subpartitions, 1 pending consumptions]"
+     *                    {ResultPartitionID@7418} "6b3e5e999219f9532114514c4bdbb773#2@aecbd0682c0973976efe563eca747cc0" -> {PipelinedResultPartition@7419} "PipelinedResultPartition 6b3e5e999219f9532114514c4bdbb773#2@aecbd0682c0973976efe563eca747cc0 [PIPELINED_BOUNDED, 1 subpartitions, 1 pending consumptions]"
+     *                    {ResultPartitionID@7420} "e07667949eeb5fe115288459d1d137f1#1@0ef8b3d70af60be8633af8af4e1c0698" -> {PipelinedResultPartition@7421} "PipelinedResultPartition e07667949eeb5fe115288459d1d137f1#1@0ef8b3d70af60be8633af8af4e1c0698 [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+     *                    {ResultPartitionID@7422} "e07667949eeb5fe115288459d1d137f1#2@5e3aaeed65818bcfeb1485d0fd22d1ac" -> {PipelinedResultPartition@7423} "PipelinedResultPartition e07667949eeb5fe115288459d1d137f1#2@5e3aaeed65818bcfeb1485d0fd22d1ac [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+     *                    {ResultPartitionID@7424} "e07667949eeb5fe115288459d1d137f1#3@30e457019371f01a403bd06cf3041eeb" -> {PipelinedResultPartition@7425} "PipelinedResultPartition e07667949eeb5fe115288459d1d137f1#3@30e457019371f01a403bd06cf3041eeb [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+     *                    {ResultPartitionID@7426} "e07667949eeb5fe115288459d1d137f1#0@bfbc34d8314d506a39528d9c86f16859" -> {PipelinedResultPartition@7427} "PipelinedResultPartition e07667949eeb5fe115288459d1d137f1#0@bfbc34d8314d506a39528d9c86f16859 [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+     *                    {ResultPartitionID@7428} "6b3e5e999219f9532114514c4bdbb773#1@bcf3be98463b672ea899cee1290423a2" -> {PipelinedResultPartition@7429} "PipelinedResultPartition 6b3e5e999219f9532114514c4bdbb773#1@bcf3be98463b672ea899cee1290423a2 [PIPELINED_BOUNDED, 1 subpartitions, 1 pending consumptions]"
+     *                    {ResultPartitionID@7379} "5eba1007ad48ad2243891e1eff29c32b#0@db0c587a67c31a83cff5fd8be9496e5d" -> {PipelinedResultPartition@7371} "PipelinedResultPartition 5eba1007ad48ad2243891e1eff29c32b#0@db0c587a67c31a83cff5fd8be9496e5d [PIPELINED_BOUNDED, 4 subpartitions, 4 pending consumptions]"
+     * The local partition manager. */
     private final ResultPartitionManager partitionManager;
 
-    /** Task event dispatcher for backwards events. */
+    /**
+     *
+     * taskEventPublisher = {TaskEventDispatcher@6289}
+     *
+     * Task event dispatcher for backwards events.
+     *
+     * */
     private final TaskEventPublisher taskEventPublisher;
 
     /** The consumed subpartition. */
@@ -202,6 +221,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
         }
 
         if (notifyDataAvailable) {
+            // 通知有数据到达...
             notifyDataAvailable();
         }
 
