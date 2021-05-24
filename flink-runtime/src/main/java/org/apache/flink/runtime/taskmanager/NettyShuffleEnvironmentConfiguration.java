@@ -101,22 +101,39 @@ public class NettyShuffleEnvironmentConfiguration {
             int sortShuffleMinBuffers,
             int sortShuffleMinParallelism) {
 
+        //    numNetworkBuffers = 4096
         this.numNetworkBuffers = numNetworkBuffers;
+        //    networkBufferSize = 32768
         this.networkBufferSize = networkBufferSize;
+        //    partitionRequestInitialBackoff = 100
         this.partitionRequestInitialBackoff = partitionRequestInitialBackoff;
+        //    partitionRequestMaxBackoff = 10000
         this.partitionRequestMaxBackoff = partitionRequestMaxBackoff;
+        //    networkBuffersPerChannel = 2
         this.networkBuffersPerChannel = networkBuffersPerChannel;
+        //    floatingNetworkBuffersPerGate = 8
         this.floatingNetworkBuffersPerGate = floatingNetworkBuffersPerGate;
+        //    requestSegmentsTimeout = {Duration@5190} "PT30S"
         this.requestSegmentsTimeout = Preconditions.checkNotNull(requestSegmentsTimeout);
+        //    isNetworkDetailedMetrics = false
         this.isNetworkDetailedMetrics = isNetworkDetailedMetrics;
+        //    nettyConfig = {NettyConfig@5154} "NettyConfig [server address: /0.0.0.0, server port: 0, ssl enabled: false, memory segment size (bytes): 32768, transport type: AUTO, number of server threads: 4 (manual), number of client threads: 4 (manual), server connect backlog: 0 (use Netty's default), client connect timeout (sec): 120, send/receive buffer size (bytes): 0 (use Netty's default)]"
         this.nettyConfig = nettyConfig;
+        //    tempDirs = {String[1]@5185} ["/opt/tools/hado..."]
         this.tempDirs = Preconditions.checkNotNull(tempDirs);
+        //    blockingSubpartitionType = {BoundedBlockingSubpartitionType$1@5203} "FILE"
         this.blockingSubpartitionType = Preconditions.checkNotNull(blockingSubpartitionType);
+        //    blockingShuffleCompressionEnabled = false
         this.blockingShuffleCompressionEnabled = blockingShuffleCompressionEnabled;
+        //    compressionCodec = "LZ4"
         this.compressionCodec = Preconditions.checkNotNull(compressionCodec);
+        //    maxBuffersPerChannel = 10
         this.maxBuffersPerChannel = maxBuffersPerChannel;
+        //    sortShuffleMinBuffers = 64
         this.sortShuffleMinBuffers = sortShuffleMinBuffers;
+        //    sortShuffleMinParallelism = 2147483647
         this.sortShuffleMinParallelism = sortShuffleMinParallelism;
+
     }
 
     // ------------------------------------------------------------------------
@@ -230,24 +247,32 @@ public class NettyShuffleEnvironmentConfiguration {
         final int numberOfNetworkBuffers =
                 calculateNumberOfNetworkBuffers(configuration, networkMemorySize, pageSize);
 
+        // 100
         int initialRequestBackoff =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_REQUEST_BACKOFF_INITIAL);
+
+        // 1000
         int maxRequestBackoff =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_REQUEST_BACKOFF_MAX);
 
+        // 2
         int buffersPerChannel =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_PER_CHANNEL);
+
+        // 8
         int extraBuffersPerGate =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_EXTRA_BUFFERS_PER_GATE);
 
+        // 10
         int maxBuffersPerChannel =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_MAX_BUFFERS_PER_CHANNEL);
 
+        // 64
         int sortShuffleMinBuffers =
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_SORT_SHUFFLE_MIN_BUFFERS);
@@ -257,26 +282,35 @@ public class NettyShuffleEnvironmentConfiguration {
                 configuration.getInteger(
                         NettyShuffleEnvironmentOptions.NETWORK_SORT_SHUFFLE_MIN_PARALLELISM);
 
+        // false
         boolean isNetworkDetailedMetrics =
                 configuration.getBoolean(NettyShuffleEnvironmentOptions.NETWORK_DETAILED_METRICS);
 
+
+        // /opt/tools/hadoop-3.1.3/data/local-dirs/usercache/yarn/appcache/application_1619273419318_0062
         String[] tempDirs = ConfigurationUtils.parseTempDirectories(configuration);
 
+        // PT30S
         Duration requestSegmentsTimeout =
                 Duration.ofMillis(
                         configuration.getLong(
                                 NettyShuffleEnvironmentOptions
                                         .NETWORK_EXCLUSIVE_BUFFERS_REQUEST_TIMEOUT_MILLISECONDS));
 
+        // FILE
         BoundedBlockingSubpartitionType blockingSubpartitionType =
                 getBlockingSubpartitionType(configuration);
 
+
+        // FALSE
         boolean blockingShuffleCompressionEnabled =
                 configuration.get(
                         NettyShuffleEnvironmentOptions.BLOCKING_SHUFFLE_COMPRESSION_ENABLED);
+        // LZ4
         String compressionCodec =
                 configuration.getString(NettyShuffleEnvironmentOptions.SHUFFLE_COMPRESSION_CODEC);
 
+        // 构建netty connection
         return new NettyShuffleEnvironmentConfiguration(
                 numberOfNetworkBuffers,
                 pageSize,
