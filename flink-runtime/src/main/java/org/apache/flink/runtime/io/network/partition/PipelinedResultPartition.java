@@ -60,21 +60,18 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
         implements CheckpointedResultPartition, ChannelStateHolder {
 
     /**
-     * The lock that guard release operations (which can be asynchronously propagated from the
-     * networks threads.
+     * The lock that guard release operations (which can be asynchronously propagated from the networks threads.
      */
     private final Object releaseLock = new Object();
 
     /**
-     * A flag for each subpartition indicating whether it was already consumed or not, to make
-     * releases idempotent.
+     * A flag for each subpartition indicating whether it was already consumed or not, to make releases idempotent.
      */
     @GuardedBy("releaseLock")
     private final boolean[] consumedSubpartitions;
 
     /**
-     * The total number of references to subpartitions of this result. The result partition can be
-     * safely released, iff the reference count is zero.
+     * The total number of references to subpartitions of this result. The result partition can be safely released, iff the reference count is zero.
      */
     @GuardedBy("releaseLock")
     private int numUnconsumedSubpartitions;
@@ -146,8 +143,7 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
             remainingUnconsumed = (--numUnconsumedSubpartitions);
         }
 
-        LOG.debug(
-                "{}: Received consumed notification for subpartition {}.", this, subpartitionIndex);
+        LOG.debug( "{}: Received consumed notification for subpartition {}.", this, subpartitionIndex);
 
         if (remainingUnconsumed == 0) {
             // 如果没有可以消费的 子分区. 通知partitionManager改子分区可以释放资源.

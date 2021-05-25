@@ -551,7 +551,7 @@ public class Task
                                 taskShuffleContext, resultPartitionDeploymentDescriptors)
                         .toArray(new ResultPartitionWriter[] {});
 
-        //
+        //inputgate
         this.consumableNotifyingPartitionWriters =
                 ConsumableNotifyingResultPartitionWriterDecorator.decorate(
                         resultPartitionDeploymentDescriptors,
