@@ -52,6 +52,8 @@ public class InputProcessorUtil {
             TaskIOMetricGroup taskIOMetricGroup,
             String taskName,
             MailboxExecutor mailboxExecutor) {
+
+        //  CheckpointedInputGate
         CheckpointedInputGate[] checkpointedInputGates =
                 createCheckpointedMultipleInputGate(
                         toNotifyOnCheckpoint,
@@ -78,6 +80,8 @@ public class InputProcessorUtil {
             MailboxExecutor mailboxExecutor,
             List<IndexedInputGate>[] inputGates,
             List<StreamTaskSourceInput<?>> sourceInputs) {
+
+        // 构建  CheckpointBarrierHandler
         CheckpointBarrierHandler barrierHandler =
                 createCheckpointBarrierHandler(
                         toNotifyOnCheckpoint,
@@ -133,6 +137,7 @@ public class InputProcessorUtil {
                         .sorted(Comparator.comparing(CheckpointableInput::getInputGateIndex))
                         .toArray(CheckpointableInput[]::new);
 
+        // 读取配置中的checkpoint模式
         switch (config.getCheckpointMode()) {
             case EXACTLY_ONCE:
                 int numberOfChannels =
@@ -140,6 +145,10 @@ public class InputProcessorUtil {
                                 Arrays.stream(inputs)
                                         .flatMap(gate -> gate.getChannelInfos().stream())
                                         .count();
+
+                // 是否开启 UnalignedCheckpoints
+                // true : AlternatingController
+                // false : AlignedController
                 CheckpointBarrierBehaviourController controller =
                         config.isUnalignedCheckpointsEnabled()
                                 ? new AlternatingController(

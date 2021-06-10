@@ -559,6 +559,19 @@ public class ExecutionGraph implements AccessExecutionGraph {
         return Optional.ofNullable(stateBackendName);
     }
 
+    /**
+     * 启用 Checkpointing
+     *
+     * @param chkConfig
+     * @param verticesToTrigger
+     * @param verticesToWaitFor
+     * @param verticesToCommitTo
+     * @param masterHooks
+     * @param checkpointIDCounter
+     * @param checkpointStore
+     * @param checkpointStateBackend
+     * @param statsTracker
+     */
     public void enableCheckpointing(
             CheckpointCoordinatorConfiguration chkConfig,
             List<ExecutionJobVertex> verticesToTrigger,
@@ -604,6 +617,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 
         checkState(checkpointCoordinatorTimer == null);
 
+        // 创建定时器,并传给CheckpointCoordinator
         checkpointCoordinatorTimer =
                 Executors.newSingleThreadScheduledExecutor(
                         new DispatcherThreadFactory(
@@ -637,6 +651,12 @@ public class ExecutionGraph implements AccessExecutionGraph {
         }
 
         checkpointCoordinator.setCheckpointStatsTracker(checkpointStatsTracker);
+
+
+        // ExecutionGroup,在enableCheckpointing方法中
+        // 如果chkConfig的CK时间设置不等于Long.MAX_VALUE
+        // 则创建一个监听器并注册
+
 
         // interval of max long value indicates disable periodic checkpoint,
         // the CheckpointActivatorDeactivator should be created only if the interval is not max

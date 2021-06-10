@@ -69,6 +69,10 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
 
     private int numOpenChannels;
 
+
+    // 如果所有的input channel都接收到了barrier，
+    // 这个CompletableFuture会complete，
+    // 其他使用whenComplete等待该变量状态变化的地方
     private CompletableFuture<Void> allBarriersReceivedFuture = FutureUtils.completedVoidFuture();
 
     @VisibleForTesting
@@ -105,20 +109,26 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
         long barrierId = barrier.getId();
         LOG.debug("{}: Received barrier from channel {} @ {}.", taskName, channelInfo, barrierId);
 
+        // 忽略掉旧的或取消了的checkpoint的barrier
         if (currentCheckpointId > barrierId
                 || (currentCheckpointId == barrierId && !isCheckpointPending())) {
             controller.obsoleteBarrierReceived(channelInfo, barrier);
             return;
         }
 
+        // 如果当前进行的checkpoint id小于接收到的barrier id，说明需要开始处理新的checkpoint
         if (currentCheckpointId < barrierId) {
+
             if (isCheckpointPending()) {
                 cancelSubsumedCheckpoint(barrierId);
             }
 
+            // 只有一个输入Channel
             if (getNumOpenChannels() == 1) {
+
                 markAlignmentStartAndEnd(barrier.getTimestamp());
             } else {
+
                 markAlignmentStart(barrier.getTimestamp());
             }
             currentCheckpointId = barrierId;

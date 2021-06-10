@@ -1469,8 +1469,15 @@ public class Task
             final CheckpointOptions checkpointOptions) {
 
         final AbstractInvokable invokable = this.invokable;
+
+
+        // 创建了一个CheckpointMetaData的对象，
+        // 确保Task处于Running状态， 把工作转交给StreamTask
         final CheckpointMetaData checkpointMetaData =
                 new CheckpointMetaData(checkpointID, checkpointTimestamp);
+
+
+
         // 只有状态为RUNNING才可以触发Checkpoint操作
         if (executionState == ExecutionState.RUNNING && invokable != null) {
             try {

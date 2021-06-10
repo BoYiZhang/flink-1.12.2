@@ -1150,6 +1150,25 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         subtaskCheckpointCoordinator.abortCheckpointOnBarrier(checkpointId, cause, operatorChain);
     }
 
+    /**
+     *
+     * 如果Task是Running状态， 那就可以执行检查点， 首先在OperatorChain上执行准备CheckpointBarrier的工作，
+     * 然后向下游所有Task广播CheckpointBarrier， 最后触发自己的检查点。
+     * 这样做可以尽快将CheckpointBarrier广播到下游， 避免影响下游CheckpointBarrier对齐，降低整个检查点执行过程的耗时。
+     *
+     *
+     *
+     * 如果Task是非Running， 那就要向下游发送CancelCheckpointMarker，
+     * 通知下游取消本次检查点， 方法是发送一个CacelCheckpointMarker，
+     * 与CheckpointBarrier相反的操作 .
+     *
+     *
+     * @param checkpointMetaData
+     * @param checkpointOptions
+     * @param checkpointMetrics
+     * @return
+     * @throws Exception
+     */
     private boolean performCheckpoint(
             CheckpointMetaData checkpointMetaData,
             CheckpointOptions checkpointOptions,
@@ -1165,6 +1184,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
         if (isRunning) {
             actionExecutor.runThrowing(
                     () -> {
+
                         if (checkpointOptions.getCheckpointType().isSynchronous()) {
                             setSynchronousSavepointId(
                                     checkpointMetaData.getCheckpointId(),
@@ -1178,7 +1198,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
                             activeSyncSavepointId = null;
                             operatorChain.setIgnoreEndOfInput(false);
                         }
-                        // 交由subtaskCheckpointCoordinator 进行checkpointState 操作...
+                        // 交由 subtaskCheckpointCoordinator 进行checkpointState 操作...
                         subtaskCheckpointCoordinator.checkpointState(
                                 checkpointMetaData,
                                 checkpointOptions,

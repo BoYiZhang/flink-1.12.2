@@ -932,6 +932,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     // Checkpointing RPCs
     // ----------------------------------------------------------------------
 
+    // JobManager里面的 ExecutionVertex 的 Execution 触发
     @Override
     public CompletableFuture<Acknowledge> triggerCheckpoint(
             ExecutionAttemptID executionAttemptID,

@@ -1205,6 +1205,15 @@ public class Execution
         triggerCheckpointHelper(checkpointId, timestamp, checkpointOptions);
     }
 
+
+    // triggerCheckpoint主要进行以下操作
+    // 1.根据配置进行CK需要的检验
+    // 2.检查需要触发CK的所有任务是否正在运行,生成executions
+    // 3.检查需要确认CK的所有任务是否正在运行,生成ackTasks
+    // 4.根据配置确定是CK还是SP
+    // 5.构造PendingCheckpoint
+    // 6.注册清除超时CK的定时器
+    // 7.调用execution.triggerCheckpoint()触发CK
     private void triggerCheckpointHelper(
             long checkpointId, long timestamp, CheckpointOptions checkpointOptions) {
 

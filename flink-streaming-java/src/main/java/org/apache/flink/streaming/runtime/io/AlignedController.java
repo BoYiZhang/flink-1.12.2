@@ -37,6 +37,7 @@ import static org.apache.flink.util.Preconditions.checkState;
 public class AlignedController implements CheckpointBarrierBehaviourController {
     private final CheckpointableInput[] inputs;
 
+    // 用来表示channel是否没有接收到barrier，true表示没有接收到
     private final Map<InputChannelInfo, Boolean> blockedChannels;
 
     public AlignedController(CheckpointableInput... inputs) {

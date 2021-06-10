@@ -244,12 +244,21 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
         checkNotNull(options);
         checkNotNull(metrics);
 
+        // 从barriers和records/watermarks/timers/callbacks的角度来看，
+        // 以下所有步骤都是原子步骤
+        // 我们通常会尽量尽快释放检查点屏障，以免影响下游的检查点对齐
+
         // All of the following steps happen as an atomic step from the perspective of barriers and
         // records/watermarks/timers/callbacks.
         // We generally try to emit the checkpoint barrier as soon as possible to not affect
         // downstream
         // checkpoint alignments
 
+        // 重要 !!!!!!!!!!!!!!!!!!!!!!!!!
+
+        // 检查上一个checkpoint的 id是否比metadata的checkpoint id小
+        // 否则存在checkpoint barrier乱序的可能，
+        // 终止掉metadata.getCheckpointId()对应的checkpoint操作
         if (lastCheckpointId >= metadata.getCheckpointId()) {
             LOG.info(
                     "Out of order checkpoint barrier (aborted previously?): {} >= {}",
@@ -259,6 +268,11 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
             checkAndClearAbortedStatus(metadata.getCheckpointId());
             return;
         }
+
+        // 下面开始正式的checkpoint流程
+
+        // 第0步，更新lastCheckpointId变量
+        // 如果当前checkpoint被取消，广播CancelCheckpointMarker到下游，表明这个checkpoint被终止
 
         // Step (0): Record the last triggered checkpointId and abort the sync phase of checkpoint
         // if necessary.
@@ -273,20 +287,37 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
             return;
         }
 
+        // 第1步，调用operatorChain的 prepareSnapshotPreBarrier 方法，执行checkpoint操作前的预处理逻辑
+
         // Step (1): Prepare the checkpoint, allow operators to do some pre-barrier work.
         //           The pre-barrier work should be nothing or minimal in the common case.
         operatorChain.prepareSnapshotPreBarrier(metadata.getCheckpointId());
 
         // Step (2): Send the checkpoint barrier downstream
+
+        // 第2步，向下游广播CheckpointBarrier
+        // 这里有个关键点：
+        //  第二个参数为isPriorityEvent，连续跟踪代码后发现调用的是PipelinedSubpartition中的add方法，
+        //  如果isPriorityEvent为true，表示把这个barrier插入到ResultSubpartition的头部
         operatorChain.broadcastEvent(
                 new CheckpointBarrier(metadata.getCheckpointId(), metadata.getTimestamp(), options),
                 options.isUnalignedCheckpoint());
 
+        // Step (3): 进行State快照. 很大程序是异步进行,避免影响流式拓扑的进度
         // Step (3): Prepare to spill the in-flight buffers for input and output
         if (options.isUnalignedCheckpoint()) {
             // output data already written while broadcasting event
+
+            // // 第3步是一个关键点，
+            //    如果启用了unaligned checkpoint，
+            //    将所有input channel中checkpoint barrier后的buffer写入到checkpoint中
             channelStateWriter.finishOutput(metadata.getCheckpointId());
         }
+
+
+
+        // 第4步，异步执行checkpoint操作，checkpoint数据落地
+
 
         // Step (4): Take the state snapshot. This should be largely asynchronous, to not impact
         // progress of the
@@ -483,6 +514,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
                 .whenComplete(
                         (unused, ex) -> {
                             if (ex != null) {
+
                                 channelStateWriter.abort(
                                         checkpointId,
                                         ex,
@@ -559,6 +591,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
                         ? channelStateWriter.getAndRemoveWriteResult(checkpointId)
                         : ChannelStateWriteResult.EMPTY;
 
+        // CK数据保存工厂类
         CheckpointStreamFactory storage =
                 checkpointStorage.resolveCheckpointStorageLocation(
                         checkpointId, checkpointOptions.getTargetLocation());
@@ -567,6 +600,8 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
             for (StreamOperatorWrapper<?, ?> operatorWrapper :
                     operatorChain.getAllOperators(true)) {
                 if (!operatorWrapper.isClosed()) {
+
+                    // CK操作类,根据CKMetaData,CK配置,CK保存点,CK指标执行CK
                     operatorSnapshotsInProgress.put(
                             operatorWrapper.getStreamOperator().getOperatorID(),
                             buildOperatorSnapshotFutures(
@@ -589,6 +624,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
                 checkpointId,
                 checkpointMetrics.getAlignmentDurationNanosOrDefault() / 1_000_000,
                 checkpointMetrics.getSyncDurationMillis());
+
 
         checkpointMetrics.setSyncDurationMillis((System.nanoTime() - started) / 1_000_000);
         return true;

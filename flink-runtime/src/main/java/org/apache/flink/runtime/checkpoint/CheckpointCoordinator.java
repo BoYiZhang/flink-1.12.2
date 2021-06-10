@@ -512,9 +512,23 @@ public class CheckpointCoordinator {
      * @return a future to the completed checkpoint.
      */
     public CompletableFuture<CompletedCheckpoint> triggerCheckpoint(boolean isPeriodic) {
+        // 触发CK
         return triggerCheckpoint(checkpointProperties, null, isPeriodic);
     }
 
+
+
+
+    /**
+     * 定时任务被封装为 ScheduledTrigger,
+     * 运行时会调用 CheckpointCoordinator.
+     * triggerCheckpoint() 触发一次 checkpoint。
+     *
+     * @param props
+     * @param externalSavepointLocation
+     * @param isPeriodic
+     * @return
+     */
     @VisibleForTesting
     public CompletableFuture<CompletedCheckpoint> triggerCheckpoint(
             CheckpointProperties props,
@@ -530,6 +544,8 @@ public class CheckpointCoordinator {
 
         CheckpointTriggerRequest request =
                 new CheckpointTriggerRequest(props, externalSavepointLocation, isPeriodic);
+
+        // 触发 Checkpoint --> startTriggeringCheckpoint
         chooseRequestToExecute(request).ifPresent(this::startTriggeringCheckpoint);
         return request.onCompletionPromise;
     }
@@ -540,9 +556,11 @@ public class CheckpointCoordinator {
                 preCheckGlobalState(request.isPeriodic);
             }
 
+            //
             final Execution[] executions = getTriggerExecutions();
             final Map<ExecutionAttemptID, ExecutionVertex> ackTasks = getAckTasks();
 
+            // 我们会触发这个检查点！
             // we will actually trigger this checkpoint!
             Preconditions.checkState(!isTriggering);
             isTriggering = true;
@@ -623,6 +641,9 @@ public class CheckpointCoordinator {
                                                 // no exception, no discarding, everything is OK
                                                 final long checkpointId =
                                                         checkpoint.getCheckpointId();
+
+
+                                                //[重要] 触发 Checkpoint !!!!!!!!!!!!!!!!
                                                 snapshotTaskState(
                                                         timestamp,
                                                         checkpointId,
@@ -842,6 +863,7 @@ public class CheckpointCoordinator {
             if (props.isSynchronous()) {
                 execution.triggerSynchronousSavepoint(checkpointID, timestamp, checkpointOptions);
             } else {
+                // 触发 Checkpoint
                 execution.triggerCheckpoint(checkpointID, timestamp, checkpointOptions);
             }
         }
@@ -907,6 +929,8 @@ public class CheckpointCoordinator {
     }
 
     private void executeQueuedRequest() {
+
+        // 触发Checkpoint
         chooseQueuedRequestToExecute().ifPresent(this::startTriggeringCheckpoint);
     }
 
@@ -1723,10 +1747,14 @@ public class CheckpointCoordinator {
                 throw new IllegalArgumentException("Checkpoint coordinator is shut down");
             }
 
+            // 确保启动定时CK前,没有定时器
             // make sure all prior timers are cancelled
             stopCheckpointScheduler();
 
             periodicScheduling = true;
+
+
+            // 启动 checkpoint 的定时器。
             currentPeriodicTrigger = scheduleTriggerWithDelay(getRandomInitDelay());
         }
     }
@@ -1791,6 +1819,7 @@ public class CheckpointCoordinator {
 
     private ScheduledFuture<?> scheduleTriggerWithDelay(long initDelay) {
         return timer.scheduleAtFixedRate(
+                // 触发操作
                 new ScheduledTrigger(), initDelay, baseInterval, TimeUnit.MILLISECONDS);
     }
 
@@ -1838,6 +1867,7 @@ public class CheckpointCoordinator {
         @Override
         public void run() {
             try {
+                // 触发CK
                 triggerCheckpoint(true);
             } catch (Exception e) {
                 LOG.error("Exception while triggering checkpoint for job {}.", job, e);

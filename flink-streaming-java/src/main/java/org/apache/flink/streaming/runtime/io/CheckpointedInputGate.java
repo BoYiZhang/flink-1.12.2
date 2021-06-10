@@ -176,12 +176,20 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
             throws IOException, InterruptedException {
         Class<? extends AbstractEvent> eventClass = bufferOrEvent.getEvent().getClass();
         if (eventClass == CheckpointBarrier.class) {
+            // 对消息类型进行判断,如果是CheckpointBarrier类型的消息
+            // 进一步判断是否需要对齐或者进行CK
             CheckpointBarrier checkpointBarrier = (CheckpointBarrier) bufferOrEvent.getEvent();
             barrierHandler.processBarrier(checkpointBarrier, bufferOrEvent.getChannelInfo());
+
+
         } else if (eventClass == CancelCheckpointMarker.class) {
+            // 如果是CancelCheckpointMarker类型,处理该消息
             barrierHandler.processCancellationBarrier(
                     (CancelCheckpointMarker) bufferOrEvent.getEvent());
+
+
         } else if (eventClass == EndOfPartitionEvent.class) {
+
             barrierHandler.processEndOfPartition();
         } else if (eventClass == EventAnnouncement.class) {
             EventAnnouncement eventAnnouncement = (EventAnnouncement) bufferOrEvent.getEvent();

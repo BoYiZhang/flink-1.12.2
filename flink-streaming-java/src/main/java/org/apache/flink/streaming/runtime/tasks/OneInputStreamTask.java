@@ -86,7 +86,10 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
         int numberOfInputs = configuration.getNumberOfNetworkInputs();
 
         if (numberOfInputs > 0) {
+            // 构建 Checkpointed InputGate
             CheckpointedInputGate inputGate = createCheckpointedInputGate();
+
+
             Counter numRecordsIn = setupNumRecordsInCounter(mainOperator);
             DataOutput<IN> output = createDataOutput(numRecordsIn);
             StreamTaskInput<IN> input = createTaskInput(inputGate);
@@ -136,6 +139,7 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
     private CheckpointedInputGate createCheckpointedInputGate() {
         IndexedInputGate[] inputGates = getEnvironment().getAllInputGates();
 
+        // CheckpointedInputGate
         return InputProcessorUtil.createCheckpointedInputGate(
                 this,
                 configuration,
