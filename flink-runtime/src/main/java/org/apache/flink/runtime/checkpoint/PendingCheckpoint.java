@@ -373,15 +373,20 @@ public class PendingCheckpoint implements Checkpoint {
                 return TaskAcknowledgeResult.DISCARDED;
             }
 
+            // ack 的任务..
             final ExecutionVertex vertex = notYetAcknowledgedTasks.remove(executionAttemptId);
 
             if (vertex == null) {
                 if (acknowledgedTasks.contains(executionAttemptId)) {
+
+                    // ack重复
                     return TaskAcknowledgeResult.DUPLICATE;
                 } else {
+                    // 位置...
                     return TaskAcknowledgeResult.UNKNOWN;
                 }
             } else {
+                // 加入已应答 集合...
                 acknowledgedTasks.add(executionAttemptId);
             }
 

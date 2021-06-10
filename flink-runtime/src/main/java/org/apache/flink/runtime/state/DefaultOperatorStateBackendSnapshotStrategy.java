@@ -34,7 +34,19 @@ import java.util.Map;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RunnableFuture;
 
-/** Snapshot strategy for this backend. */
+/**
+ * 会为对当前注册的所有 operator state（包含 list state 和 broadcast state）做深度拷贝，
+ * 然后将实际的写入操作封装在一个异步的 FutureTask 中，
+ * 这个 FutureTask 的主要任务包括：
+ *      1）打开输出流
+ *      2）写入状态元数据信息
+ *      3）写入状态
+ *      4）关闭输出流，获得状态句柄。
+ *
+ * 如果不启用异步checkpoint模式，
+ * 那么这个 FutureTask 在同步阶段就会立刻执行。
+ *
+ * Snapshot strategy for this backend. */
 class DefaultOperatorStateBackendSnapshotStrategy
         extends AbstractSnapshotStrategy<OperatorStateHandle> {
     private final ClassLoader userClassLoader;
@@ -75,6 +87,7 @@ class DefaultOperatorStateBackendSnapshotStrategy
         final Map<String, BackendWritableBroadcastState<?, ?>> registeredBroadcastStatesDeepCopies =
                 new HashMap<>(registeredBroadcastStates.size());
 
+        //获得已注册的所有 list state 和 broadcast state 的深拷贝
         ClassLoader snapshotClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(userClassLoader);
         try {
@@ -106,17 +119,20 @@ class DefaultOperatorStateBackendSnapshotStrategy
             Thread.currentThread().setContextClassLoader(snapshotClassLoader);
         }
 
+        //将主要写入操作封装为一个异步的FutureTask
         AsyncSnapshotCallable<SnapshotResult<OperatorStateHandle>> snapshotCallable =
                 new AsyncSnapshotCallable<SnapshotResult<OperatorStateHandle>>() {
 
                     @Override
                     protected SnapshotResult<OperatorStateHandle> callInternal() throws Exception {
 
+                        // 创建状态输出流
                         CheckpointStreamFactory.CheckpointStateOutputStream localOut =
                                 streamFactory.createCheckpointStateOutputStream(
                                         CheckpointedStateScope.EXCLUSIVE);
                         snapshotCloseableRegistry.registerCloseable(localOut);
 
+                        // 收集元数据
                         // get the registered operator state infos ...
                         List<StateMetaInfoSnapshot> operatorMetaInfoSnapshots =
                                 new ArrayList<>(registeredOperatorStatesDeepCopies.size());
@@ -137,6 +153,7 @@ class DefaultOperatorStateBackendSnapshotStrategy
                                     entry.getValue().getStateMetaInfo().snapshot());
                         }
 
+                        // 写入元数据
                         // ... write them all in the checkpoint stream ...
                         DataOutputView dov = new DataOutputViewStreamWrapper(localOut);
 
@@ -148,6 +165,7 @@ class DefaultOperatorStateBackendSnapshotStrategy
 
                         // ... and then go for the states ...
 
+                        // 写入状态
                         // we put BOTH normal and broadcast state metadata here
                         int initialMapCapacity =
                                 registeredOperatorStatesDeepCopies.size()
@@ -185,6 +203,7 @@ class DefaultOperatorStateBackendSnapshotStrategy
 
                         if (snapshotCloseableRegistry.unregisterCloseable(localOut)) {
 
+                            //关闭输出流，获得状态句柄，后面可以用这个句柄读取状态
                             StreamStateHandle stateHandle = localOut.closeAndGetHandle();
 
                             if (stateHandle != null) {
@@ -206,6 +225,7 @@ class DefaultOperatorStateBackendSnapshotStrategy
 
                     @Override
                     protected void logAsyncSnapshotComplete(long startTime) {
+                        //如果不是异步 checkpoint 那么在这里直接运行 FutureTask，即在同步阶段就完成了状态的写入
                         if (asynchronousSnapshots) {
                             logAsyncCompleted(streamFactory, startTime);
                         }

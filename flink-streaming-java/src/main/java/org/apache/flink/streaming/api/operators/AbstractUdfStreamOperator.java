@@ -90,7 +90,11 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends Function>
 
     @Override
     public void snapshotState(StateSnapshotContext context) throws Exception {
+
+        //先调用父类方法，写入timer
         super.snapshotState(context);
+
+        //通过反射调用用户函数中的快照操作
         StreamingFunctionUtils.snapshotFunctionState(
                 context, getOperatorStateBackend(), userFunction);
     }

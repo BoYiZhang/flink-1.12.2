@@ -113,6 +113,8 @@ public class CheckpointBarrierTracker extends CheckpointBarrierHandler {
                 // checkpoint can be triggered (or is aborted and all barriers have been seen)
                 // first, remove this checkpoint and all all prior pending
                 // checkpoints (which are now subsumed)
+
+                // 在当前 barrierId 前面的所有未完成的 checkpoint 都可以丢弃了
                 for (int i = 0; i <= pos; i++) {
                     pendingCheckpoints.pollFirst();
                 }
@@ -123,6 +125,7 @@ public class CheckpointBarrierTracker extends CheckpointBarrierHandler {
                         LOG.debug("Received all barriers for checkpoint {}", barrierId);
                     }
                     markAlignmentEnd();
+                    //通知进行 checkpoint
                     notifyCheckpoint(receivedBarrier);
                 }
             }

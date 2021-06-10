@@ -339,6 +339,7 @@ public class PrioritizedOperatorSubtaskState {
                 }
             }
 
+            // 从 JobManager 获取的状态作为最低优先级的备选
             // Of course we include the ground truth as last alternative.
             approved.add(jobManagerState);
             return Collections.unmodifiableList(approved);

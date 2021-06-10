@@ -98,6 +98,7 @@ final class AsyncCheckpointRunnable implements Runnable, Closeable {
 
     @Override
     public void run() {
+
         final long asyncStartNanos = System.nanoTime();
         final long asyncStartDelayMillis = (asyncStartNanos - asyncConstructionNanos) / 1_000_000L;
         LOG.debug(
@@ -113,16 +114,27 @@ final class AsyncCheckpointRunnable implements Runnable, Closeable {
 
             TaskStateSnapshot jobManagerTaskOperatorSubtaskStates =
                     new TaskStateSnapshot(operatorSnapshotsInProgress.size());
+
             TaskStateSnapshot localTaskOperatorSubtaskStates =
                     new TaskStateSnapshot(operatorSnapshotsInProgress.size());
 
+
             long bytesPersistedDuringAlignment = 0;
+
+            // 完成每一个 operator 的状态写入
+            // 如果是同步 checkpoint，那么在此之前状态已经写入完成
+            // 如果是异步 checkpoint，那么在这里才会写入状态
+
             for (Map.Entry<OperatorID, OperatorSnapshotFutures> entry :
                     operatorSnapshotsInProgress.entrySet()) {
 
+                // OperatorID
                 OperatorID operatorID = entry.getKey();
+
+                // OperatorSnapshotFutures
                 OperatorSnapshotFutures snapshotInProgress = entry.getValue();
 
+                // 通过执行所有快照可运行文件来完成all的异步部分
                 // finalize the async part of all by executing all snapshot runnables
                 OperatorSnapshotFinalizer finalizedSnapshots =
                         new OperatorSnapshotFinalizer(snapshotInProgress);
@@ -154,6 +166,7 @@ final class AsyncCheckpointRunnable implements Runnable, Closeable {
             if (asyncCheckpointState.compareAndSet(
                     AsyncCheckpointState.RUNNING, AsyncCheckpointState.COMPLETED)) {
 
+                // 报送状态...
                 reportCompletedSnapshotStates(
                         jobManagerTaskOperatorSubtaskStates,
                         localTaskOperatorSubtaskStates,

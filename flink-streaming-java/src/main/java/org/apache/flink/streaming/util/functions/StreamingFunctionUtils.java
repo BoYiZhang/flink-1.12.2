@@ -114,13 +114,18 @@ public final class StreamingFunctionUtils {
             StateSnapshotContext context, OperatorStateBackend backend, Function userFunction)
             throws Exception {
 
+        // 如果用户函数实现了 CheckpointedFunction 接口，
+        // 调用 snapshotState 创建快照
         if (userFunction instanceof CheckpointedFunction) {
             ((CheckpointedFunction) userFunction).snapshotState(context);
 
             return true;
         }
 
+        // 如果用户函数实现了 ListCheckpointed
         if (userFunction instanceof ListCheckpointed) {
+
+            //先调用 snapshotState 方法获取当前状态
             @SuppressWarnings("unchecked")
             List<Serializable> partitionableState =
                     ((ListCheckpointed<Serializable>) userFunction)
@@ -137,10 +142,14 @@ public final class StreamingFunctionUtils {
                     new ListStateDescriptor<>(
                             DefaultOperatorStateBackend.DEFAULT_OPERATOR_STATE_NAME,
                             new JavaSerializer<>());
+
+            //获取后端存储的状态的引用
             ListState<Serializable> listState = backend.getListState(listStateDescriptor);
 
+            //清空当前后端存储的 ListState
             listState.clear();
 
+            //将当前状态依次加入后端存储
             if (null != partitionableState) {
                 try {
                     for (Serializable statePartition : partitionableState) {

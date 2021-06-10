@@ -202,18 +202,23 @@ public class StreamOperatorStateHandler {
                             snapshotContext.getRawKeyedOperatorStateOutput(), operatorName);
                 }
             }
+            //对状态进行快照
             streamOperator.snapshotState(snapshotContext);
 
+            //raw state，要在子类中自己实现 raw state 的快照写入
+            //timer 是作为 raw keyed state 写入的
             snapshotInProgress.setKeyedStateRawFuture(snapshotContext.getKeyedStateStreamFuture());
             snapshotInProgress.setOperatorStateRawFuture(
                     snapshotContext.getOperatorStateStreamFuture());
 
+            //写入 managed state 快照
             if (null != operatorStateBackend) {
                 snapshotInProgress.setOperatorStateManagedFuture(
                         operatorStateBackend.snapshot(
                                 checkpointId, timestamp, factory, checkpointOptions));
             }
 
+            //写入 managed keyed state 快照
             if (null != keyedStateBackend) {
                 snapshotInProgress.setKeyedStateManagedFuture(
                         keyedStateBackend.snapshot(

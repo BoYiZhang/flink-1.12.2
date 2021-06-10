@@ -118,6 +118,7 @@ public class TaskStateManagerImpl implements TaskStateManager {
 
         localStateStore.storeLocalState(checkpointId, localState);
 
+        //发送 ACK 响应给 CheckpointCoordinator
         checkpointResponder.acknowledgeCheckpoint(
                 jobId, executionAttemptID, checkpointId, checkpointMetrics, acknowledgedState);
     }
@@ -130,6 +131,7 @@ public class TaskStateManagerImpl implements TaskStateManager {
             return PrioritizedOperatorSubtaskState.emptyNotRestored();
         }
 
+        //从 JobManager 获取的状态快照
         TaskStateSnapshot jobManagerStateSnapshot = jobManagerTaskRestore.getTaskStateSnapshot();
 
         OperatorSubtaskState jobManagerSubtaskState =
@@ -139,6 +141,7 @@ public class TaskStateManagerImpl implements TaskStateManager {
             return PrioritizedOperatorSubtaskState.emptyNotRestored();
         }
 
+        //本地状态快照作为备选
         long restoreCheckpointId = jobManagerTaskRestore.getRestoreCheckpointId();
 
         TaskStateSnapshot localStateSnapshot =

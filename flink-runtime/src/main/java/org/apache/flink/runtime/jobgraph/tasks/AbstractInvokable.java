@@ -250,14 +250,15 @@ public abstract class AbstractInvokable {
     // ------------------------------------------------------------------------
 
     /**
-     * 此方法由检查点协调器异步调用以触发检查点。
+     * triggerCheckpoint 是触发 checkpoint 的源头，会向下游注入 CheckpointBarrier
+     *
+     * 由检查点协调器异步调用以触发检查点。
      *
      * 对于通过注入 initial barriers （source tasks）来启动检查点的任务，将调用此方法。
      *
      * 相反，下游操作符上的检查点（接收检查点屏障的结果）
      * 调用{@link#triggerCheckpointOnBarrier（CheckpointMetaData，CheckpointOptions，CheckpointMetricsBuilder）}
      * 方法。
-     *
      *
      * This method is called to trigger a checkpoint, asynchronously by the checkpoint coordinator.
      *
@@ -282,6 +283,9 @@ public abstract class AbstractInvokable {
     }
 
     /**
+     *
+     *
+     *
      * 在所有 input streams 上接收到检查点屏障而触发检查点时，将调用此方法。
      *
      * This method is called when a checkpoint is triggered as a result of receiving checkpoint

@@ -112,6 +112,7 @@ public abstract class CheckpointBarrierHandler implements Closeable {
                         .setBytesProcessedDuringAlignment(latestBytesProcessedDuringAlignment)
                         .setCheckpointStartDelayNanos(latestCheckpointStartDelayNanos);
 
+        //  算子 triggerCheckpointOnBarrier
         toNotifyOnCheckpoint.triggerCheckpointOnBarrier(
                 checkpointMetaData, checkpointBarrier.getCheckpointOptions(), checkpointMetrics);
     }
